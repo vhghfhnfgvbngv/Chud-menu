@@ -60,7 +60,7 @@ namespace GTAG_NotificationLib
             textObj.transform.parent = hudObj.transform;
             notificationText = textObj.AddComponent<Text>();
             notificationText.text = "";
-            notificationText.fontSize = 36;
+            notificationText.fontSize = 32;
             notificationText.font = MalachiTemp.UI.WristMenu.MenuFont;
             notificationText.rectTransform.sizeDelta = new Vector2(800, 200);
             notificationText.alignment = TextAnchor.LowerLeft;

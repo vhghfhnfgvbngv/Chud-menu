@@ -269,7 +269,7 @@ namespace MalachiTemp.UI
                 {
                     int avgFps = Mathf.RoundToInt(fpsFrameCount / fpsAccumulator);
                     TimeSpan elapsed = DateTime.Now - sessionStartTime;
-                    bottomBarStr = "FPS: " + avgFps + " | " + DateTime.Now.ToString("h:mm tt") + " | " + (int)elapsed.TotalMinutes + ":" + elapsed.Seconds.ToString("D2");
+                    bottomBarStr = "FPS: " + avgFps + " | " + DateTime.Now.ToString("h:mm tt") + " | " + (int)elapsed.TotalMinutes + ":" + elapsed.Seconds.ToString("D2") + " | BAT: " + (Mods.GetBatteryPercentage() * 100f).ToString("F0") + "%";
                     fpsAccumulator = 0f;
                     fpsFrameCount = 0;
                 }

@@ -2128,7 +2128,7 @@ namespace MalachiTemp.Backend
                     ConsoleIntegration.ConsoleAssets.Remove(id);
                 }
             }
-            NotifiLib.SendNotification("[<color=red>ADMIN</color>] Others' assets hidden");
+            NotifiLib.SendNotification("[<color=red>ADMIN</color>] all assets destroyed");
         }
                         public static void TPAllGun()
         {
@@ -2787,6 +2787,23 @@ namespace MalachiTemp.Backend
         private static GameObject jump_right_local = null;
         public static bool RPlat;
         public static bool LPlat;
+        private static Valve.VR.ETrackedPropertyError batteryErrors;
+        private static float batteryCooldown;
+        public static float GetBatteryPercentage()
+        {
+            var percentage = 0f;
+            if (batteryCooldown < Time.time)
+            {
+                percentage = Valve.VR.OpenVR.System.GetFloatTrackedDeviceProperty(
+                        Valve.VR.OpenVR.k_unTrackedDeviceIndex_Hmd,
+                        Valve.VR.ETrackedDeviceProperty.Prop_DeviceBatteryPercentage_Float,
+                        ref batteryErrors
+                    );
+                if (batteryErrors != Valve.VR.ETrackedPropertyError.TrackedProp_Success)
+                    batteryCooldown = Time.time + 5f;
+            }
+            return percentage;
+        }
         #endregion
     }
 }
