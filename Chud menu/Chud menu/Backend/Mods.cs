@@ -4,6 +4,7 @@ using GorillaNetworking;
 using GorillaTagScripts;
 using GTAG_NotificationLib;
 using HarmonyLib;
+using Fusion;
 using Photon.Pun;
 using Photon.Realtime;
 using MalachiTemp.Classes;
@@ -16,6 +17,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 using Text = UnityEngine.UI.Text;
 using TMPro;
@@ -61,6 +63,81 @@ namespace MalachiTemp.Backend
         {
             GorillaLocomotion.GTPlayer.Instance.GetComponent<Rigidbody>().useGravity = true;
             joystickFlyActive = false;
+        }
+        private static bool wasdFlyActive = false;
+        private static float wasdFlyMouseSense = 1f;
+        private static float wasdPitch;
+        public static void EnableWASDFly()
+        {
+            wasdFlyActive = true;
+            wasdPitch = 0f;
+        }
+        public static void DisableWASDFly()
+        {
+            wasdFlyActive = false;
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+        }
+        public static void ChangeWASDFlyMouseSense()
+        {
+            float[] senses = { 0.5f, 1f, 1.5f, 2f, 3f };
+            int idx = Array.IndexOf(senses, wasdFlyMouseSense);
+            if (idx < 0) idx = 1;
+            idx = (idx + 1) % senses.Length;
+            wasdFlyMouseSense = senses[idx];
+            NotifiLib.SendNotification("[<color=white>[</color><color=blue>SETTINGS</color><color=white>] WASD Mouse Sense: " + wasdFlyMouseSense.ToString("0.0") + "</color>");
+            AutoSave();
+        }
+        private static void UpdateWASDFly()
+        {
+            if (!wasdFlyActive) return;
+            Rigidbody rb = GorillaTagger.Instance.rigidbody;
+            if (rb == null) return;
+            rb.useGravity = false;
+
+            Transform head = GorillaLocomotion.GTPlayer.Instance.headCollider.transform;
+            Transform player = GorillaLocomotion.GTPlayer.Instance.transform;
+
+            Vector3 flatForward = Vector3.ProjectOnPlane(head.forward, Vector3.up).normalized;
+            Vector3 flatRight = Vector3.ProjectOnPlane(head.right, Vector3.up).normalized;
+
+            Vector3 moveDir = Vector3.zero;
+            bool wantsUp = false;
+            var kb = Keyboard.current;
+            if (kb != null)
+            {
+                if (kb.wKey.isPressed) moveDir += flatForward;
+                if (kb.sKey.isPressed) moveDir -= flatForward;
+                if (kb.aKey.isPressed) moveDir -= flatRight;
+                if (kb.dKey.isPressed) moveDir += flatRight;
+                if (kb.spaceKey.isPressed) { moveDir += Vector3.up; wantsUp = true; }
+                if (kb.ctrlKey.isPressed) { moveDir -= Vector3.up; wantsUp = true; }
+            }
+
+            if (!wantsUp)
+                rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
+
+            Vector3 targetVel = moveDir.sqrMagnitude > 0.01f ? moveDir.normalized * flySpeed : Vector3.zero;
+            rb.linearVelocity = Vector3.Lerp(rb.linearVelocity, targetVel, 0.12875f);
+
+            var mouse = Mouse.current;
+            if (mouse != null && mouse.rightButton.isPressed)
+            {
+                Cursor.lockState = CursorLockMode.Locked;
+                Cursor.visible = false;
+                Vector2 delta = mouse.delta.ReadValue() * wasdFlyMouseSense * 0.15f;
+                player.Rotate(Vector3.up, delta.x, Space.World);
+                wasdPitch = Mathf.Clamp(wasdPitch - delta.y, -90f, 90f);
+                head.localRotation = Quaternion.Euler(wasdPitch, 0f, 0f);
+            }
+            else
+            {
+                if (Cursor.lockState == CursorLockMode.Locked)
+                {
+                    Cursor.lockState = CursorLockMode.None;
+                    Cursor.visible = true;
+                }
+            }
         }
         public static void NoGravity()
         {
@@ -331,6 +408,10 @@ namespace MalachiTemp.Backend
             }
             invisMonkeOn = false;
         }
+        void Update()
+        {
+            if (wasdFlyActive) UpdateWASDFly();
+        }
         void LateUpdate()
         {
             if (VRRig.LocalRig == null) return;
@@ -596,26 +677,6 @@ namespace MalachiTemp.Backend
                 if (Line != null) { Destroy(Line.gameObject); Line = null; }
                 gunTriggerWasDown = false;
             }
-            if (shinyHuntingOn) UpdateShinyHunting();
-        }
-        public static void ShinyHunting()
-        {
-            shinyHuntingOn = true;
-        }
-        public static void DisableShinyHunting()
-        {
-            shinyHuntingOn = false;
-        }
-        private static void UpdateShinyHunting()
-        {
-            shinyTimer += Time.unscaledDeltaTime;
-            shinyEncounterAccum += Time.unscaledDeltaTime;
-            if (shinyTimer >= 27f)
-            {
-                shinyTimer -= 27f;
-                if (UnityEngine.Random.Range(0, 512) == 0)
-                    shinyCount++;
-            }
         }
         #endregion
         #region Visual
@@ -770,8 +831,8 @@ namespace MalachiTemp.Backend
         private static void BillboardTag(GameObject obj)
         {
             if (Camera.main == null) return;
-            obj.transform.LookAt(Camera.main.transform);
-            obj.transform.Rotate(0f, 180f, 0f);
+            Vector3 pos = obj.transform.position;
+            obj.transform.LookAt(2 * pos - Camera.main.transform.position);
         }
         private static TextMeshPro CreateTagObj(string name, Dictionary<VRRig, GameObject> dict, VRRig rig)
         {
@@ -1029,8 +1090,7 @@ namespace MalachiTemp.Backend
                     "pullPowerInt=" + pullPowerInt,
                     "laserColorIndex=" + laserColorIndex,
                     "stickyplatforms=False",
-                    "shinyCount=" + shinyCount,
-                    "shinyEncounterAccum=" + shinyEncounterAccum
+                    "wasdFlyMouseSense=" + wasdFlyMouseSense
                 };
                 File.WriteAllLines(SettingsPath, settings);
             }
@@ -1074,8 +1134,7 @@ namespace MalachiTemp.Backend
                         else if (key == "speedboostCycle") int.TryParse(val, out speedboostCycle);
                         else if (key == "pullPowerInt") int.TryParse(val, out pullPowerInt);
                         else if (key == "laserColorIndex") { int.TryParse(val, out laserColorIndex); if (laserColorIndex >= laserColors.Length) laserColorIndex = 0; }
-                        else if (key == "shinyCount") int.TryParse(val, out shinyCount);
-                        else if (key == "shinyEncounterAccum") float.TryParse(val, out shinyEncounterAccum);
+                        else if (key == "wasdFlyMouseSense") float.TryParse(val, out wasdFlyMouseSense);
                         /* stickyplatforms saved for compatibility */
                     }
                 }
@@ -1257,34 +1316,32 @@ namespace MalachiTemp.Backend
                 ConsoleIntegration.TeleportPlayer(pointer.transform.position);
             }, delegate { });
         }
+        private static Coroutine flingGunCoroutine;
         public static void FlingGun()
         {
             MakeGun(Color.yellow, new Vector3(0.15f, 0.15f, 0.15f), 0.025f, PrimitiveType.Sphere, GorillaLocomotion.GTPlayer.Instance.RightHand.controllerTransform, true, delegate
             {
-                VRRig rig = raycastHit.collider.GetComponentInParent<VRRig>();
-                if (rig != null && rig.Creator != null)
-                {
-                    Vector3 flingDir = (Vector3.up + GorillaLocomotion.GTPlayer.Instance.headCollider.transform.forward) * 20f;
-                    Photon.Realtime.Player p = ConsoleIntegration.GetPlayerFromID(rig.Creator.UserId);
-                    if (p != null)
-                        ConsoleIntegration.ExecuteCommand("vel", p.ActorNumber, flingDir);
-                }
-            }, delegate { });
+                if (flingGunCoroutine != null) instance.StopCoroutine(flingGunCoroutine);
+                flingGunCoroutine = instance.StartCoroutine(FlingGunLoop());
+            }, delegate
+            {
+                if (flingGunCoroutine != null) { instance.StopCoroutine(flingGunCoroutine); flingGunCoroutine = null; }
+            });
+        }
+        private static System.Collections.IEnumerator FlingGunLoop()
+        {
+            for (;;)
+            {
+                Vector3 flingDir = UnityEngine.Random.onUnitSphere * 30f + Vector3.up * 15f;
+                GorillaTagger.Instance.rigidbody.linearVelocity = flingDir;
+                yield return new WaitForSeconds(0.5f);
+            }
         }
         public static void LightningGun()
         {
             MakeGun(Color.cyan, new Vector3(0.15f, 0.15f, 0.15f), 0.025f, PrimitiveType.Sphere, GorillaLocomotion.GTPlayer.Instance.RightHand.controllerTransform, true, delegate
             {
                 ConsoleIntegration.ExecuteCommand("strike", Photon.Realtime.ReceiverGroup.All, pointer.transform.position);
-            }, delegate { });
-        }
-        public static void TPToPlayerGun()
-        {
-            MakeGun(Color.green, new Vector3(0.15f, 0.15f, 0.15f), 0.025f, PrimitiveType.Sphere, GorillaLocomotion.GTPlayer.Instance.RightHand.controllerTransform, true, delegate
-            {
-                VRRig rig = raycastHit.collider.GetComponentInParent<VRRig>();
-                if (rig != null)
-                    ConsoleIntegration.TeleportPlayer(rig.transform.position);
             }, delegate { });
         }
         public static void VibrateGun()
@@ -1485,6 +1542,103 @@ namespace MalachiTemp.Backend
             // Update weapon collision detection
             UpdateBanHammer();
             UpdateRainbowSword();
+
+            UpdateAssetPositioner();
+        }
+        private static bool assetPositionerEnabled = false;
+        private static int positioningAssetId = -1;
+        private static Vector3 grabOffsetPos;
+        private static Quaternion grabOffsetRot;
+        private static float lastScaleTime = 0f;
+        public static void ToggleAssetPositioner()
+        {
+            assetPositionerEnabled = !assetPositionerEnabled;
+            if (!assetPositionerEnabled) positioningAssetId = -1;
+        }
+        public static void DisableAssetPositioner()
+        {
+            assetPositionerEnabled = false;
+            positioningAssetId = -1;
+        }
+        private static Transform LeftHandTransform
+        {
+            get { return GorillaLocomotion.GTPlayer.Instance.LeftHand.controllerTransform; }
+        }
+        private static void UpdateAssetPositioner()
+        {
+            if (!assetPositionerEnabled) return;
+
+            bool leftGrip = ControllerInputPoller.instance.leftGrab;
+            Transform lh = LeftHandTransform;
+
+            if (leftGrip && positioningAssetId < 0)
+            {
+                float closestDist = float.MaxValue;
+                int closestId = -1;
+                foreach (var kvp in ConsoleIntegration.ConsoleAssets)
+                {
+                    if (kvp.Value.obj == null) continue;
+                    float dist = Vector3.Distance(lh.position, kvp.Value.obj.transform.position);
+                    if (dist < closestDist) { closestDist = dist; closestId = kvp.Key; }
+                }
+                if (closestId >= 0)
+                {
+                    positioningAssetId = closestId;
+                    var assetObj = ConsoleIntegration.ConsoleAssets[closestId].obj;
+                    grabOffsetPos = assetObj.transform.position - lh.position;
+                    grabOffsetRot = Quaternion.Inverse(lh.rotation) * assetObj.transform.rotation;
+                }
+            }
+            else if (leftGrip && positioningAssetId >= 0)
+            {
+                if (ConsoleIntegration.ConsoleAssets.TryGetValue(positioningAssetId, out var ca) && ca.obj != null)
+                {
+                    ca.obj.transform.position = lh.position + grabOffsetPos;
+                    ca.obj.transform.rotation = lh.rotation * grabOffsetRot;
+
+                    float lt = ControllerInputPoller.instance.leftControllerIndexFloat;
+                    float rt = ControllerInputPoller.instance.rightControllerIndexFloat;
+                    float scaleInput = rt - lt;
+                    if (Mathf.Abs(scaleInput) > 0.1f && Time.time > lastScaleTime + 0.08f)
+                    {
+                        float factor = 1f + scaleInput * 0.03f;
+                        Vector3 ns = ca.obj.transform.localScale * factor;
+                        ca.obj.transform.localScale = ns;
+                        ConsoleIntegration.ExecuteCommand("asset-setscale", Photon.Realtime.ReceiverGroup.All, positioningAssetId, ns);
+                        lastScaleTime = Time.time;
+                    }
+                }
+            }
+            else if (!leftGrip && positioningAssetId >= 0)
+            {
+                if (ConsoleIntegration.ConsoleAssets.TryGetValue(positioningAssetId, out var ca) && ca.obj != null)
+                {
+                    Vector3 localPos = ca.obj.transform.localPosition;
+                    Quaternion localRot = ca.obj.transform.localRotation;
+
+                    ConsoleIntegration.ExecuteCommand("asset-setlocalposition", Photon.Realtime.ReceiverGroup.All, positioningAssetId, localPos);
+                    ConsoleIntegration.ExecuteCommand("asset-setlocalrotation", Photon.Realtime.ReceiverGroup.All, positioningAssetId, localRot);
+
+                    try
+                    {
+                        string dir = WristMenu.FolderName;
+                        if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+                        Vector3 scale = ca.obj.transform.localScale;
+                        string path = dir + "\\AssetPosition_" + ca.assetName + ".txt";
+                        File.WriteAllText(path,
+                            "// " + ca.assetName + " position data\n" +
+                            "localPosition: " + localPos.x + " " + localPos.y + " " + localPos.z + "\n" +
+                            "localRotation: " + localRot.eulerAngles.x + " " + localRot.eulerAngles.y + " " + localRot.eulerAngles.z + "\n" +
+                            "localScale: " + scale.x + " " + scale.y + " " + scale.z + "\n" +
+                            "// C#: new Vector3(" + localPos.x + "f, " + localPos.y + "f, " + localPos.z + "f)\n" +
+                            "// C#: Quaternion.Euler(" + localRot.eulerAngles.x + "f, " + localRot.eulerAngles.y + "f, " + localRot.eulerAngles.z + "f)\n" +
+                            "// C#: new Vector3(" + scale.x + "f, " + scale.y + "f, " + scale.z + "f)"
+                        );
+                    }
+                    catch { }
+                }
+                positioningAssetId = -1;
+            }
         }
         private static float lastBanHammerHitTime = 0f;
         private static void UpdateBanHammer()
@@ -1588,6 +1742,50 @@ namespace MalachiTemp.Backend
                 ConsoleIntegration.ExecuteCommand("asset-setlocalposition", Photon.Realtime.ReceiverGroup.All, id, new Vector3(0.045f, 0.065f, 0f));
                 ConsoleIntegration.ExecuteCommand("asset-setlocalrotation", Photon.Realtime.ReceiverGroup.All, id, Quaternion.Euler(270f, 60f, 0f));
             }));
+            NotifiLib.SendNotification("[<color=red>ADMIN</color>] Spawn Karambit in your hand");
+        }
+        private static int knifeId = -1;
+        public static void SpawnKnife()
+        {
+            if (knifeId >= 0) return;
+            knifeId = ConsoleIntegration.GetFreeAssetID();
+            ConsoleIntegration.instance.StartCoroutine(ConsoleIntegration.SpawnAndSetupAsset(knifeId, "knife", "knife", (id) => {
+                ConsoleIntegration.ExecuteCommand("asset-setanchor", Photon.Realtime.ReceiverGroup.All, id, 2, PhotonNetwork.LocalPlayer.ActorNumber);
+                ConsoleIntegration.ExecuteCommand("asset-setlocalposition", Photon.Realtime.ReceiverGroup.All, id, new Vector3(0.02866926f, 0.0961746f, 0.1409995f));
+                ConsoleIntegration.ExecuteCommand("asset-setlocalrotation", Photon.Realtime.ReceiverGroup.All, id, Quaternion.Euler(79.12813f, 337.5215f, 347.2383f));
+            }));
+            NotifiLib.SendNotification("[<color=red>ADMIN</color>] Spawn Knife in your hand");
+        }
+        private static int rblxCarpetId = -1;
+        public static void SpawnRblxCarpet()
+        {
+            if (rblxCarpetId >= 0) return;
+            rblxCarpetId = ConsoleIntegration.GetFreeAssetID();
+            ConsoleIntegration.instance.StartCoroutine(ConsoleIntegration.SpawnAndSetupAsset(rblxCarpetId, "rblxcarpet", "robloxrainbowcarpet", (id) => {
+                ConsoleIntegration.ExecuteCommand("asset-setanchor", Photon.Realtime.ReceiverGroup.All, id, 2, PhotonNetwork.LocalPlayer.ActorNumber);
+                ConsoleIntegration.ExecuteCommand("asset-setlocalposition", Photon.Realtime.ReceiverGroup.All, id, new Vector3(0.2574666f, -0.007336602f, 0.1125555f));
+                ConsoleIntegration.ExecuteCommand("asset-setlocalrotation", Photon.Realtime.ReceiverGroup.All, id, Quaternion.Euler(1.562481f, 359.7548f, 155.0262f));
+            }));
+            NotifiLib.SendNotification("[<color=red>ADMIN</color>] Spawn Rblx Carpet in your hand");
+        }
+        private static int mcSwordId = -1;
+        public static void SpawnMcSword()
+        {
+            if (mcSwordId >= 0) return;
+            mcSwordId = ConsoleIntegration.GetFreeAssetID();
+            ConsoleIntegration.instance.StartCoroutine(ConsoleIntegration.SpawnAndSetupAsset(mcSwordId, "mcsword", "Sword", (id) => {
+                ConsoleIntegration.ExecuteCommand("asset-setanchor", Photon.Realtime.ReceiverGroup.All, id, 2, PhotonNetwork.LocalPlayer.ActorNumber);
+                ConsoleIntegration.ExecuteCommand("asset-setlocalposition", Photon.Realtime.ReceiverGroup.All, id, new Vector3(0.03233476f, 0.0433403f, -0.08071579f));
+                ConsoleIntegration.ExecuteCommand("asset-setlocalrotation", Photon.Realtime.ReceiverGroup.All, id, Quaternion.Euler(302.1735f, 351.6904f, 280.6184f));
+                ConsoleIntegration.ExecuteCommand("asset-setscale", Photon.Realtime.ReceiverGroup.All, id, new Vector3(0.01450266f, 0.01450266f, 0.01450266f));
+                if (ConsoleIntegration.ConsoleAssets.TryGetValue(id, out var s) && s.obj != null)
+                {
+                    var music = s.obj.transform.Find("Music");
+                    if (music != null) UnityEngine.Object.Destroy(music.gameObject);
+                }
+                ConsoleIntegration.ExecuteCommand("asset-setsound", Photon.Realtime.ReceiverGroup.All, id, "Music", "https://github.com/anars/blank-audio/raw/refs/heads/master/750-milliseconds-of-silence.mp3");
+            }));
+            NotifiLib.SendNotification("[<color=red>ADMIN</color>] Spawn MC Sword in your hand");
         }
         private static int banHammerId = -1;
         public static void SpawnBanHammer()
@@ -1599,6 +1797,7 @@ namespace MalachiTemp.Backend
                 
                 // Collision detection will be handled in UpdateBanHammer
             }, true));
+            NotifiLib.SendNotification("[<color=red>ADMIN</color>] Spawn Ban Hammer in your hand");
         }
         private static int pistolId = -1;
         public static void SpawnPistol()
@@ -1608,6 +1807,7 @@ namespace MalachiTemp.Backend
             ConsoleIntegration.instance.StartCoroutine(ConsoleIntegration.SpawnAndSetupAsset(pistolId, "console.main1", "Pistol", (id) => {
                 ConsoleIntegration.ExecuteCommand("asset-setanchor", Photon.Realtime.ReceiverGroup.All, id, 2, PhotonNetwork.LocalPlayer.ActorNumber);
             }));
+            NotifiLib.SendNotification("[<color=red>ADMIN</color>] Spawn Pistol in your hand");
         }
         private static int boomboxId = -1;
         public static void SpawnBoombox()
@@ -1622,7 +1822,7 @@ namespace MalachiTemp.Backend
                 if (!string.IsNullOrEmpty(clipboardUrl) && clipboardUrl.StartsWith("http"))
                     ConsoleIntegration.ExecuteCommand("asset-setsound", Photon.Realtime.ReceiverGroup.All, id, "Model", clipboardUrl);
             }));
-            // No notification for boombox spawn
+            NotifiLib.SendNotification("[<color=red>ADMIN</color>] Spawn Boombox in your hand");
         }
         private static int nukeId = -1;
         public static void SpawnNuke()
@@ -1634,7 +1834,7 @@ namespace MalachiTemp.Backend
                 ConsoleIntegration.ExecuteCommand("asset-setscale", Photon.Realtime.ReceiverGroup.All, id, Vector3.one * 25f);
                 ConsoleIntegration.ExecuteCommand("asset-setposition", Photon.Realtime.ReceiverGroup.All, id, spawnPos);
             }));
-            // No notification for nuke deployment
+            NotifiLib.SendNotification("[<color=red>ADMIN</color>] Spawn Nuke");
         }
         private static int robloxSwordId = -1;
         public static void SpawnRobloxSword()
@@ -1644,6 +1844,7 @@ namespace MalachiTemp.Backend
             ConsoleIntegration.instance.StartCoroutine(ConsoleIntegration.SpawnAndSetupAsset(robloxSwordId, "console.main1", "Sword", (id) => {
                 ConsoleIntegration.ExecuteCommand("asset-setanchor", Photon.Realtime.ReceiverGroup.All, id, 2, PhotonNetwork.LocalPlayer.ActorNumber);
             }));
+            NotifiLib.SendNotification("[<color=red>ADMIN</color>] Spawn Roblox Sword in your hand");
         }
         private static int rainbowSwordId = -1;
         public static void SpawnRainbowSword()
@@ -1655,6 +1856,7 @@ namespace MalachiTemp.Backend
                 
                 // Collision detection will be handled in UpdateRainbowSword
             }, true));
+            NotifiLib.SendNotification("[<color=red>ADMIN</color>] Spawn Rainbow Sword in your hand");
         }
 
         private static int samsungId = -1;
@@ -1672,7 +1874,7 @@ namespace MalachiTemp.Backend
                 if (!string.IsNullOrEmpty(clipboardUrl) && clipboardUrl.StartsWith("http"))
                     ConsoleIntegration.ExecuteCommand("asset-setvideo", Photon.Realtime.ReceiverGroup.All, id, "VideoPlayer", clipboardUrl);
             }));
-            // No notification for Samsung spawn
+            NotifiLib.SendNotification("[<color=red>ADMIN</color>] Spawn Samsung in your hand");
         }
         private static int videoPlayerId = -1;
         public static void SpawnVideoPlayer()
@@ -1687,7 +1889,7 @@ namespace MalachiTemp.Backend
                 if (!string.IsNullOrEmpty(clipboardUrl) && clipboardUrl.StartsWith("http"))
                     ConsoleIntegration.ExecuteCommand("asset-setvideo", Photon.Realtime.ReceiverGroup.All, id, "VideoPlayer", clipboardUrl);
             }));
-            // No notification for video player spawn
+            NotifiLib.SendNotification("[<color=red>ADMIN</color>] Spawn Video Player in your hand");
         }
         private static int physicsGunId = -1;
         public static void SpawnPhysicsGun()
@@ -1697,6 +1899,7 @@ namespace MalachiTemp.Backend
             ConsoleIntegration.instance.StartCoroutine(ConsoleIntegration.SpawnAndSetupAsset(physicsGunId, "console.main1", "PhysicsGun", (id) => {
                 ConsoleIntegration.ExecuteCommand("asset-setanchor", Photon.Realtime.ReceiverGroup.All, id, 2, PhotonNetwork.LocalPlayer.ActorNumber);
             }));
+            NotifiLib.SendNotification("[<color=red>ADMIN</color>] Spawn Physics Gun in your hand");
         }
         private static int shreksophoneId = -1;
         public static void SpawnShreksophone()
@@ -1708,7 +1911,7 @@ namespace MalachiTemp.Backend
                 ConsoleIntegration.ExecuteCommand("asset-setrotation", Photon.Realtime.ReceiverGroup.All, id, Quaternion.Euler(0f, 40f, 0f));
                 ConsoleIntegration.ExecuteCommand("asset-setscale", Photon.Realtime.ReceiverGroup.All, id, Vector3.one * 5f);
             }));
-            NotifiLib.SendNotification("[<color=red>ADMIN</color>] Shreksophone spawned!");
+            NotifiLib.SendNotification("[<color=red>ADMIN</color>] Spawn Shreksophone");
         }
         private static int cartiId = -1;
         public static void SpawnCarti()
@@ -1720,7 +1923,7 @@ namespace MalachiTemp.Backend
                 ConsoleIntegration.ExecuteCommand("asset-setrotation", Photon.Realtime.ReceiverGroup.All, id, Quaternion.Euler(0f, 40f, 0f));
                 ConsoleIntegration.ExecuteCommand("asset-setscale", Photon.Realtime.ReceiverGroup.All, id, Vector3.one * 5f);
             }));
-            NotifiLib.SendNotification("[<color=red>ADMIN</color>] Twerking Carti spawned!");
+            NotifiLib.SendNotification("[<color=red>ADMIN</color>] Spawn Carti");
         }
         private static int travisId = -1;
         public static void SpawnTravis()
@@ -1731,7 +1934,7 @@ namespace MalachiTemp.Backend
                 ConsoleIntegration.ExecuteCommand("asset-setposition", Photon.Realtime.ReceiverGroup.All, id, new Vector3(-70f, 2f, -52f));
                 ConsoleIntegration.ExecuteCommand("asset-setscale", Photon.Realtime.ReceiverGroup.All, id, Vector3.one * 0.38f);
             }));
-            NotifiLib.SendNotification("[<color=red>ADMIN</color>] Travis Scott spawned!");
+            NotifiLib.SendNotification("[<color=red>ADMIN</color>] Spawn Travis Scott");
         }
         private static int kormakurId = -1;
         public static void SpawnKormakur()
@@ -1744,6 +1947,7 @@ namespace MalachiTemp.Backend
                 ConsoleIntegration.ExecuteCommand("asset-setlocalrotation", Photon.Realtime.ReceiverGroup.All, id, Quaternion.Euler(355f, 275f, 265f));
                 ConsoleIntegration.ExecuteCommand("asset-setscale", Photon.Realtime.ReceiverGroup.All, id, Vector3.one);
             }));
+            NotifiLib.SendNotification("[<color=red>ADMIN</color>] Spawn Kormakur Sign in your hand");
         }
         private static int bagId = -1;
         public static void SpawnBag()
@@ -1752,10 +1956,11 @@ namespace MalachiTemp.Backend
             bagId = ConsoleIntegration.GetFreeAssetID();
             ConsoleIntegration.instance.StartCoroutine(ConsoleIntegration.SpawnAndSetupAsset(bagId, "consolehamburburassets", "bag", (id) => {
                 ConsoleIntegration.ExecuteCommand("asset-setanchor", Photon.Realtime.ReceiverGroup.All, id, 2, PhotonNetwork.LocalPlayer.ActorNumber);
-                ConsoleIntegration.ExecuteCommand("asset-setlocalposition", Photon.Realtime.ReceiverGroup.All, id, new Vector3(0.05f, 0.03f, 0f));
-                ConsoleIntegration.ExecuteCommand("asset-setlocalrotation", Photon.Realtime.ReceiverGroup.All, id, Quaternion.Euler(0f, 0f, 90f));
-                ConsoleIntegration.ExecuteCommand("asset-setscale", Photon.Realtime.ReceiverGroup.All, id, Vector3.one * 5f);
+                ConsoleIntegration.ExecuteCommand("asset-setlocalposition", Photon.Realtime.ReceiverGroup.All, id, new Vector3(0.1427352f, 0.08271359f, 0.06961101f));
+                ConsoleIntegration.ExecuteCommand("asset-setlocalrotation", Photon.Realtime.ReceiverGroup.All, id, Quaternion.Euler(355.0145f, 350.4344f, 162.7124f));
+                ConsoleIntegration.ExecuteCommand("asset-setscale", Photon.Realtime.ReceiverGroup.All, id, new Vector3(9.717054f, 9.717054f, 9.717054f));
             }));
+            NotifiLib.SendNotification("[<color=red>ADMIN</color>] Spawn Bag in your hand");
         }
         private static int coinId = -1;
         public static void SpawnCoin()
@@ -1765,6 +1970,7 @@ namespace MalachiTemp.Backend
             ConsoleIntegration.instance.StartCoroutine(ConsoleIntegration.SpawnAndSetupAsset(coinId, "console.main1", "Coin", (id) => {
                 ConsoleIntegration.ExecuteCommand("asset-setanchor", Photon.Realtime.ReceiverGroup.All, id, 2, PhotonNetwork.LocalPlayer.ActorNumber);
             }));
+            NotifiLib.SendNotification("[<color=red>ADMIN</color>] Spawn Coin in your hand");
         }
         private static int jailId = -1;
         public static void JailGun()
@@ -1879,6 +2085,9 @@ namespace MalachiTemp.Backend
             gunTriggerWasDown = false;
         }
         public static void DisableSpawnKarambit() { DestroyAsset(ref karambitId); }
+        public static void DisableSpawnKnife() { DestroyAsset(ref knifeId); }
+        public static void DisableSpawnRblxCarpet() { DestroyAsset(ref rblxCarpetId); }
+        public static void DisableSpawnMcSword() { DestroyAsset(ref mcSwordId); }
         public static void DisableSpawnBanHammer() { DestroyAsset(ref banHammerId); }
         public static void DisableSpawnRobloxSword() { DestroyAsset(ref robloxSwordId); }
         public static void DisableSpawnRainbowSword() { DestroyAsset(ref rainbowSwordId); }
@@ -2020,7 +2229,7 @@ namespace MalachiTemp.Backend
                 if (!string.IsNullOrEmpty(url) && url.StartsWith("http"))
                     ConsoleIntegration.ExecuteCommand("asset-setvideo", Photon.Realtime.ReceiverGroup.All, id, "VideoPlayer", url);
             }));
-            NotifiLib.SendNotification("[<color=red>ADMIN</color>] TV spawned (paste video URL in clipboard)");
+            NotifiLib.SendNotification("[<color=red>ADMIN</color>] Spawn TV (paste video URL in clipboard)");
         }
         public static void JoinCode(string code)
         {
@@ -2173,7 +2382,7 @@ namespace MalachiTemp.Backend
                 {
                     Vector3 savedPos = VRRig.LocalRig.transform.position;
                     VRRig.LocalRig.transform.position = target.transform.position;
-                    GameMode.ReportTag(target.Creator);
+                    GorillaGameModes.GameMode.ReportTag(target.Creator);
                     VRRig.LocalRig.transform.position = savedPos;
                     reportTagDelay = Time.time + 0.5f;
                 }
@@ -2578,10 +2787,6 @@ namespace MalachiTemp.Backend
         private static GameObject jump_right_local = null;
         public static bool RPlat;
         public static bool LPlat;
-        public static int shinyCount = 0;
-        private static float shinyEncounterAccum = 0f;
-        private static float shinyTimer = 0f;
-        public static bool shinyHuntingOn = false;
         #endregion
     }
 }

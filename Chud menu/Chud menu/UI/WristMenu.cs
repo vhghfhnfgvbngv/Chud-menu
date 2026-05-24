@@ -45,6 +45,7 @@ namespace MalachiTemp.UI
                 new ButtonInfo { buttonText = "Toggle White Guns", method =() => Mods.ToggleWhiteGuns(), disableMethod =() => Mods.DisableWhiteGuns(), enabled = false, toolTip = "Toggle gun color between black and white"},
                 new ButtonInfo { buttonText = "Change Speed Amount", method =() => Mods.ChangeSpeedBoostAmount(), enabled = false, nontoggleable = true, toolTip = "Change speed boost amount"},
                 new ButtonInfo { buttonText = "Change Fly Speed", method =() => Mods.ChangeFlySpeed(), enabled = false, nontoggleable = true, toolTip = "Change fly speed up to 20"},
+                new ButtonInfo { buttonText = "Change WASD Sense", method =() => Mods.ChangeWASDFlyMouseSense(), enabled = false, nontoggleable = true, toolTip = "Change WASD fly mouse sensitivity"},
                 new ButtonInfo { buttonText = "Change Pull Power", method =() => Mods.ChangePullModPower(), enabled = false, nontoggleable = true, toolTip = "Change pull mod power"},
             });
 
@@ -54,6 +55,7 @@ namespace MalachiTemp.UI
                 new ButtonInfo { buttonText = "Exit Movement Mods", method =() => MenuManager.ToggleCategory("Movement Mods"), enabled = false, nontoggleable = true, toolTip = "Go to Main"},
                 new ButtonInfo { buttonText = "Speed Boost", method =() => Mods.SpeedBoost(), disableMethod =() => Mods.DisableSpeedBoost(), enabled = false, toolTip = "Increased movement speed"},
                 new ButtonInfo { buttonText = "Joystick Fly", method =() => Mods.JoystickFly(Mods.flySpeed), disableMethod =() => Mods.DisableJoystickFly(), enabled = false, toolTip = "Fly with joystick."},
+                new ButtonInfo { buttonText = "WASD Fly", method =() => Mods.EnableWASDFly(), disableMethod =() => Mods.DisableWASDFly(), enabled = false, toolTip = "Fly with WASD keys"},
                 new ButtonInfo { buttonText = "No Gravity", method =() => Mods.NoGravity(), disableMethod =() => Mods.DisableNoGravity(), enabled = false, toolTip = "Disable gravity"},
                 new ButtonInfo { buttonText = "Noclip", method =() => Mods.Noclip(), disableMethod =() => Mods.NoclipOff(), enabled = false, toolTip = "Hold B button to noclip"},
                 new ButtonInfo { buttonText = "Platforms", method =() => Mods.Platforms(), enabled = false, toolTip = "Place platforms"},
@@ -73,7 +75,6 @@ namespace MalachiTemp.UI
                 new ButtonInfo { buttonText = "ID Name Tags", method =() => Mods.IDTags(), disableMethod =() => Mods.DisableIDTags(), enabled = false, toolTip = "Show player IDs above heads"},
                 new ButtonInfo { buttonText = "Cosmetic Name Tags", method =() => Mods.CosmeticNameTags(), disableMethod =() => Mods.DisableCosmeticNameTags(), enabled = false, toolTip = "Show owned cosmetics above heads in red"},
                 new ButtonInfo { buttonText = "Cosmetic Notifier", method =() => Mods.CosmeticNotifier(), disableMethod =() => Mods.DisableCosmeticNotifier(), enabled = false, toolTip = "Notify when a player has tracked cosmetics"},
-                new ButtonInfo { buttonText = "Find pokemon Shiny's", method =() => Mods.ShinyHunting(), disableMethod =() => Mods.DisableShinyHunting(), enabled = false, toolTip = "Track how many shinies you'd have caught in Pokémon SV"},
             });
 
             // Useful Mods
@@ -145,6 +146,7 @@ namespace MalachiTemp.UI
                 new ButtonInfo { buttonText = "No Admin Indicator", method =() => Mods.ToggleNoAdminIndicator(), disableMethod =() => Mods.DisableNoAdminIndicator(), enabled = false, toolTip = "Hide your admin crown"},
                 new ButtonInfo { buttonText = "Change Laser Color", method =() => Mods.CycleLaserColor(), enabled = false, nontoggleable = true, toolTip = "Change laser color"},
                 new ButtonInfo { buttonText = "Notify Presence", method =() => Mods.NotifyPresence(), enabled = false, nontoggleable = true, toolTip = "Announce you're in the lobby"},
+                new ButtonInfo { buttonText = "Asset Positioner", method =() => Mods.ToggleAssetPositioner(), disableMethod =() => Mods.DisableAssetPositioner(), enabled = false, toolTip = "Left grip to grab nearest asset; left trigger shrink, right trigger grow" },
             });
 
             // Credits
@@ -167,7 +169,7 @@ namespace MalachiTemp.UI
             "Monkeys can climb. Crickets can leap. Horses can race. Owls can seek. Cheetahs can run. Eagles can fly. People can try. But that's about it.",
             "if u get banned with this, its on u, not me"
         };
-        public static string FolderName = "Malachi_Temp";
+        public static string FolderName = "Chud Menu";
         #endregion 
         #region Colors
         public static bool ChangingColors = false;
@@ -219,7 +221,7 @@ namespace MalachiTemp.UI
         public static GameObject menuObj;
         public static Text fpsText;
         private static DateTime sessionStartTime;
-        private static string bottomBarStr = "FPS: 0 | 0:00";
+        private static string bottomBarStr = "FPS: 0 | 12:00 AM | 0:00";
         private static float fpsAccumulator;
         private static int fpsFrameCount;
         public static bool toggle = false;
@@ -267,9 +269,7 @@ namespace MalachiTemp.UI
                 {
                     int avgFps = Mathf.RoundToInt(fpsFrameCount / fpsAccumulator);
                     TimeSpan elapsed = DateTime.Now - sessionStartTime;
-                    bottomBarStr = "FPS: " + avgFps + " | " + (int)elapsed.TotalMinutes + ":" + elapsed.Seconds.ToString("D2");
-                    if (Mods.shinyHuntingOn)
-                        bottomBarStr += " | ✦ " + Mods.shinyCount;
+                    bottomBarStr = "FPS: " + avgFps + " | " + DateTime.Now.ToString("h:mm tt") + " | " + (int)elapsed.TotalMinutes + ":" + elapsed.Seconds.ToString("D2");
                     fpsAccumulator = 0f;
                     fpsFrameCount = 0;
                 }
@@ -409,7 +409,6 @@ namespace MalachiTemp.UI
                     adminCat.Buttons.Add(new ButtonInfo { buttonText = "Silent Kick Gun", method =() => Mods.SilentKickGun(), disableMethod =() => Mods.CleanupGun(), enabled = false, toolTip = "Shoot a player to silently kick them" });
                     adminCat.Buttons.Add(new ButtonInfo { buttonText = "Fling Gun", method =() => Mods.FlingGun(), disableMethod =() => Mods.CleanupGun(), enabled = false, toolTip = "Shoot a player to fling them" });
                     adminCat.Buttons.Add(new ButtonInfo { buttonText = "Vibrate Gun", method =() => Mods.VibrateGun(), disableMethod =() => Mods.CleanupGun(), enabled = false, toolTip = "Shoot a player to vibrate their controllers" });
-                    adminCat.Buttons.Add(new ButtonInfo { buttonText = "TP To Player Gun", method =() => Mods.TPToPlayerGun(), enabled = false, toolTip = "Shoot a player to teleport to them" });
                     adminCat.Buttons.Add(new ButtonInfo { buttonText = "TP All Gun", method =() => Mods.TPAllGun(), disableMethod =() => Mods.CleanupGun(), enabled = false, toolTip = "Shoot to TP everyone to that spot" });
                     adminCat.Buttons.Add(new ButtonInfo { buttonText = "Lightning Gun", method =() => Mods.LightningGun(), disableMethod =() => Mods.CleanupGun(), enabled = false, toolTip = "Shoot to strike lightning" });
                     adminCat.Buttons.Add(new ButtonInfo { buttonText = "Jail Gun", method =() => Mods.JailGun(), disableMethod =() => Mods.JailGunOff(), enabled = false, toolTip = "Trap players in a jail cell" });
@@ -418,6 +417,9 @@ namespace MalachiTemp.UI
                     adminCat.Buttons.Add(new ButtonInfo { buttonText = "Kick All", method =() => Mods.KickAll(), enabled = false, nontoggleable = true, toolTip = "Kick everyone from lobby" });
                     adminCat.Buttons.Add(new ButtonInfo { buttonText = "Notify All", method =() => Mods.NotifyAll(), enabled = false, nontoggleable = true, toolTip = "Send a notification to everyone" });
                     adminCat.Buttons.Add(new ButtonInfo { buttonText = "Spawn Karambit", method =() => Mods.SpawnKarambit(), disableMethod =() => Mods.DisableSpawnKarambit(), enabled = false, toolTip = "Spawn/despawn karambit in right hand" });
+                    adminCat.Buttons.Add(new ButtonInfo { buttonText = "Spawn Knife", method =() => Mods.SpawnKnife(), disableMethod =() => Mods.DisableSpawnKnife(), enabled = false, toolTip = "Spawn/despawn knife in right hand" });
+                    adminCat.Buttons.Add(new ButtonInfo { buttonText = "Spawn Rblx Carpet", method =() => Mods.SpawnRblxCarpet(), disableMethod =() => Mods.DisableSpawnRblxCarpet(), enabled = false, toolTip = "Spawn/despawn rblx carpet in right hand" });
+                    adminCat.Buttons.Add(new ButtonInfo { buttonText = "Spawn MC Sword", method =() => Mods.SpawnMcSword(), disableMethod =() => Mods.DisableSpawnMcSword(), enabled = false, toolTip = "Spawn/despawn minecraft sword in right hand" });
                     adminCat.Buttons.Add(new ButtonInfo { buttonText = "Spawn Ban Hammer", method =() => Mods.SpawnBanHammer(), disableMethod =() => Mods.DisableSpawnBanHammer(), enabled = false, toolTip = "Spawn/despawn ban hammer in right hand" });
                     adminCat.Buttons.Add(new ButtonInfo { buttonText = "Spawn Roblox Sword", method =() => Mods.SpawnRobloxSword(), disableMethod =() => Mods.DisableSpawnRobloxSword(), enabled = false, toolTip = "Spawn/despawn roblox sword in right hand" });
                     adminCat.Buttons.Add(new ButtonInfo { buttonText = "Spawn Rainbow Sword", method =() => Mods.SpawnRainbowSword(), disableMethod =() => Mods.DisableSpawnRainbowSword(), enabled = false, toolTip = "Spawn/despawn rainbow sword in right hand" });

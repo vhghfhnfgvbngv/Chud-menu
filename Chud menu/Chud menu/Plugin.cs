@@ -42,6 +42,7 @@ namespace Malachis_Temp
             GameObject go = new GameObject();
             go.AddComponent<Plugin>();
             go.AddComponent<WristMenu>();
+            go.AddComponent<ModGUI>();
             go.AddComponent<Mods>();
             go.AddComponent<GTAG_NotificationLib.NotifiLib>();
             go.AddComponent<CustomPropSetter>();
