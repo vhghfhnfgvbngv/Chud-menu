@@ -78,6 +78,26 @@ namespace MalachiTemp.Backend
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible = true;
         }
+        private static bool flyActive = false;
+        public static void EnableFly()
+        {
+            flyActive = true;
+        }
+        public static void DisableFly()
+        {
+            flyActive = false;
+        }
+        private static void UpdateFly()
+        {
+            if (!flyActive) return;
+            Rigidbody rb = GorillaTagger.Instance.rigidbody;
+            if (rb == null) return;
+            if (ControllerInputPoller.instance != null && ControllerInputPoller.instance.rightControllerSecondaryButton)
+            {
+                GorillaLocomotion.GTPlayer.Instance.transform.position += GorillaTagger.Instance.headCollider.transform.forward * (Time.deltaTime * flySpeed);
+                rb.linearVelocity = Vector3.zero;
+            }
+        }
         public static void ChangeWASDFlyMouseSense()
         {
             float[] senses = { 0.5f, 1f, 1.5f, 2f, 3f };
@@ -411,6 +431,7 @@ namespace MalachiTemp.Backend
         void Update()
         {
             if (wasdFlyActive) UpdateWASDFly();
+            if (flyActive) UpdateFly();
         }
         void LateUpdate()
         {
@@ -1175,25 +1196,6 @@ namespace MalachiTemp.Backend
         public static void ClearNotifications()
         {
             NotifiLib.ClearAllNotifications();
-        }
-        private static bool antiCheatApplied = false;
-        public static void ToggleAntiCheatReports()
-        {
-            if (!antiCheatApplied)
-            {
-                antiCheatApplied = true;
-                AnticheatPatch.showReports = true;
-                NotifiLib.SendNotification("[<color=white>[</color><color=blue>SETTINGS</color><color=white>] Anti Cheat Reports: ON</color>");
-            }
-        }
-        public static void DisableAntiCheatReports()
-        {
-            if (antiCheatApplied)
-            {
-                AnticheatPatch.showReports = false;
-                antiCheatApplied = false;
-                NotifiLib.SendNotification("[<color=white>[</color><color=blue>SETTINGS</color><color=white>] Anti Cheat Reports: OFF</color>");
-            }
         }
         #endregion
         #region Platforms

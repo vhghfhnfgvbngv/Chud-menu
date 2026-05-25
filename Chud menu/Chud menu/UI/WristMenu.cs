@@ -41,7 +41,6 @@ namespace MalachiTemp.UI
                 new ButtonInfo { buttonText = "Exit Settings", method =() => MenuManager.ToggleCategory("Settings"), enabled = false, nontoggleable = true, toolTip = "Go to Main"},
                 new ButtonInfo { buttonText = "Toggle Notifications", method =() => Mods.ToggleNotifications(), disableMethod =() => Mods.DisableNotifications(), enabled = true, toolTip = "Toggle notifications on/off"},
                 new ButtonInfo { buttonText = "Clear Notifications", method =() => Mods.ClearNotifications(), enabled = false, nontoggleable = true, toolTip = "Clear all notifications on screen"},
-                new ButtonInfo { buttonText = "Toggle Anti Cheat Reports", method =() => Mods.ToggleAntiCheatReports(), disableMethod =() => Mods.DisableAntiCheatReports(), enabled = false, toolTip = "Toggle anti cheat report notifications"},
                 new ButtonInfo { buttonText = "Toggle White Guns", method =() => Mods.ToggleWhiteGuns(), disableMethod =() => Mods.DisableWhiteGuns(), enabled = false, toolTip = "Toggle gun color between black and white"},
                 new ButtonInfo { buttonText = "Change Speed Amount", method =() => Mods.ChangeSpeedBoostAmount(), enabled = false, nontoggleable = true, toolTip = "Change speed boost amount"},
                 new ButtonInfo { buttonText = "Change Fly Speed", method =() => Mods.ChangeFlySpeed(), enabled = false, nontoggleable = true, toolTip = "Change fly speed up to 20"},
@@ -53,6 +52,7 @@ namespace MalachiTemp.UI
             MenuManager.AddCategory("Movement Mods", new List<ButtonInfo>
             {
                 new ButtonInfo { buttonText = "Exit Movement Mods", method =() => MenuManager.ToggleCategory("Movement Mods"), enabled = false, nontoggleable = true, toolTip = "Go to Main"},
+                new ButtonInfo { buttonText = "Fly", method =() => Mods.EnableFly(), disableMethod =() => Mods.DisableFly(), enabled = false, toolTip = "Hold B"},
                 new ButtonInfo { buttonText = "Speed Boost", method =() => Mods.SpeedBoost(), disableMethod =() => Mods.DisableSpeedBoost(), enabled = false, toolTip = "Increased movement speed"},
                 new ButtonInfo { buttonText = "Joystick Fly", method =() => Mods.JoystickFly(Mods.flySpeed), disableMethod =() => Mods.DisableJoystickFly(), enabled = false, toolTip = "Fly with joystick."},
                 new ButtonInfo { buttonText = "WASD Fly", method =() => Mods.EnableWASDFly(), disableMethod =() => Mods.DisableWASDFly(), enabled = false, toolTip = "Fly with WASD keys"},
