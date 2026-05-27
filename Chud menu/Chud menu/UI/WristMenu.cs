@@ -5,6 +5,7 @@ using MalachiTemp.UI;
 using MalachiTemp.Utilities;
 using Photon.Pun;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -46,8 +47,9 @@ namespace MalachiTemp.UI
                 new ButtonInfo { buttonText = "Change Fly Speed", method =() => Mods.ChangeFlySpeed(), enabled = false, nontoggleable = true, toolTip = "Change fly speed up to 20"},
                 new ButtonInfo { buttonText = "Change WASD Sense", method =() => Mods.ChangeWASDFlyMouseSense(), enabled = false, nontoggleable = true, toolTip = "Change WASD fly mouse sensitivity"},
                 new ButtonInfo { buttonText = "Change Pull Power", method =() => Mods.ChangePullModPower(), enabled = false, nontoggleable = true, toolTip = "Change pull mod power"},
+                new ButtonInfo { buttonText = "Right Hand", method =() => Mods.EnableRightHand(), disableMethod =() => Mods.DisableRightHand(), enabled = false, toolTip = "Menu on right hand (B) instead of left (Y)"},
             });
-
+            
             // Movement Mods
             MenuManager.AddCategory("Movement Mods", new List<ButtonInfo>
             {
@@ -170,7 +172,60 @@ namespace MalachiTemp.UI
             "if u get banned with this, its on u, not me"
         };
         public static string FolderName = "Chud Menu";
-        #endregion 
+        #endregion
+        #region Animation
+        public static bool Close = false;
+        private const float OPEN_ANIMATION_SPEED = 0.3f;
+        private const float CLOSE_ANIMATION_SPEED = 0.3f;
+        public static IEnumerator OpenAni()
+        {
+            if (menu == null) yield break;
+            float elapsed = 0f;
+            Vector3 startScale = menu.transform.localScale;
+            float playerScale = GorillaLocomotion.GTPlayer.Instance.scale;
+            Vector3 targetScale = new Vector3(0.1f, 0.3f, 0.4f) * playerScale;
+            while (elapsed < OPEN_ANIMATION_SPEED)
+            {
+                if (menu == null) yield break;
+                float t = elapsed / OPEN_ANIMATION_SPEED;
+                float s = 1.70158f;
+                t -= 1f;
+                float bounce = (t * t * ((s + 1f) * t + s) + 1f);
+                menu.transform.localScale = Vector3.LerpUnclamped(startScale, targetScale, bounce);
+                elapsed += Time.deltaTime;
+                yield return null;
+            }
+            if (menu != null)
+                menu.transform.localScale = targetScale;
+        }
+        public static IEnumerator CloseAni()
+        {
+            if (menu == null || Close) yield break;
+            Close = true;
+            float elapsed = 0f;
+            Vector3 startScale = menu.transform.localScale;
+            Vector3 targetScale = Vector3.zero;
+            while (elapsed < CLOSE_ANIMATION_SPEED)
+            {
+                if (menu == null) yield break;
+                float t = elapsed / CLOSE_ANIMATION_SPEED;
+                float s = 1.70158f;
+                float bounce = t * t * ((s + 1f) * t - s);
+                menu.transform.localScale = Vector3.LerpUnclamped(startScale, targetScale, bounce);
+                elapsed += Time.deltaTime;
+                yield return null;
+            }
+            if (menu != null)
+                UnityEngine.Object.Destroy(menu);
+            menu = null;
+            menuObj = null;
+            canvasObj = null;
+            if (reference != null)
+                UnityEngine.Object.Destroy(reference);
+            reference = null;
+            Close = false;
+        }
+        #endregion
         #region Colors
         public static bool ChangingColors = false;
         public static Color FirstColor = Color.blue;
@@ -313,7 +368,12 @@ namespace MalachiTemp.UI
         {
             if (ybuttonDown && !Mods.right)
             {
-                if (menu == null) { instance.Draw(); return; }
+                if (menu == null)
+                {
+                    instance.Draw();
+                    menu.transform.localScale = Vector3.one * 0.001f;
+                    instance.StartCoroutine(OpenAni());
+                }
                 menu.transform.position = GorillaLocomotion.GTPlayer.Instance.LeftHand.controllerTransform.position;
                 menu.transform.rotation = GorillaLocomotion.GTPlayer.Instance.LeftHand.controllerTransform.rotation;
                 if (reference == null)
@@ -325,21 +385,21 @@ namespace MalachiTemp.UI
                 reference.transform.localPosition = PointerPos;
                 reference.transform.localScale = PointerScale;
                 reference.GetComponent<Renderer>().material.color = ChangingColors ? FirstColor : NormalColor;
-                if (menu.GetComponent<Rigidbody>())
-                    Destroy(menu.GetComponent<Rigidbody>());
             }
-            else if (!ybuttonDown && !Mods.right && menu != null && !menu.GetComponent<Rigidbody>())
+            else if (!ybuttonDown && !Mods.right && menu != null && !Close)
             {
                 Destroy(reference); reference = null;
-                var rb = menu.AddComponent<Rigidbody>();
-                rb.isKinematic = false;
-                rb.useGravity = true;
-                rb.linearVelocity = GorillaLocomotion.GTPlayer.Instance.LeftHand.velocityTracker.GetAverageVelocity(true, 0f, false);
+                instance.StartCoroutine(CloseAni());
             }
 
             if (bbuttonDown && Mods.right)
             {
-                if (menu == null) { instance.Draw(); return; }
+                if (menu == null)
+                {
+                    instance.Draw();
+                    menu.transform.localScale = Vector3.one * 0.001f;
+                    instance.StartCoroutine(OpenAni());
+                }
                 menu.transform.position = GorillaLocomotion.GTPlayer.Instance.RightHand.controllerTransform.position;
                 menu.transform.rotation = GorillaLocomotion.GTPlayer.Instance.RightHand.controllerTransform.rotation;
                 menu.transform.RotateAround(menu.transform.position, menu.transform.forward, 180f);
@@ -352,16 +412,11 @@ namespace MalachiTemp.UI
                 reference.transform.localPosition = PointerPos;
                 reference.transform.localScale = PointerScale;
                 reference.GetComponent<Renderer>().material.color = ChangingColors ? FirstColor : NormalColor;
-                if (menu.GetComponent<Rigidbody>())
-                    Destroy(menu.GetComponent<Rigidbody>());
             }
-            else if (!abuttonDown && Mods.right && menu != null && !menu.GetComponent<Rigidbody>())
+            else if (!bbuttonDown && Mods.right && menu != null && !Close)
             {
                 Destroy(reference); reference = null;
-                var rb = menu.AddComponent<Rigidbody>();
-                rb.isKinematic = false;
-                rb.useGravity = true;
-                rb.linearVelocity = GorillaLocomotion.GTPlayer.Instance.RightHand.velocityTracker.GetAverageVelocity(true, 0f, false);
+                instance.StartCoroutine(CloseAni());
             }
         }
         private void UpdateMasterClientStatus()
@@ -876,9 +931,32 @@ internal class BtnCollider : MonoBehaviour
                 GorillaTagger.Instance.StartVibration(true, .01f, 0.001f);
                 VRRig.LocalRig.PlayHandTapLocal(Mods.ButtonSound, false, 0.1f);
             }
+            StartCoroutine(PressAni());
             WristMenu.Toggle(relatedText);
             framePressCooldown = Time.frameCount;
         }
+    }
+    private IEnumerator PressAni()
+    {
+        Vector3 original = transform.localScale;
+        Vector3 pressed = original * 0.85f;
+        float dur = 0.05f;
+        float elapsed = 0f;
+        while (elapsed < dur)
+        {
+            transform.localScale = Vector3.Lerp(original, pressed, elapsed / dur);
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+        transform.localScale = pressed;
+        elapsed = 0f;
+        while (elapsed < dur)
+        {
+            transform.localScale = Vector3.Lerp(pressed, original, elapsed / dur);
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+        transform.localScale = original;
     }
     public string relatedText;
     #endregion

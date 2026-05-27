@@ -699,8 +699,6 @@ namespace MalachiTemp.Backend
                 gunTriggerWasDown = false;
             }
         }
-        #endregion
-        #region Visual
         private static readonly Dictionary<VRRig, GameObject> boxEspObjects = new Dictionary<VRRig, GameObject>();
         public static void BoxEspRender()
         {
@@ -1111,7 +1109,8 @@ namespace MalachiTemp.Backend
                     "pullPowerInt=" + pullPowerInt,
                     "laserColorIndex=" + laserColorIndex,
                     "stickyplatforms=False",
-                    "wasdFlyMouseSense=" + wasdFlyMouseSense
+                    "wasdFlyMouseSense=" + wasdFlyMouseSense,
+                    "right=" + right.ToString()
                 };
                 File.WriteAllLines(SettingsPath, settings);
             }
@@ -1156,6 +1155,7 @@ namespace MalachiTemp.Backend
                         else if (key == "pullPowerInt") int.TryParse(val, out pullPowerInt);
                         else if (key == "laserColorIndex") { int.TryParse(val, out laserColorIndex); if (laserColorIndex >= laserColors.Length) laserColorIndex = 0; }
                         else if (key == "wasdFlyMouseSense") float.TryParse(val, out wasdFlyMouseSense);
+                        else if (key == "right") bool.TryParse(val, out right);
                         /* stickyplatforms saved for compatibility */
                     }
                 }
@@ -2079,7 +2079,6 @@ namespace MalachiTemp.Backend
                 if (grabbedPlayer != null && grabbedPlayer.Creator != null)
                 {
                     ConsoleIntegration.ExecuteCommand("tp", grabbedPlayer.Creator.ActorNumber, VRRig.LocalRig.rightHandTransform.position + new Vector3(0, 0.5f, 0));
-                    GorillaTagger.Instance.rigidbody.linearVelocity = Vector3.zero;
                 }
             }
             else
@@ -2770,6 +2769,15 @@ namespace MalachiTemp.Backend
                 Mathf.Sin(t * 0.5f) * 360f,
                 Mathf.Cos(t * 0.4f) * 360f,
                 Mathf.Sin(t * 0.6f + 1f) * 360f);
+        }
+
+        public static void EnableRightHand()
+        {
+            right = true;
+        }
+        public static void DisableRightHand()
+        {
+            right = false;
         }
 
         #endregion
