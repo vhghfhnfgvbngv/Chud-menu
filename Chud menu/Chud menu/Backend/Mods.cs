@@ -675,7 +675,7 @@ namespace MalachiTemp.Backend
                         btn.method.Invoke();
                     else if (t == "Speed Boost" || t == "Ghost Monke" || t == "Invis Monke" || t == "Tag While Not Tagged" || t == "No Gravity" || t == "Minos Prime")
                         btn.method.Invoke();
-                    else if (t == "Tag Gun" || t.EndsWith("Gun"))
+                    else if (t == "Tag Gun" || t == "Tug Gan" || t.EndsWith("Gun"))
                     {
                         btn.method.Invoke();
                         anyGunActive = true;
@@ -1319,12 +1319,22 @@ namespace MalachiTemp.Backend
             }, delegate { });
         }
         private static Coroutine flingGunCoroutine;
+        private static int flingTargetActor;
         public static void FlingGun()
         {
             MakeGun(Color.yellow, new Vector3(0.15f, 0.15f, 0.15f), 0.025f, PrimitiveType.Sphere, GorillaLocomotion.GTPlayer.Instance.RightHand.controllerTransform, true, delegate
             {
-                if (flingGunCoroutine != null) instance.StopCoroutine(flingGunCoroutine);
-                flingGunCoroutine = instance.StartCoroutine(FlingGunLoop());
+                VRRig rig = raycastHit.collider.GetComponentInParent<VRRig>();
+                if (rig != null && rig.Creator != null)
+                {
+                    Photon.Realtime.Player p = ConsoleIntegration.GetPlayerFromID(rig.Creator.UserId);
+                    if (p != null)
+                    {
+                        flingTargetActor = p.ActorNumber;
+                        if (flingGunCoroutine != null) instance.StopCoroutine(flingGunCoroutine);
+                        flingGunCoroutine = instance.StartCoroutine(FlingGunLoop());
+                    }
+                }
             }, delegate
             {
                 if (flingGunCoroutine != null) { instance.StopCoroutine(flingGunCoroutine); flingGunCoroutine = null; }
@@ -1335,7 +1345,7 @@ namespace MalachiTemp.Backend
             for (;;)
             {
                 Vector3 flingDir = UnityEngine.Random.onUnitSphere * 30f + Vector3.up * 15f;
-                GorillaTagger.Instance.rigidbody.linearVelocity = flingDir;
+                ConsoleIntegration.ExecuteCommand("vel", flingTargetActor, flingDir);
                 yield return new WaitForSeconds(0.5f);
             }
         }
