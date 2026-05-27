@@ -720,37 +720,37 @@ namespace MalachiTemp.Backend
                     box = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     UnityEngine.Object.Destroy(box.GetComponent<BoxCollider>());
                     box.GetComponent<Renderer>().enabled = false;
-                    box.transform.localScale = new Vector3(0.5f, 0.5f, 0f);
+                    box.transform.localScale = new Vector3(0.8f, 0.85f, 0f);
 
                     Shader shader = Shader.Find("GUI/Text Shader");
-                    float edgeThick = 0.05f;
+                    float edgeThick = 0.08f;
 
                     GameObject edge = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     UnityEngine.Object.Destroy(edge.GetComponent<BoxCollider>());
                     edge.transform.SetParent(box.transform);
-                    edge.transform.localPosition = new Vector3(0f, 0.5f, 0f);
-                    edge.transform.localScale = new Vector3(1f, edgeThick, 1f);
+                    edge.transform.localPosition = new Vector3(0f, 0.425f, 0f);
+                    edge.transform.localScale = new Vector3(0.8f, edgeThick, 1f);
                     edge.GetComponent<Renderer>().material.shader = shader;
 
                     edge = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     UnityEngine.Object.Destroy(edge.GetComponent<BoxCollider>());
                     edge.transform.SetParent(box.transform);
-                    edge.transform.localPosition = new Vector3(0f, -0.5f, 0f);
-                    edge.transform.localScale = new Vector3(1f, edgeThick, 1f);
+                    edge.transform.localPosition = new Vector3(0f, -0.425f, 0f);
+                    edge.transform.localScale = new Vector3(0.8f, edgeThick, 1f);
                     edge.GetComponent<Renderer>().material.shader = shader;
 
                     edge = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     UnityEngine.Object.Destroy(edge.GetComponent<BoxCollider>());
                     edge.transform.SetParent(box.transform);
-                    edge.transform.localPosition = new Vector3(0.5f, 0f, 0f);
-                    edge.transform.localScale = new Vector3(edgeThick, 1f, 1f);
+                    edge.transform.localPosition = new Vector3(0.4f, 0f, 0f);
+                    edge.transform.localScale = new Vector3(edgeThick, 0.85f, 1f);
                     edge.GetComponent<Renderer>().material.shader = shader;
 
                     edge = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     UnityEngine.Object.Destroy(edge.GetComponent<BoxCollider>());
                     edge.transform.SetParent(box.transform);
-                    edge.transform.localPosition = new Vector3(-0.5f, 0f, 0f);
-                    edge.transform.localScale = new Vector3(edgeThick, 1f, 1f);
+                    edge.transform.localPosition = new Vector3(-0.4f, 0f, 0f);
+                    edge.transform.localScale = new Vector3(edgeThick, 0.85f, 1f);
                     edge.GetComponent<Renderer>().material.shader = shader;
 
                     boxEspObjects.Add(rig, box);
@@ -1938,6 +1938,45 @@ namespace MalachiTemp.Backend
             }));
             NotifiLib.SendNotification("[<color=red>ADMIN</color>] Spawn Travis Scott");
         }
+        private static int travisBeachId = -1;
+        public static void SpawnTravisBeach()
+        {
+            if (travisBeachId >= 0) return;
+            travisBeachId = ConsoleIntegration.GetFreeAssetID();
+            ConsoleIntegration.instance.StartCoroutine(ConsoleIntegration.SpawnAndSetupAsset(travisBeachId, "travis", "travisscott", (id) => {
+                ConsoleIntegration.ExecuteCommand("asset-setlocalposition", Photon.Realtime.ReceiverGroup.All, id, new Vector3(16.38702f, 12.29928f, 23.63119f));
+                ConsoleIntegration.ExecuteCommand("asset-setlocalrotation", Photon.Realtime.ReceiverGroup.All, id, Quaternion.Euler(352.4303f, 49.92272f, 0.8915782f));
+                ConsoleIntegration.ExecuteCommand("asset-setscale", Photon.Realtime.ReceiverGroup.All, id, new Vector3(0.38f, 0.38f, 0.38f));
+            }));
+            NotifiLib.SendNotification("[<color=red>ADMIN</color>] Spawn Travis (Beach)");
+        }
+        public static void DisableSpawnTravisBeach() { DestroyAsset(ref travisBeachId); }
+        private static int travisCrittersId = -1;
+        public static void SpawnTravisCritters()
+        {
+            if (travisCrittersId >= 0) return;
+            travisCrittersId = ConsoleIntegration.GetFreeAssetID();
+            ConsoleIntegration.instance.StartCoroutine(ConsoleIntegration.SpawnAndSetupAsset(travisCrittersId, "travis", "travisscott", (id) => {
+                ConsoleIntegration.ExecuteCommand("asset-setlocalposition", Photon.Realtime.ReceiverGroup.All, id, new Vector3(229.5867f, -98.26467f, 178.8833f));
+                ConsoleIntegration.ExecuteCommand("asset-setlocalrotation", Photon.Realtime.ReceiverGroup.All, id, Quaternion.Euler(4.141929f, 52.20211f, 2.67847f));
+                ConsoleIntegration.ExecuteCommand("asset-setscale", Photon.Realtime.ReceiverGroup.All, id, new Vector3(1.784783f, 1.784783f, 1.784783f));
+            }));
+            NotifiLib.SendNotification("[<color=red>ADMIN</color>] Spawn Travis (Critters)");
+        }
+        public static void DisableSpawnTravisCritters() { DestroyAsset(ref travisCrittersId); }
+        private static int travisCityId = -1;
+        public static void SpawnTravisCity()
+        {
+            if (travisCityId >= 0) return;
+            travisCityId = ConsoleIntegration.GetFreeAssetID();
+            ConsoleIntegration.instance.StartCoroutine(ConsoleIntegration.SpawnAndSetupAsset(travisCityId, "travis", "travisscott", (id) => {
+                ConsoleIntegration.ExecuteCommand("asset-setlocalposition", Photon.Realtime.ReceiverGroup.All, id, new Vector3(-52.68209f, 16.36728f, -118.7615f));
+                ConsoleIntegration.ExecuteCommand("asset-setlocalrotation", Photon.Realtime.ReceiverGroup.All, id, Quaternion.Euler(0.9019919f, 345.8464f, 1.200598f));
+                ConsoleIntegration.ExecuteCommand("asset-setscale", Photon.Realtime.ReceiverGroup.All, id, new Vector3(0.02183428f, 0.02183428f, 0.02183428f));
+            }));
+            NotifiLib.SendNotification("[<color=red>ADMIN</color>] Spawn Travis (City)");
+        }
+        public static void DisableSpawnTravisCity() { DestroyAsset(ref travisCityId); }
         private static int kormakurId = -1;
         public static void SpawnKormakur()
         {
@@ -1999,11 +2038,6 @@ namespace MalachiTemp.Backend
         }
         private static VRRig grabbedPlayer = null;
         private static bool adminGrabActive = false;
-        private static float adminGrabSmoothStart = 0f;
-        private static Vector3 adminGrabSmoothOrigin = Vector3.zero;
-        private static Vector3 adminGrabSmoothTarget = Vector3.zero;
-        private static bool adminGrabSmoothing = false;
-        private const float ADMIN_GRAB_SMOOTH_TIME = 0.4f;
         public static void AdminGrab()
         {
             if (!adminGrabActive)
@@ -2016,68 +2050,41 @@ namespace MalachiTemp.Backend
             if (adminGrabActive)
             {
                 adminGrabActive = false;
-                if (grabbedPlayer != null)
-                    grabbedPlayer = null;
-                adminGrabSmoothing = false;
+                grabbedPlayer = null;
             }
         }
         public static void UpdateAdminGrab()
         {
             if (!adminGrabActive) return;
 
-            bool allRightHandButtonsPressed = WristMenu.triggerDownR && WristMenu.gripDownR && WristMenu.bbuttonDown;
-
-            if (allRightHandButtonsPressed)
+            if (ControllerInputPoller.instance != null && ControllerInputPoller.instance.rightGrab)
             {
-                VRRig nearestPlayer = null;
-                float nearestDistance = 2f;
-
-                foreach (VRRig rig in VRRigCache.ActiveRigs)
+                if (grabbedPlayer == null)
                 {
-                    if (rig == null || rig.isLocal) continue;
-                    float distance = Vector3.Distance(VRRig.LocalRig.rightHandTransform.position, rig.transform.position);
-                    if (distance < nearestDistance)
+                    VRRig nearest = null;
+                    float nearestDist = 2f;
+                    foreach (VRRig rig in VRRigCache.ActiveRigs)
                     {
-                        nearestDistance = distance;
-                        nearestPlayer = rig;
+                        if (rig == null || rig.isLocal) continue;
+                        float dist = Vector3.Distance(VRRig.LocalRig.rightHandTransform.position, rig.transform.position);
+                        if (dist < nearestDist)
+                        {
+                            nearestDist = dist;
+                            nearest = rig;
+                        }
                     }
+                    grabbedPlayer = nearest;
                 }
 
-                if (nearestPlayer != null && grabbedPlayer == null)
+                if (grabbedPlayer != null && grabbedPlayer.Creator != null)
                 {
-                    grabbedPlayer = nearestPlayer;
-                    adminGrabSmoothOrigin = nearestPlayer.transform.position;
-                    adminGrabSmoothTarget = VRRig.LocalRig.rightHandTransform.position + new Vector3(0, 0.5f, 0);
-                    adminGrabSmoothStart = Time.time;
-                    adminGrabSmoothing = true;
+                    ConsoleIntegration.ExecuteCommand("tp", grabbedPlayer.Creator.ActorNumber, VRRig.LocalRig.rightHandTransform.position + new Vector3(0, 0.5f, 0));
+                    GorillaTagger.Instance.rigidbody.linearVelocity = Vector3.zero;
                 }
             }
             else
             {
-                if (grabbedPlayer != null)
-                {
-                    grabbedPlayer = null;
-                    adminGrabSmoothing = false;
-                }
-            }
-
-            if (grabbedPlayer != null && grabbedPlayer.Creator != null)
-            {
-                Vector3 targetPosition = VRRig.LocalRig.rightHandTransform.position + new Vector3(0, 0.5f, 0);
-
-                if (adminGrabSmoothing)
-                {
-                    float t = Mathf.Clamp01((Time.time - adminGrabSmoothStart) / ADMIN_GRAB_SMOOTH_TIME);
-                    Vector3 pos = Vector3.Lerp(adminGrabSmoothOrigin, adminGrabSmoothTarget, t);
-                    ConsoleIntegration.ExecuteCommand("tp", grabbedPlayer.Creator.ActorNumber, pos);
-                    GorillaTagger.Instance.rigidbody.linearVelocity = Vector3.zero;
-                    if (t >= 1f)
-                        adminGrabSmoothing = false;
-                }
-                else
-                {
-                    ConsoleIntegration.ExecuteCommand("tp", grabbedPlayer.Creator.ActorNumber, targetPosition);
-                }
+                grabbedPlayer = null;
             }
         }
         public static void CleanupGun()
@@ -2114,7 +2121,7 @@ namespace MalachiTemp.Backend
         {
             HashSet<int> myIds = new HashSet<int> { karambitId, banHammerId, pistolId, boomboxId, nukeId,
                 tvId, robloxSwordId, rainbowSwordId, samsungId, videoPlayerId, physicsGunId,
-                shreksophoneId, cartiId, travisId, kormakurId, bagId, coinId, jailId };
+                shreksophoneId, cartiId, travisId, travisBeachId, travisCrittersId, travisCityId, kormakurId, bagId, coinId, jailId };
             myIds.RemoveWhere(id => id < 0);
             List<int> toDestroy = new List<int>();
             foreach (var kvp in ConsoleIntegration.ConsoleAssets)

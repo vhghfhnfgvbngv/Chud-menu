@@ -117,7 +117,7 @@ namespace MalachiTemp.UI
             MenuManager.AddCategory("Infection Mods", new List<ButtonInfo>
             {
                 new ButtonInfo { buttonText = "Exit Infection Mods", method =() => MenuManager.ToggleCategory("Infection Mods"), enabled = false, nontoggleable = true, toolTip = "Go to Main"},
-                new ButtonInfo { buttonText = "Tag Gun", method =() => Mods.TagGun(), enabled = false, toolTip = "Shoot a player to tag them"},
+                new ButtonInfo { buttonText = "Tug Gan", method =() => Mods.TagGun(), enabled = false, toolTip = "Its tag gun"},
             });
 
             // Master Mods
@@ -433,6 +433,9 @@ namespace MalachiTemp.UI
                     adminCat.Buttons.Add(new ButtonInfo { buttonText = "Spawn Video Player", method =() => Mods.SpawnVideoPlayer(), disableMethod =() => Mods.DisableSpawnVideoPlayer(), enabled = false, toolTip = "Hand video player (URL from clipboard)" });
                     adminCat.Buttons.Add(new ButtonInfo { buttonText = "Spawn TV", method =() => Mods.SpawnTV(), disableMethod =() => Mods.DisableSpawnTV(), enabled = false, toolTip = "Spawn TV (video URL from clipboard)" });
                     adminCat.Buttons.Add(new ButtonInfo { buttonText = "Spawn Travis", method =() => Mods.SpawnTravis(), disableMethod =() => Mods.DisableSpawnTravis(), enabled = false, toolTip = "Spawn Travis Scott" });
+                    adminCat.Buttons.Add(new ButtonInfo { buttonText = "Spawn Travis (Beach)", method =() => Mods.SpawnTravisBeach(), disableMethod =() => Mods.DisableSpawnTravisBeach(), enabled = false, toolTip = "Spawn Travis Scott at the beach" });
+                    adminCat.Buttons.Add(new ButtonInfo { buttonText = "Spawn Travis (Critters)", method =() => Mods.SpawnTravisCritters(), disableMethod =() => Mods.DisableSpawnTravisCritters(), enabled = false, toolTip = "Spawn Travis Scott at critters" });
+                    adminCat.Buttons.Add(new ButtonInfo { buttonText = "Spawn Travis (City)", method =() => Mods.SpawnTravisCity(), disableMethod =() => Mods.DisableSpawnTravisCity(), enabled = false, toolTip = "Spawn Travis Scott at city" });
                     adminCat.Buttons.Add(new ButtonInfo { buttonText = "Spawn Shreksophone", method =() => Mods.SpawnShreksophone(), disableMethod =() => Mods.DisableSpawnShreksophone(), enabled = false, toolTip = "Spawn shreksophone in the map" });
                     adminCat.Buttons.Add(new ButtonInfo { buttonText = "Spawn Carti", method =() => Mods.SpawnCarti(), disableMethod =() => Mods.DisableSpawnCarti(), enabled = false, toolTip = "Spawn twerking Carti in the map" });
                     adminCat.Buttons.Add(new ButtonInfo { buttonText = "Spawn Nuke", method =() => Mods.SpawnNuke(), disableMethod =() => Mods.DisableSpawnNuke(), enabled = false, toolTip = "Deploy a nuke above you" });

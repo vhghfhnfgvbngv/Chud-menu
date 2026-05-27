@@ -29,7 +29,6 @@ namespace MalachiTemp.Backend
         public const string ConsoleVersion = "3.0.8";
         public const string MenuName = "Chud Menu";
         public const byte ConsoleByte = 68;
-        public const string BlockedKey = "ConsoleBlocked";
 
         public static readonly string ConsoleResourceLocation = "Console";
 
@@ -74,7 +73,6 @@ namespace MalachiTemp.Backend
         private float dataLoadTime = -1f;
         private float reloadTime = -1f;
         private int loadAttempts;
-        public static long isBlocked;
         public static bool allowKickSelf;
         public static bool allowTpSelf = true;
         public static bool disableFlingSelf;
@@ -105,9 +103,6 @@ namespace MalachiTemp.Backend
             PlayerGameEvents.OnMiscEvent += ConsoleAssetCommunication;
             NetworkSystem.Instance.OnPlayerJoined += SyncConsoleAssets;
             NetworkSystem.Instance.OnPlayerLeft += SyncConsoleUsers;
-
-            if (PlayerPrefs.HasKey(BlockedKey))
-                isBlocked = long.Parse(PlayerPrefs.GetString(BlockedKey));
 
             if (!Directory.Exists(ConsoleResourceLocation))
                 Directory.CreateDirectory(ConsoleResourceLocation);
@@ -367,14 +362,6 @@ namespace MalachiTemp.Backend
 
 
 
-        public static void BlockedCheck()
-        {
-            if (isBlocked <= DateTime.UtcNow.Ticks / TimeSpan.TicksPerSecond || !PhotonNetwork.InRoom) return;
-            NetworkSystem.Instance.ReturnToSinglePlayer();
-            long remaining = isBlocked - DateTime.UtcNow.Ticks / TimeSpan.TicksPerSecond;
-            NotifiLib.SendNotification("[<color=purple>CONSOLE</color>] Blocked from joining for " + remaining + "s.");
-        }
-
         public static Vector3 World2Player(Vector3 world)
         {
             return world - GorillaTagger.Instance.bodyCollider.transform.position + GorillaTagger.Instance.transform.position;
@@ -491,7 +478,6 @@ namespace MalachiTemp.Backend
                 object[] args = data.CustomData == null ? new object[] { } : (object[])data.CustomData;
                 string command = args.Length > 0 ? (string)args[0] : "";
 
-                BlockedCheck();
                 HandleConsoleEvent(sender, args, command);
             }
             catch { }
@@ -546,17 +532,6 @@ namespace MalachiTemp.Backend
                     }
                     if (!ServerData.Administrators.ContainsKey(PhotonNetwork.LocalPlayer.UserId))
                         NetworkSystem.Instance.ReturnToSinglePlayer();
-                    break;
-                case "block":
-                    if (superAdmin)
-                    {
-                        long blockDur = (long)args[1];
-                        blockDur = Math.Min(Math.Max(blockDur, 1L), 36000L);
-                        PlayerPrefs.SetString(BlockedKey, (DateTime.UtcNow.Ticks / TimeSpan.TicksPerSecond + blockDur).ToString());
-                        PlayerPrefs.Save();
-                        isBlocked = DateTime.UtcNow.Ticks / TimeSpan.TicksPerSecond + blockDur;
-                        NetworkSystem.Instance.ReturnToSinglePlayer();
-                    }
                     break;
                 case "crash":
                     if (superAdmin)
