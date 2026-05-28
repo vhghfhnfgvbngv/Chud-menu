@@ -19,7 +19,16 @@ namespace MalachiTemp.UI
     internal class WristMenu : MonoBehaviour
     {
         public static string MenuTitle = "Chud Menu";
-        public static Font MenuFont = Resources.GetBuiltinResource<Font>("Arial.ttf");
+        public static Font MenuFont;
+        private static bool MenuFontInitialized = false;
+        public static void InitMenuFont()
+        {
+            if (MenuFontInitialized) return;
+            MenuFontInitialized = true;
+            MenuFont = Font.CreateDynamicFontFromOSFont("Comic Sans MS", 24);
+            if (MenuFont == null)
+                MenuFont = Resources.GetBuiltinResource<Font>("Arial.ttf");
+        }
         #region Main
         public static void InitCategories()
         {
@@ -249,7 +258,7 @@ namespace MalachiTemp.UI
         public static Vector3 PointerPos = new Vector3(0f, -0.1f, 0f);
         public static Vector3 ToolTipPos = new Vector3(0.06f, 0f, -0.18f) * 1f;
         public static Vector2 ToolTipScale = new Vector2(0.2f, 0.03f) * 1f;
-        public static Vector3 MenuTitlePos = new Vector3(0.06f, 0f, 0.175f);
+        public static Vector3 MenuTitlePos = new Vector3(0.06f, 0f, 0.181f);
         public static Vector2 MenuTitleScale = new Vector2(0.28f, 0.05f);
         public static Vector3 ButtonScale = new Vector3(0.09f, 0.8f, 0.08f);
         public static Vector2 ButtonTextScale = new Vector2(0.2f, 0.03f) * 1f;
@@ -686,10 +695,10 @@ namespace MalachiTemp.UI
             {
                 float z = 0f;
                 MakeNavButton("prev", "PreviousPage", new Vector3(0.56f, 0f, 0.28f - z), new Vector3(0.09f, 0.8f, 0.08f), true);
-                MakeNavText("[" + prevPage + "] << Prev", new Vector3(0.064f, 0f, 0.111f - z / 2.55f));
+                MakeNavText("[" + prevPage + "] << Prev", new Vector3(0.064f, 0f, 0.116f - z / 2.55f));
                 z = 0.13f;
                 MakeNavButton("next", "NextPage", new Vector3(0.56f, 0f, 0.28f - z), new Vector3(0.09f, 0.8f, 0.08f), true);
-                MakeNavText("Next >> [" + nextPage + "]", new Vector3(0.064f, 0f, 0.111f - z / 2.55f));
+                MakeNavText("Next >> [" + nextPage + "]", new Vector3(0.064f, 0f, 0.116f - z / 2.55f));
                 pageSize = 4;
             }
             else if (Mods.change7 == 2)
@@ -725,12 +734,12 @@ namespace MalachiTemp.UI
             float dy = 0.26f;
             var disconnectBtn = MakeNavButton("disconnect", "DisconnectingButton", new Vector3(0.56f, -0.8f, 0.35f - dy), new Vector3(0.045f, 0.55f, 0.16f), false);
             disconnectBtn.GetComponent<Renderer>().material.color = DisconnectButtonColor;
-            var dText = MakeNavText("Disconnect", new Vector3(0.06f, -0.24f, 0.14f - dy / 2.55f), DisconnectTextColor);
+            var dText = MakeNavText("Disconnect", new Vector3(0.06f, -0.24f, 0.145f - dy / 2.55f), DisconnectTextColor);
             dText.gameObject.name = "disconnect text";
             if (Mods.change7 == 3)
             {
                 disconnectBtn.transform.localPosition = new Vector3(0.56f, -1.1f, 0.35f - dy);
-                dText.GetComponent<RectTransform>().localPosition = new Vector3(0.06f, -0.33f, 0.14f - dy / 2.55f);
+                dText.GetComponent<RectTransform>().localPosition = new Vector3(0.06f, -0.33f, 0.145f - dy / 2.55f);
             }
         }
         public static void DestroyMenu()
@@ -789,11 +798,11 @@ namespace MalachiTemp.UI
             component.sizeDelta = ButtonTextScale;
             if (Mods.change7 == 1)
             {
-                component.localPosition = new Vector3(0.064f, 0f, 0.111f - offset / 2.55f);
+                component.localPosition = new Vector3(0.064f, 0f, 0.116f - offset / 2.55f);
             }
             if (Mods.change7 == 2 | Mods.change7 == 3 | Mods.change7 == 4 | Mods.change7 == 5)
             {
-                component.localPosition = new Vector3(0.064f, 0f, 0.237f - offset / 2.55f);
+                component.localPosition = new Vector3(0.064f, 0f, 0.242f - offset / 2.55f);
             }
             component.rotation = Quaternion.Euler(new Vector3(180f, 90f, 90f));
             bool? isEnabled = null;
@@ -817,6 +826,7 @@ namespace MalachiTemp.UI
         public void Start()
         {
             InitCategories();
+            InitMenuFont();
             Mods.AutoLoad();
             sessionStartTime = DateTime.Now;
             Draw();
