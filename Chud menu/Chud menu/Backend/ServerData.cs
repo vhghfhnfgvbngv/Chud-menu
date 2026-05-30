@@ -20,6 +20,7 @@ namespace MalachiTemp.Backend
         public static readonly string ConsoleAssetsURL = "https://raw.githubusercontent.com/Seralyth/Console/refs/heads/master/ServerData";
         public static readonly string ConsoleSuperAdminIcon = "https://raw.githubusercontent.com/vhghfhnfgvbngv/Idfk-bro/main/Chud%20Super%20Admin.png";
         public static readonly string ConsoleAdminIcon = "https://raw.githubusercontent.com/vhghfhnfgvbngv/Idfk-bro/main/Super%20admin%20Flower%20Crown.png";
+        public static readonly string MenuImageURL = "https://raw.githubusercontent.com/vhghfhnfgvbngv/Idfk-bro/main/tung%20tung%20tung%20sahur.jpg";
 
         public static Material adminConeMaterial;
         public static Texture2D adminConeTexture;

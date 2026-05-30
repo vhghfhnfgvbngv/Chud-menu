@@ -69,6 +69,7 @@ namespace MalachiTemp.UI
             return MenuManager.Categories
                 .Select(c => c.Name)
                 .Where(n => n != "Main")
+                .Where(n => n != "Tripple T")
                 .Where(n => isAdmin || (n != "Admin Mods" && n != "Console Settings"))
                 .ToList();
         }

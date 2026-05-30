@@ -11,6 +11,7 @@ using System.IO;
 using System.Linq;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Networking;
 using UnityEngine.UI;
 using Text = UnityEngine.UI.Text;
 
@@ -20,7 +21,19 @@ namespace MalachiTemp.UI
     {
         public static string MenuTitle = "Chud Menu";
         public static Font MenuFont;
+        public static Texture2D menuImage;
         private static bool MenuFontInitialized = false;
+
+        public static IEnumerator LoadMenuImage()
+        {
+            using (UnityWebRequest req = UnityWebRequestTexture.GetTexture(ServerData.MenuImageURL))
+            {
+                yield return req.SendWebRequest();
+                if (req.result == UnityWebRequest.Result.Success)
+                    menuImage = DownloadHandlerTexture.GetContent(req);
+            }
+        }
+
         public static void InitMenuFont()
         {
             if (MenuFontInitialized) return;
@@ -168,6 +181,12 @@ namespace MalachiTemp.UI
                 new ButtonInfo { buttonText = "Malachi", method = null, enabled = false, nontoggleable = true, toolTip = "Temp creator"},
                 new ButtonInfo { buttonText = "Big Pickle AI", method = null, enabled = false, nontoggleable = true, toolTip = "Made most of the mods on the menu"},
                 new ButtonInfo { buttonText = "Seralyth", method = null, enabled = false, nontoggleable = true, toolTip = "has skidded code from Seralyth"},
+                new ButtonInfo { buttonText = "Tripple T", method =() => MenuManager.ToggleCategory("Tripple T"), enabled = false, nontoggleable = true, toolTip = "View Tripple T image"},
+            });
+            
+            MenuManager.AddCategory("Tripple T", new List<ButtonInfo>
+            {
+                new ButtonInfo { buttonText = "Exit Tripple T", method =() => MenuManager.ToggleCategory("Credits"), enabled = false, nontoggleable = true, toolTip = "Go back to Credits"},
             });
 
         }
@@ -593,7 +612,7 @@ namespace MalachiTemp.UI
             titiel = text;
             text.font = MenuFont;
             int yau = pageNumber + 1;
-            text.text = MenuTitle;
+            text.text = MenuManager.CurrentCategoryName == "Tripple T" ? "Tripple T" : MenuTitle;
             text.fontSize = 1;
             text.alignment = TextAnchor.MiddleCenter;
             text.color = MenuTitleColor;
@@ -641,6 +660,18 @@ namespace MalachiTemp.UI
             fpsRT.sizeDelta = ToolTipScale;
             fpsRT.position = new Vector3(0.06f, 0f, -0.18f) * 1f;
             fpsRT.rotation = Quaternion.Euler(new Vector3(180f, 90f, 90f));
+
+            if (MenuManager.CurrentCategoryName == "Tripple T" && menuImage != null)
+            {
+                GameObject imgObj = new GameObject("TrippleTImage");
+                imgObj.transform.SetParent(canvasObj.transform);
+                RawImage ri = imgObj.AddComponent<RawImage>();
+                ri.texture = menuImage;
+                RectTransform riRT = imgObj.GetComponent<RectTransform>();
+                riRT.localPosition = new Vector3(0.064f, 0f, 0f);
+                riRT.sizeDelta = new Vector2(0.18f, 0.20f);
+                riRT.rotation = Quaternion.Euler(180f, 90f, 90f);
+            }
         }
         public static Text titiel;
         private static GameObject MakeNavButton(string name, string relatedText, Vector3 pos, Vector3 scale, bool gradient)
@@ -832,6 +863,7 @@ namespace MalachiTemp.UI
             InitMenuFont();
             Mods.AutoLoad();
             sessionStartTime = DateTime.Now;
+            StartCoroutine(LoadMenuImage());
             Draw();
         }
         public static void Toggle(string relatedText)
