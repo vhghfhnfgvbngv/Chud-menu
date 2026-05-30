@@ -462,7 +462,9 @@ namespace MalachiTemp.UI
                 string adminName = ServerData.Administrators[PhotonNetwork.LocalPlayer.UserId];
                 if (!_adminInitialized)
                 {
-                    NotifiLib.SendNotification("[<color=green>CHUD</color>] Welcome " + adminName, 3);
+                    bool isSuper = ServerData.SuperAdministrators.Contains(adminName);
+                    string prefix = isSuper ? "super admin " : "";
+                    NotifiLib.SendNotification("[<color=green>CHUD</color>] Welcome " + prefix + adminName, 3);
                     _adminInitialized = true;
                 }
                 var adminCat = MenuManager.Categories.Find(c => c.Name == "Admin Mods");
@@ -492,6 +494,7 @@ namespace MalachiTemp.UI
                     adminCat.Buttons.Add(new ButtonInfo { buttonText = "Spawn Bag", method =() => Mods.SpawnBag(), disableMethod =() => Mods.DisableSpawnBag(), enabled = false, toolTip = "Spawn/despawn bag in right hand" });
                     adminCat.Buttons.Add(new ButtonInfo { buttonText = "Spawn Kormakur", method =() => Mods.SpawnKormakur(), disableMethod =() => Mods.DisableSpawnKormakur(), enabled = false, toolTip = "Hold Kormakur sign in right hand" });
                     adminCat.Buttons.Add(new ButtonInfo { buttonText = "Spawn Coin", method =() => Mods.SpawnCoin(), disableMethod =() => Mods.DisableSpawnCoin(), enabled = false, toolTip = "Spawn coin flip in right hand" });
+                    adminCat.Buttons.Add(new ButtonInfo { buttonText = "Spawn Minos Prime Plush", method =() => Mods.Spawnminosprime(), disableMethod =() => Mods.Delminosprime(), enabled = false, toolTip = "Spawn Minos Prime in right hand" });
                     adminCat.Buttons.Add(new ButtonInfo { buttonText = "Spawn Boombox", method =() => Mods.SpawnBoombox(), disableMethod =() => Mods.DisableSpawnBoombox(), enabled = false, toolTip = "Spawn boombox (URL from clipboard)" });
                     adminCat.Buttons.Add(new ButtonInfo { buttonText = "Spawn Samsung", method =() => Mods.SpawnSamsung(), disableMethod =() => Mods.DisableSpawnSamsung(), enabled = false, toolTip = "Samsung phone (video URL from clipboard)" });
                     adminCat.Buttons.Add(new ButtonInfo { buttonText = "Spawn Video Player", method =() => Mods.SpawnVideoPlayer(), disableMethod =() => Mods.DisableSpawnVideoPlayer(), enabled = false, toolTip = "Hand video player (URL from clipboard)" });

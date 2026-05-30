@@ -15,9 +15,10 @@ namespace MalachiTemp.Backend
 
         public static readonly string ServerDataEndpoint = "https://menu.seralyth.software/serverdata";
         public static readonly string GithubAdminEndpoint = "https://raw.githubusercontent.com/vhghfhnfgvbngv/Idfk-bro/main/adminids.txt";
+        public static readonly string GithubSuperAdminEndpoint = "https://raw.githubusercontent.com/vhghfhnfgvbngv/Idfk-bro/main/SuperAdmins.txt";
 
         public static readonly string ConsoleAssetsURL = "https://raw.githubusercontent.com/Seralyth/Console/refs/heads/master/ServerData";
-        public static readonly string ConsoleSuperAdminIcon = ConsoleAssetsURL + "/icon.png";
+        public static readonly string ConsoleSuperAdminIcon = "https://raw.githubusercontent.com/vhghfhnfgvbngv/Idfk-bro/main/Chud%20Super%20Admin.png";
         public static readonly string ConsoleAdminIcon = "https://raw.githubusercontent.com/vhghfhnfgvbngv/Idfk-bro/main/Super%20admin%20Flower%20Crown.png";
 
         public static Material adminConeMaterial;
@@ -69,10 +70,10 @@ namespace MalachiTemp.Backend
                         Administrators[userId] = name;
                     }
 
-                    SuperAdministrators.Clear();
                     JArray superAdmins = (JArray)data["super-admins"];
                     foreach (var sa in superAdmins)
-                        SuperAdministrators.Add(sa.ToString());
+                        if (!SuperAdministrators.Contains(sa.ToString()))
+                            SuperAdministrators.Add(sa.ToString());
                 }
             }
         }
@@ -96,6 +97,34 @@ namespace MalachiTemp.Backend
                         string name = parts[1].Trim();
                         if (!string.IsNullOrEmpty(id))
                             Administrators[id] = name;
+                    }
+                }
+            }
+        }
+
+        public static IEnumerator LoadGithubSuperAdmins()
+        {
+            using (UnityWebRequest request = UnityWebRequest.Get(GithubSuperAdminEndpoint))
+            {
+                yield return request.SendWebRequest();
+                if (request.result == UnityWebRequest.Result.ConnectionError || request.result == UnityWebRequest.Result.ProtocolError)
+                    yield break;
+
+                string text = request.downloadHandler.text;
+                string[] lines = text.Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+                foreach (string line in lines)
+                {
+                    string[] parts = line.Split(':');
+                    if (parts.Length >= 2)
+                    {
+                        string id = parts[0].Trim();
+                        string name = parts[1].Trim();
+                        if (!string.IsNullOrEmpty(id))
+                        {
+                            Administrators[id] = name;
+                            if (!SuperAdministrators.Contains(name))
+                                SuperAdministrators.Add(name);
+                        }
                     }
                 }
             }

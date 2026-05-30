@@ -835,6 +835,7 @@ namespace MalachiTemp.Backend
         private static readonly Dictionary<VRRig, GameObject> nameTagObjects = new Dictionary<VRRig, GameObject>();
         private static readonly Dictionary<VRRig, GameObject> fpsNameTagObjects = new Dictionary<VRRig, GameObject>();
         private static readonly Dictionary<VRRig, GameObject> idNameTagObjects = new Dictionary<VRRig, GameObject>();
+        public static Font comicSansFont;
         private static FieldInfo _fpsField;
         private static int GetFps(VRRig rig)
         {
@@ -853,17 +854,19 @@ namespace MalachiTemp.Backend
             Vector3 pos = obj.transform.position;
             obj.transform.LookAt(2 * pos - Camera.main.transform.position);
         }
-        private static TextMeshPro CreateTagObj(string name, Dictionary<VRRig, GameObject> dict, VRRig rig)
+        private static Text CreateTagObj(string name, Dictionary<VRRig, GameObject> dict, VRRig rig)
         {
+            if (comicSansFont == null)
+                comicSansFont = Font.CreateDynamicFontFromOSFont("Comic Sans MS", 36);
             GameObject go = new GameObject(name);
-            go.transform.localScale = Vector3.one * 0.03f;
-            TextMeshPro tmp = go.AddComponent<TextMeshPro>();
-            tmp.fontSize = 36f;
-            tmp.alignment = TextAlignmentOptions.Center;
-#pragma warning disable 0618
-            tmp.enableWordWrapping = false;
-#pragma warning restore 0618
-            tmp.overflowMode = TextOverflowModes.Overflow;
+            Canvas canvas = go.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.WorldSpace;
+            canvas.transform.localScale = Vector3.one * 0.003f;
+            Text tmp = go.AddComponent<Text>();
+            if (comicSansFont != null) tmp.font = comicSansFont;
+            tmp.fontSize = 30;
+            tmp.horizontalOverflow = HorizontalWrapMode.Overflow;
+            tmp.alignment = TextAnchor.MiddleCenter;
             tmp.color = rig.playerColor;
             dict[rig] = go;
             return tmp;
@@ -903,7 +906,7 @@ namespace MalachiTemp.Backend
                 if (rig.isLocal) continue;
                 if (!nameTagObjects.TryGetValue(rig, out GameObject obj))
                 {
-                    TextMeshPro tmp = CreateTagObj("Chud_Nametag", nameTagObjects, rig);
+                    Text tmp = CreateTagObj("Chud_Nametag", nameTagObjects, rig);
                     obj = tmp.gameObject;
                     string name = rig.Creator?.NickName ?? "?";
                     tmp.text = name.Length > 24 ? name.Substring(0, 24) : name;
@@ -911,7 +914,7 @@ namespace MalachiTemp.Backend
                 }
                 else
                 {
-                    TextMeshPro tmp = obj.GetComponent<TextMeshPro>();
+                    Text tmp = obj.GetComponent<Text>();
                     if (tmp != null)
                     {
                         string name = rig.Creator?.NickName ?? "?";
@@ -936,7 +939,7 @@ namespace MalachiTemp.Backend
                 if (rig.isLocal) continue;
                 if (!fpsNameTagObjects.TryGetValue(rig, out GameObject obj))
                 {
-                    TextMeshPro tmp = CreateTagObj("Chud_FPStag", fpsNameTagObjects, rig);
+                    Text tmp = CreateTagObj("Chud_FPStag", fpsNameTagObjects, rig);
                     obj = tmp.gameObject;
                     string fpsText = GetFps(rig) + " FPS";
                     tmp.text = fpsText.Length > 24 ? fpsText.Substring(0, 24) : fpsText;
@@ -944,7 +947,7 @@ namespace MalachiTemp.Backend
                 }
                 else
                 {
-                    TextMeshPro tmp = obj.GetComponent<TextMeshPro>();
+                    Text tmp = obj.GetComponent<Text>();
                     if (tmp != null)
                     {
                         string fpsText = GetFps(rig) + " FPS";
@@ -969,7 +972,7 @@ namespace MalachiTemp.Backend
                 if (rig.isLocal) continue;
                 if (!idNameTagObjects.TryGetValue(rig, out GameObject obj))
                 {
-                    TextMeshPro tmp = CreateTagObj("Chud_IDtag", idNameTagObjects, rig);
+                    Text tmp = CreateTagObj("Chud_IDtag", idNameTagObjects, rig);
                     obj = tmp.gameObject;
                     string id = rig.Creator?.UserId ?? "?";
                     tmp.text = id.Length > 24 ? id.Substring(0, 24) : id;
@@ -977,7 +980,7 @@ namespace MalachiTemp.Backend
                 }
                 else
                 {
-                    TextMeshPro tmp = obj.GetComponent<TextMeshPro>();
+                    Text tmp = obj.GetComponent<Text>();
                     if (tmp != null)
                     {
                         string id = rig.Creator?.UserId ?? "?";
@@ -1028,7 +1031,7 @@ namespace MalachiTemp.Backend
                 }
                 if (names.Count == 0) continue;
                 string text = string.Join(", ", names);
-                TextMeshPro tmp = CreateTagObj("Chud_CosmeticTag", cosmeticNameTagObjects, rig);
+                Text tmp = CreateTagObj("Chud_CosmeticTag", cosmeticNameTagObjects, rig);
                 tmp.text = text;
                 tmp.color = Color.red;
             }
@@ -2023,6 +2026,23 @@ namespace MalachiTemp.Backend
             }));
             NotifiLib.SendNotification("[<color=red>ADMIN</color>] Spawn Coin in your hand");
         }
+        #region minosprime
+        private static int minosId;
+        public static void Spawnminosprime()
+        {
+            minosId = ConsoleIntegration.GetFreeAssetID();
+            ConsoleIntegration.ExecuteCommand("asset-spawn", Photon.Realtime.ReceiverGroup.All, "minosprime", "minosprime", minosId);
+            ConsoleIntegration.ExecuteCommand("asset-setanchor", Photon.Realtime.ReceiverGroup.All, minosId, 2);
+            ConsoleIntegration.ExecuteCommand("asset-setlocalposition", Photon.Realtime.ReceiverGroup.All, minosId, new Vector3(0.06263994f, 0.05301395f, -0.04137805f));
+            ConsoleIntegration.ExecuteCommand("asset-setlocalrotation", Photon.Realtime.ReceiverGroup.All, minosId, Quaternion.Euler(286.3085f, 201.7456f, 347.1011f));
+            ConsoleIntegration.ExecuteCommand("asset-setscale", Photon.Realtime.ReceiverGroup.All, minosId, Vector3.one * 0.3518889f);
+        }
+
+        public static void Delminosprime()
+        {
+            ConsoleIntegration.ExecuteCommand("asset-destroy", Photon.Realtime.ReceiverGroup.All, minosId);
+        }
+        #endregion
         private static int jailId = -1;
         public static void JailGun()
         {

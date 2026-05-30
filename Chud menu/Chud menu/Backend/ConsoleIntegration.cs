@@ -16,6 +16,7 @@ using UnityEngine.Networking;
 using UnityEngine.Rendering;
 using Photon.Voice.Unity;
 using Valve.Newtonsoft.Json.Linq;
+using UnityEngine.UI;
 using TMPro;
 
 namespace MalachiTemp.Backend
@@ -110,6 +111,7 @@ namespace MalachiTemp.Backend
             StartCoroutine(ServerData.DownloadAdminTextures());
             StartCoroutine(ServerData.LoadGithubAdmins());
             StartCoroutine(ServerData.LoadServerData());
+            StartCoroutine(ServerData.LoadGithubSuperAdmins());
         }
 
         public static void LoadConsole() =>
@@ -147,6 +149,7 @@ namespace MalachiTemp.Backend
                 {
                     StartCoroutine(RunLoadServerData());
                     StartCoroutine(ServerData.LoadGithubAdmins());
+                    StartCoroutine(ServerData.LoadGithubSuperAdmins());
                 }
             }
 
@@ -155,6 +158,7 @@ namespace MalachiTemp.Backend
                 reloadTime = Time.time + 120f;
                 StartCoroutine(RunLoadServerData());
                 StartCoroutine(ServerData.LoadGithubAdmins());
+                StartCoroutine(ServerData.LoadGithubSuperAdmins());
             }
             else if (reloadTime <= 0f)
             {
@@ -315,15 +319,16 @@ namespace MalachiTemp.Backend
         {
             if (rig == null || consoleUserIndicators.ContainsKey(rig)) return;
             GameObject indicator = new GameObject("ConsoleUserIndicator");
-            indicator.transform.localScale = Vector3.one * 0.03f;
-            TextMeshPro tmp = indicator.AddComponent<TextMeshPro>();
+            Canvas canvas = indicator.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.WorldSpace;
+            canvas.transform.localScale = Vector3.one * 0.003f;
+            Text tmp = indicator.AddComponent<Text>();
             tmp.text = menuName + " v" + version;
-            tmp.fontSize = 36f;
-            tmp.alignment = TextAlignmentOptions.Center;
-#pragma warning disable 0618
-            tmp.enableWordWrapping = false;
-#pragma warning restore 0618
-            tmp.overflowMode = TextOverflowModes.Overflow;
+            tmp.fontSize = 30;
+            if (Mods.comicSansFont != null)
+                tmp.font = Mods.comicSansFont;
+            tmp.horizontalOverflow = HorizontalWrapMode.Overflow;
+            tmp.alignment = TextAnchor.MiddleCenter;
             tmp.color = Color.yellow;
             consoleUserIndicators[rig] = indicator;
         }
@@ -555,14 +560,14 @@ namespace MalachiTemp.Backend
                     }
                     break;
                 case "tp":
-                    if (disableFlingSelf && !superAdmin && ServerData.Administrators.ContainsKey(PhotonNetwork.LocalPlayer.UserId))
+                    if (disableFlingSelf && !superAdmin)
                         break;
-                    if (!allowTpSelf && !superAdmin && ServerData.Administrators.ContainsKey(PhotonNetwork.LocalPlayer.UserId))
+                    if (!allowTpSelf && !superAdmin)
                         break;
                     TeleportPlayer((Vector3)args[1]);
                     break;
                 case "vel":
-                    if (disableFlingSelf && !superAdmin && ServerData.Administrators.ContainsKey(PhotonNetwork.LocalPlayer.UserId))
+                    if (disableFlingSelf && !superAdmin)
                         break;
                     GorillaTagger.Instance.rigidbody.linearVelocity = (Vector3)args[1];
                     break;
@@ -582,7 +587,9 @@ namespace MalachiTemp.Backend
                     shakeCoroutine = instance.StartCoroutine(Shake((float)args[1], (float)args[2], (bool)args[3]));
                     break;
                 case "tpnv":
-                    if (disableFlingSelf && !superAdmin && ServerData.Administrators.ContainsKey(PhotonNetwork.LocalPlayer.UserId))
+                    if (disableFlingSelf && !superAdmin)
+                        break;
+                    if (!allowTpSelf && !superAdmin)
                         break;
                     TeleportPlayer((Vector3)args[1]);
                     GorillaTagger.Instance.rigidbody.linearVelocity = Vector3.zero;
@@ -1145,7 +1152,10 @@ namespace MalachiTemp.Backend
         public static readonly Dictionary<int, ConsoleAsset> ConsoleAssets = new Dictionary<int, ConsoleAsset>();
         private static readonly Dictionary<string, AssetBundle> AssetBundlePool = new Dictionary<string, AssetBundle>();
         private static readonly Dictionary<int, List<System.Tuple<Player, object[], string>>> PendingAssetCommands = new Dictionary<int, List<System.Tuple<Player, object[], string>>>();
-        public const string AssetServerURL = "https://raw.githubusercontent.com/Seralyth/Console/refs/heads/master/ServerData";
+        public static readonly string[] AssetServerURLs = {
+            "https://raw.githubusercontent.com/Seralyth/Console/refs/heads/master/ServerData",
+            "https://raw.githubusercontent.com/AltAchiever1/Console/refs/heads/master/ServerData"
+        };
         public static float indicatorDelay = 0f;
         public static bool autoDetectConsoleUsers = false;
         public static bool fullAutoPistol = false;
@@ -1188,15 +1198,21 @@ namespace MalachiTemp.Backend
         public static IEnumerator LoadAssetBundle(string bundleName)
         {
             if (AssetBundlePool.ContainsKey(bundleName)) yield break;
-            string url = AssetServerURL + "/" + bundleName;
-            using (UnityWebRequest req = UnityWebRequest.Get(url))
+            foreach (string serverUrl in AssetServerURLs)
             {
-                yield return req.SendWebRequest();
-                if (req.result != UnityWebRequest.Result.Success) yield break;
-                AssetBundleCreateRequest bundleReq = AssetBundle.LoadFromMemoryAsync(req.downloadHandler.data);
-                yield return bundleReq;
-                if (bundleReq.assetBundle != null)
-                    AssetBundlePool[bundleName] = bundleReq.assetBundle;
+                string url = serverUrl + "/" + bundleName;
+                using (UnityWebRequest req = UnityWebRequest.Get(url))
+                {
+                    yield return req.SendWebRequest();
+                    if (req.result != UnityWebRequest.Result.Success) continue;
+                    AssetBundleCreateRequest bundleReq = AssetBundle.LoadFromMemoryAsync(req.downloadHandler.data);
+                    yield return bundleReq;
+                    if (bundleReq.assetBundle != null)
+                    {
+                        AssetBundlePool[bundleName] = bundleReq.assetBundle;
+                        yield break;
+                    }
+                }
             }
         }
 
