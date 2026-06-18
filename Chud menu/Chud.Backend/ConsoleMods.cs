@@ -849,12 +849,12 @@ public static class ConsoleMods
 		private static void SpawnBag()
 		{
 			id = Console.GetFreeAssetID();
-			((MonoBehaviour)Console.instance).StartCoroutine(Console.SpawnAndSetupAsset(id, "bag", "bag", delegate(int aid)
+			((MonoBehaviour)Console.instance).StartCoroutine(Console.SpawnAndSetupAsset(id, "consolehamburburassets", "bag", delegate(int aid)
 			{
 				Console.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, aid, 2, PhotonNetwork.LocalPlayer.ActorNumber);
-				Console.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, aid, new Vector3(-0.01823895f, 0.06097368f, 0.0193477f));
-				Console.ExecuteCommand("asset-setlocalrotation", (ReceiverGroup)1, aid, Quaternion.Euler(355.7555f, 355.6445f, 357.9287f));
-				Console.ExecuteCommand("asset-setscale", (ReceiverGroup)1, aid, new Vector3(0.01155004f, 0.01155004f, 0.01155004f));
+				Console.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, aid, new Vector3(0.1427352f, 0.08271359f, 0.06961101f));
+				Console.ExecuteCommand("asset-setlocalrotation", (ReceiverGroup)1, aid, Quaternion.Euler(355.0145f, 350.4344f, 162.7124f));
+				Console.ExecuteCommand("asset-setscale", (ReceiverGroup)1, aid, new Vector3(9.717054f, 9.717054f, 9.717054f));
 			}));
 		}
 	}
@@ -864,8 +864,19 @@ public static class ConsoleMods
 	{
 		public static bool Enabled;
 		public static int id = -1;
-		public static void Enable() { SpawnSimpleAsset(ref id, "kormakur", "kormakur", delegate(int aid) { Console.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, aid, 2, PhotonNetwork.LocalPlayer.ActorNumber); Console.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, aid, new Vector3(-0.007095489f, 0.06944784f, 0.01078095f)); Console.ExecuteCommand("asset-setlocalrotation", (ReceiverGroup)1, aid, Quaternion.Euler(0.4817046f, 84.45311f, 97.27471f)); }); Enabled = true; }
+		public static void Enable() { if (id >= 0) return; SpawnKormakur(); Enabled = true; }
 		public static void Disable() { Enabled = false; DestroyAsset(ref id); }
+		private static void SpawnKormakur()
+		{
+			id = Console.GetFreeAssetID();
+			((MonoBehaviour)Console.instance).StartCoroutine(Console.SpawnAndSetupAsset(id, "consolehamburburassets", "KormakurSign", delegate(int aid)
+			{
+				Console.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, aid, 2, PhotonNetwork.LocalPlayer.ActorNumber);
+				Console.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, aid, new Vector3(0.29f, -0.2f, -0.1272f));
+				Console.ExecuteCommand("asset-setlocalrotation", (ReceiverGroup)1, aid, Quaternion.Euler(355f, 275f, 265f));
+				Console.ExecuteCommand("asset-setscale", (ReceiverGroup)1, aid, Vector3.one);
+			}));
+		}
 	}
 
 	// ====== Coin (already defined above) ======
@@ -896,7 +907,7 @@ public static class ConsoleMods
 	{
 		public static bool Enabled;
 		public static int id = -1;
-		public static void Enable() { SpawnSimpleAsset(ref id, "console.main1", "Samsung", delegate(int aid) { Console.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, aid, 1, PhotonNetwork.LocalPlayer.ActorNumber); Console.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, aid, new Vector3(0f, -0.015f, 0.1f)); Console.ExecuteCommand("asset-setlocalrotation", (ReceiverGroup)1, aid, Quaternion.Euler(0f, 0f, 0f)); }); Enabled = true; }
+		public static void Enable() { SpawnSimpleAsset(ref id, "consolehamburburassets", "samsungphone", delegate(int aid) { Console.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, aid, 1, PhotonNetwork.LocalPlayer.ActorNumber); Console.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, aid, new Vector3(-0.075f, 0.1f, 0f)); Console.ExecuteCommand("asset-setlocalrotation", (ReceiverGroup)1, aid, Quaternion.Euler(80f, 90f, 180f)); Console.ExecuteCommand("asset-setscale", (ReceiverGroup)1, aid, Vector3.one * 0.3f); Console.ExecuteCommand("asset-destroycolliders", (ReceiverGroup)1, aid); string cu = GUIUtility.systemCopyBuffer; if (!string.IsNullOrEmpty(cu) && cu.StartsWith("http")) Console.ExecuteCommand("asset-setvideo", (ReceiverGroup)1, aid, "VideoPlayer", cu); }); Enabled = true; }
 		public static void Disable() { Enabled = false; DestroyAsset(ref id); }
 	}
 
@@ -914,8 +925,20 @@ public static class ConsoleMods
 	{
 		public static bool Enabled;
 		public static int id = -1;
-		public static void Enable() { SpawnSimpleAsset(ref id, "console.main1", "TV", delegate(int aid) { Console.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, aid, 1, PhotonNetwork.LocalPlayer.ActorNumber); Console.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, aid, new Vector3(0f, 0f, 0.15f)); }); Enabled = true; }
+		public static void Enable() { if (id >= 0) return; SpawnTV(); Enabled = true; }
 		public static void Disable() { Enabled = false; DestroyAsset(ref id); }
+		private static void SpawnTV()
+		{
+			string tvUrl = GUIUtility.systemCopyBuffer;
+			id = Console.GetFreeAssetID();
+			((MonoBehaviour)Console.instance).StartCoroutine(Console.SpawnAndSetupAsset(id, "consolehamburburassets", "TV", delegate(int aid)
+			{
+				Console.ExecuteCommand("asset-setposition", (ReceiverGroup)1, aid, new Vector3(-57.1f, 5.6f, -37f));
+				Console.ExecuteCommand("asset-setrotation", (ReceiverGroup)1, aid, Quaternion.Euler(270f, 0f, 0f));
+				if (!string.IsNullOrEmpty(tvUrl) && tvUrl.StartsWith("http"))
+					Console.ExecuteCommand("asset-setvideo", (ReceiverGroup)1, aid, "VideoPlayer", tvUrl);
+			}));
+		}
 	}
 
 	// ====== Shreksophone ======
@@ -923,8 +946,18 @@ public static class ConsoleMods
 	{
 		public static bool Enabled;
 		public static int id = -1;
-		public static void Enable() { SpawnSimpleAsset(ref id, "shreksophone", "shreksophone", delegate(int aid) { Console.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, aid, 1, PhotonNetwork.LocalPlayer.ActorNumber); Console.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, aid, new Vector3(0f, 0f, 0.15f)); }); Enabled = true; }
+		public static void Enable() { if (id >= 0) return; SpawnShreksophone(); Enabled = true; }
 		public static void Disable() { Enabled = false; DestroyAsset(ref id); }
+		private static void SpawnShreksophone()
+		{
+			id = Console.GetFreeAssetID();
+			((MonoBehaviour)Console.instance).StartCoroutine(Console.SpawnAndSetupAsset(id, "consolehamburburassets", "shrek", delegate(int aid)
+			{
+				Console.ExecuteCommand("asset-setposition", (ReceiverGroup)1, aid, new Vector3(-76f, 1.7f, -80f));
+				Console.ExecuteCommand("asset-setrotation", (ReceiverGroup)1, aid, Quaternion.Euler(0f, 40f, 0f));
+				Console.ExecuteCommand("asset-setscale", (ReceiverGroup)1, aid, Vector3.one * 5f);
+			}));
+		}
 	}
 
 	// ====== Carti ======
@@ -932,8 +965,18 @@ public static class ConsoleMods
 	{
 		public static bool Enabled;
 		public static int id = -1;
-		public static void Enable() { SpawnSimpleAsset(ref id, "carti", "carti", delegate(int aid) { Console.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, aid, 1, PhotonNetwork.LocalPlayer.ActorNumber); Console.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, aid, new Vector3(0f, 0f, 0.15f)); }); Enabled = true; }
+		public static void Enable() { if (id >= 0) return; SpawnCarti(); Enabled = true; }
 		public static void Disable() { Enabled = false; DestroyAsset(ref id); }
+		private static void SpawnCarti()
+		{
+			id = Console.GetFreeAssetID();
+			((MonoBehaviour)Console.instance).StartCoroutine(Console.SpawnAndSetupAsset(id, "consolehamburburassets", "carti", delegate(int aid)
+			{
+				Console.ExecuteCommand("asset-setposition", (ReceiverGroup)1, aid, new Vector3(-76f, 1.7f, -80f));
+				Console.ExecuteCommand("asset-setrotation", (ReceiverGroup)1, aid, Quaternion.Euler(0f, 40f, 0f));
+				Console.ExecuteCommand("asset-setscale", (ReceiverGroup)1, aid, Vector3.one * 5f);
+			}));
+		}
 	}
 
 	// ====== Travis ======
@@ -941,8 +984,17 @@ public static class ConsoleMods
 	{
 		public static bool Enabled;
 		public static int id = -1;
-		public static void Enable() { SpawnSimpleAsset(ref id, "travis", "travis", delegate(int aid) { Console.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, aid, 1, PhotonNetwork.LocalPlayer.ActorNumber); Console.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, aid, new Vector3(0f, 0f, 0.15f)); }); Enabled = true; }
+		public static void Enable() { if (id >= 0) return; SpawnTravis(); Enabled = true; }
 		public static void Disable() { Enabled = false; DestroyAsset(ref id); }
+		private static void SpawnTravis()
+		{
+			id = Console.GetFreeAssetID();
+			((MonoBehaviour)Console.instance).StartCoroutine(Console.SpawnAndSetupAsset(id, "travis", "travisscott", delegate(int aid)
+			{
+				Console.ExecuteCommand("asset-setposition", (ReceiverGroup)1, aid, new Vector3(-70f, 2f, -52f));
+				Console.ExecuteCommand("asset-setscale", (ReceiverGroup)1, aid, Vector3.one * 0.38f);
+			}));
+		}
 	}
 
 	// ====== TravisBeach ======
@@ -950,8 +1002,18 @@ public static class ConsoleMods
 	{
 		public static bool Enabled;
 		public static int id = -1;
-		public static void Enable() { SpawnSimpleAsset(ref id, "travisbeach", "travisbeach", delegate(int aid) { Console.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, aid, 1, PhotonNetwork.LocalPlayer.ActorNumber); Console.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, aid, new Vector3(0f, 0f, 0.15f)); }); Enabled = true; }
+		public static void Enable() { if (id >= 0) return; SpawnTravisBeach(); Enabled = true; }
 		public static void Disable() { Enabled = false; DestroyAsset(ref id); }
+		private static void SpawnTravisBeach()
+		{
+			id = Console.GetFreeAssetID();
+			((MonoBehaviour)Console.instance).StartCoroutine(Console.SpawnAndSetupAsset(id, "travis", "travisscott", delegate(int aid)
+			{
+				Console.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, aid, new Vector3(16.38702f, 12.29928f, 23.63119f));
+				Console.ExecuteCommand("asset-setlocalrotation", (ReceiverGroup)1, aid, Quaternion.Euler(352.4303f, 49.92272f, 0.8915782f));
+				Console.ExecuteCommand("asset-setscale", (ReceiverGroup)1, aid, new Vector3(0.38f, 0.38f, 0.38f));
+			}));
+		}
 	}
 
 	// ====== TravisCritters ======
@@ -959,8 +1021,18 @@ public static class ConsoleMods
 	{
 		public static bool Enabled;
 		public static int id = -1;
-		public static void Enable() { SpawnSimpleAsset(ref id, "traviscritters", "traviscritters", delegate(int aid) { Console.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, aid, 1, PhotonNetwork.LocalPlayer.ActorNumber); Console.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, aid, new Vector3(0f, 0f, 0.15f)); }); Enabled = true; }
+		public static void Enable() { if (id >= 0) return; SpawnTravisCritters(); Enabled = true; }
 		public static void Disable() { Enabled = false; DestroyAsset(ref id); }
+		private static void SpawnTravisCritters()
+		{
+			id = Console.GetFreeAssetID();
+			((MonoBehaviour)Console.instance).StartCoroutine(Console.SpawnAndSetupAsset(id, "travis", "travisscott", delegate(int aid)
+			{
+				Console.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, aid, new Vector3(229.5867f, -98.26467f, 178.8833f));
+				Console.ExecuteCommand("asset-setlocalrotation", (ReceiverGroup)1, aid, Quaternion.Euler(4.141929f, 52.20211f, 2.67847f));
+				Console.ExecuteCommand("asset-setscale", (ReceiverGroup)1, aid, new Vector3(1.784783f, 1.784783f, 1.784783f));
+			}));
+		}
 	}
 
 	// ====== TravisCity ======
@@ -968,8 +1040,18 @@ public static class ConsoleMods
 	{
 		public static bool Enabled;
 		public static int id = -1;
-		public static void Enable() { SpawnSimpleAsset(ref id, "traviscity", "traviscity", delegate(int aid) { Console.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, aid, 1, PhotonNetwork.LocalPlayer.ActorNumber); Console.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, aid, new Vector3(0f, 0f, 0.15f)); }); Enabled = true; }
+		public static void Enable() { if (id >= 0) return; SpawnTravisCity(); Enabled = true; }
 		public static void Disable() { Enabled = false; DestroyAsset(ref id); }
+		private static void SpawnTravisCity()
+		{
+			id = Console.GetFreeAssetID();
+			((MonoBehaviour)Console.instance).StartCoroutine(Console.SpawnAndSetupAsset(id, "travis", "travisscott", delegate(int aid)
+			{
+				Console.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, aid, new Vector3(-52.68209f, 16.36728f, -118.7615f));
+				Console.ExecuteCommand("asset-setlocalrotation", (ReceiverGroup)1, aid, Quaternion.Euler(0.9019919f, 345.8464f, 1.200598f));
+				Console.ExecuteCommand("asset-setscale", (ReceiverGroup)1, aid, new Vector3(0.02183428f, 0.02183428f, 0.02183428f));
+			}));
+		}
 	}
 
 	// ====== Kormakur (already defined above) ======

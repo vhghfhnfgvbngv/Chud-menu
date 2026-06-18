@@ -5156,12 +5156,12 @@ internal class Mods : MonoBehaviour
 		}
 		if ((Object)(object)WristMenu.menu != (Object)null && !WristMenu.Close)
 		{
-			if (Time.time - networkMenuPosSyncTimer >= 0f)
+			if (Time.time - networkMenuPosSyncTimer >= 0.1f)
 			{
 				networkMenuPosSyncTimer = Time.time;
 				SendMenuPosition();
 			}
-			if (Time.time - networkMenuFullSyncTimer >= 0f)
+			if (Time.time - networkMenuFullSyncTimer >= 1f)
 			{
 				networkMenuFullSyncTimer = Time.time;
 				SendMenuFullState();
