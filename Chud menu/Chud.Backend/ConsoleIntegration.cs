@@ -1690,7 +1690,15 @@ public class Console : MonoBehaviour
 		{
 			if ((Object)(object)audio.clip != (Object)null && audio.playOnAwake)
 			{
-				audio.Play();
+				if (muteRainbowSword && bundleName == "rbsword" && audio.transform.name == "Sword")
+				{
+					audio.Stop();
+					audio.volume = 0f;
+				}
+				else
+				{
+					audio.Play();
+				}
 			}
 		}
 		if (addSurfaceOverride)

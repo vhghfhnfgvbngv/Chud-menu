@@ -14,11 +14,19 @@ using UnityEngine;
 using UnityEngine.XR;
 using Random = UnityEngine.Random;
 using Object = UnityEngine.Object;
+using GTAG_NotificationLib;
 
 namespace Chud.Backend;
 
 public static class ConsoleMods
 {
+	static ConsoleMods()
+	{
+		if (PlayerPrefs.GetInt("ChudMuteRainbowSword", 0) == 1)
+		{
+			Console.muteRainbowSword = true;
+		}
+	}
 	// ====== Helpers that play locally once + sync to others (avoids double-handle from ReceiverGroup.All) ======
 	private static void PlaySound(int id, string path, string clipName)
 	{
@@ -32,15 +40,27 @@ public static class ConsoleMods
 		Console.HandleConsoleEvent(PhotonNetwork.LocalPlayer, new object[] { "asset-playanimation", id, objectName, animationName }, "asset-playanimation");
 	}
 
+	private static void SendLaser(bool enabled, bool rightHand, float r, float g, float b)
+	{
+		Console.ExecuteCommand("laser", (ReceiverGroup)0, enabled, rightHand, r, g, b);
+		Console.HandleConsoleEvent(PhotonNetwork.LocalPlayer, new object[] { "laser", enabled, rightHand, r, g, b }, "laser");
+	}
+
+	private static void SendLaserColor(float r, float g, float b)
+	{
+		Console.ExecuteCommand("laserColor", (ReceiverGroup)0, r, g, b);
+		Console.HandleConsoleEvent(PhotonNetwork.LocalPlayer, new object[] { "laserColor", r, g, b }, "laserColor");
+	}
+
 	// ====== Run Method (called every frame from UpdateActiveMods) ======
 	public static void Run()
 	{
 		if (NoliStar.Enabled) NoliStar.Run();
 		if (BanHammer.Enabled) BanHammer.Run();
 		if (RainbowSword.Enabled) RainbowSword.Run();
+
 		if (PhysicsGun.Enabled) PhysicsGun.Run();
 		if (Laser.Enabled) Laser.Run();
-		if (AssetPositioner.Enabled) AssetPositioner.Run();
 		if (AdminGrab.Enabled) AdminGrab.Run();
 		if (Pistol.Enabled) Pistol.Run();
 		if (Coin.Enabled) Coin.Run();
@@ -222,8 +242,8 @@ public static class ConsoleMods
 				return;
 			if (!bhRayPoint.TryGetComponent(out MeshCollider _))
 				bhRayPoint.gameObject.AddComponent<MeshCollider>();
-			Physics.SphereCast(bhRayPoint.position, 0.2f, bhRayPoint.forward, out RaycastHit bhRay, 0.4f, GTPlayer.Instance.locomotionEnabledLayers);
-			Physics.SphereCast(bhRayPoint.position, 0.2f, bhRayPoint.forward, out RaycastHit bhCRay, 0.4f, GTPlayer.Instance.locomotionEnabledLayers);
+			Physics.SphereCast(bhRayPoint.position, 0.2f, bhRayPoint.forward, out RaycastHit bhRay, 0.4f, Mods.GetNoInvisLayerMask());
+			Physics.SphereCast(bhRayPoint.position, 0.2f, bhRayPoint.forward, out RaycastHit bhCRay, 0.4f, Mods.GetNoInvisLayerMask());
 			Vector3 bhHandVel = GTPlayer.Instance.RightHand.velocityTracker.GetAverageVelocity(true, 0);
 			Vector3 bhBodyVel = GorillaTagger.Instance.rigidbody.linearVelocity;
 			bool bhVelTooHigh = (bhHandVel - bhBodyVel).magnitude > 10f;
@@ -298,9 +318,18 @@ public static class ConsoleMods
 			((MonoBehaviour)Console.instance).StartCoroutine(Console.SpawnAndSetupAsset(id, "rbsword", "Sword", delegate(int assetId)
 			{
 				Console.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, assetId, 2, PhotonNetwork.LocalPlayer.ActorNumber);
-				if (Console.muteRainbowSword)
+				if (Console.muteRainbowSword && Console.ConsoleAssets.TryGetValue(assetId, out var rsAsset) && rsAsset.obj != null)
 				{
-					Console.ExecuteCommand("asset-setvolume", (ReceiverGroup)1, assetId, "Sword", 0f);
+					Transform swordTf = rsAsset.obj.transform.Find("Sword");
+					if (swordTf != null)
+					{
+						AudioSource src = ((Component)swordTf).GetComponent<AudioSource>();
+						if ((Object)(object)src != (Object)null)
+						{
+							src.Stop();
+							src.volume = 0f;
+						}
+					}
 				}
 			}, addSurfaceOverride: true));
 			Enabled = true;
@@ -322,7 +351,7 @@ public static class ConsoleMods
 			Transform rsRayPoint = rsAsset.obj.transform.Find("Sword/HitBox");
 			if (rsRayPoint == null)
 				return;
-			Physics.SphereCast(rsRayPoint.position, 0.1f, rsRayPoint.forward, out RaycastHit rsRay, 0.7f, GTPlayer.Instance.locomotionEnabledLayers);
+			Physics.SphereCast(rsRayPoint.position, 0.1f, rsRayPoint.forward, out RaycastHit rsRay, 0.7f, Mods.GetNoInvisLayerMask());
 			if (Time.time > slashDelayRS && rsRay.collider != null)
 			{
 				try
@@ -370,10 +399,10 @@ public static class ConsoleMods
 			if (id < 0)
 			{
 				id = Console.GetFreeAssetID();
-				((MonoBehaviour)Console.instance).StartCoroutine(Console.SpawnAndSetupAsset(id, "physgun", "physgun", delegate(int assetId)
-				{
-					Console.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, assetId, 2, PhotonNetwork.LocalPlayer.ActorNumber);
-				}));
+			((MonoBehaviour)Console.instance).StartCoroutine(Console.SpawnAndSetupAsset(id, "console.main1", "PhysicsGun", delegate(int assetId)
+			{
+				Console.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, assetId, 2, PhotonNetwork.LocalPlayer.ActorNumber);
+			}));
 			}
 			Enabled = true;
 		}
@@ -401,7 +430,7 @@ public static class ConsoleMods
 			Transform pgRayPoint = pgAsset.obj.transform.Find("raypoint");
 			if (pgRayPoint == null)
 				return;
-			Physics.Raycast(pgRayPoint.position, pgRayPoint.forward, out RaycastHit pgCrosshairRay, 512f, GTPlayer.Instance.locomotionEnabledLayers);
+			Physics.Raycast(pgRayPoint.position, pgRayPoint.forward, out RaycastHit pgCrosshairRay, 512f, Mods.GetNoInvisLayerMask());
 			if (crosshair == null)
 			{
 				crosshair = GameObject.CreatePrimitive((PrimitiveType)0);
@@ -418,15 +447,15 @@ public static class ConsoleMods
 			{
 				if (targetHoldVRRig == null)
 				{
-					Physics.Raycast(pgRayPoint.position, pgRayPoint.forward, out RaycastHit pgHit, 512f, GTPlayer.Instance.locomotionEnabledLayers);
+					Physics.Raycast(pgRayPoint.position, pgRayPoint.forward, out RaycastHit pgHit, 512f, Mods.GetNoInvisLayerMask());
 					VRRig pgNewTarget = pgHit.collider?.GetComponentInParent<VRRig>();
 					if (pgNewTarget != null && !pgNewTarget.isLocal)
 					{
 						targetHoldVRRig = pgNewTarget;
 						rigDistance = pgHit.distance;
-						Console.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, id, "model", "bright");
-						Console.ExecuteCommand("asset-playsound", (ReceiverGroup)1, id, "oneshot", "zap");
-						Console.ExecuteCommand("asset-playsound", (ReceiverGroup)1, id, "constant", "hold");
+						PlayAnimation(id, "model", "bright");
+						PlaySound(id, "oneshot", "zap");
+						PlaySound(id, "constant", "hold");
 					}
 				}
 				else
@@ -448,9 +477,9 @@ public static class ConsoleMods
 				float pgTrigger = ((ControllerInputPoller)ControllerInputPoller.instance).rightControllerIndexFloat;
 				if (pgTrigger > 0.5f)
 					Console.ExecuteCommand("vel", targetHoldVRRig.Creator.ActorNumber, pgRayPoint.forward * 30f);
-				Console.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, id, "model", pgTrigger > 0.5f ? "flash" : "default");
+				PlayAnimation(id, "model", pgTrigger > 0.5f ? "flash" : "default");
 				Console.ExecuteCommand("asset-stopsound", (ReceiverGroup)1, id, "constant");
-				Console.ExecuteCommand("asset-playsound", (ReceiverGroup)1, id, "oneshot", pgTrigger > 0.5f ? ("launch" + Random.Range(1, 4)) : "drop");
+				PlaySound(id, "oneshot", pgTrigger > 0.5f ? ("launch" + Random.Range(1, 4)) : "drop");
 				standaloneTriggerDelay = Time.time + 0.5f;
 				targetHoldVRRig = null;
 			}
@@ -458,14 +487,14 @@ public static class ConsoleMods
 			float pgTrigger2 = ((ControllerInputPoller)ControllerInputPoller.instance).rightControllerIndexFloat;
 			if (pgTrigger2 > 0.5f && !pgGrab && Time.time > standaloneTriggerDelay)
 			{
-				Physics.Raycast(pgRayPoint.position, pgRayPoint.forward, out RaycastHit pgHit2, 512f, GTPlayer.Instance.locomotionEnabledLayers);
+				Physics.Raycast(pgRayPoint.position, pgRayPoint.forward, out RaycastHit pgHit2, 512f, Mods.GetNoInvisLayerMask());
 				VRRig pgTarget2 = pgHit2.collider?.GetComponentInParent<VRRig>();
 				if (pgTarget2 != null && !pgTarget2.isLocal)
 				{
 					standaloneTriggerDelay = Time.time + 0.5f;
 					Console.ExecuteCommand("vel", pgTarget2.Creator.ActorNumber, pgRayPoint.forward * 30f);
-					Console.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, id, "model", "flash");
-					Console.ExecuteCommand("asset-playsound", (ReceiverGroup)1, id, "oneshot", "launch" + Random.Range(1, 4));
+					PlayAnimation(id, "model", "flash");
+					PlaySound(id, "oneshot", "launch" + Random.Range(1, 4));
 				}
 			}
 		}
@@ -494,8 +523,8 @@ public static class ConsoleMods
 		{
 			Enabled = false;
 			Console.laserEnabled = false;
-			Console.ExecuteCommand("laser", (ReceiverGroup)1, false, true);
-			Console.ExecuteCommand("laser", (ReceiverGroup)1, false, false);
+			SendLaser(false, true, 0f, 0f, 0f);
+			SendLaser(false, false, 0f, 0f, 0f);
 			lastLaserLeft = false;
 			lastLaserRight = false;
 		}
@@ -504,7 +533,8 @@ public static class ConsoleMods
 		{
 			laserColorIndex = (laserColorIndex + 1) % laserColors.Length;
 			Color color = GetLaserColor();
-			Console.ExecuteCommand("laserColor", (ReceiverGroup)1, color.r, color.g, color.b);
+			SendLaserColor(color.r, color.g, color.b);
+			NotifiLib.SendNotification("[<color=red>ADMIN</color>] Laser color: " + laserColorNames[laserColorIndex]);
 		}
 
 		public static void Run()
@@ -517,7 +547,7 @@ public static class ConsoleMods
 			{
 				laserDelayRight = Time.time + 0.1f;
 				Color laserColor = GetLaserColor();
-				Console.ExecuteCommand("laser", (ReceiverGroup)1, true, true, laserColor.r, laserColor.g, laserColor.b);
+				SendLaser(true, true, laserColor.r, laserColor.g, laserColor.b);
 				Vector3 val = VRRig.LocalRig.rightHandTransform.right;
 				Vector3 val2 = VRRig.LocalRig.rightHandTransform.position + val * 0.1f;
 				RaycastHit val3 = default(RaycastHit);
@@ -534,7 +564,7 @@ public static class ConsoleMods
 			{
 				laserDelayLeft = Time.time + 0.1f;
 				Color laserColor2 = GetLaserColor();
-				Console.ExecuteCommand("laser", (ReceiverGroup)1, true, false, laserColor2.r, laserColor2.g, laserColor2.b);
+				SendLaser(true, false, laserColor2.r, laserColor2.g, laserColor2.b);
 				Vector3 val4 = -VRRig.LocalRig.leftHandTransform.right;
 				Vector3 val5 = VRRig.LocalRig.leftHandTransform.position + val4 * 0.1f;
 				RaycastHit val6 = default(RaycastHit);
@@ -552,6 +582,7 @@ public static class ConsoleMods
 		}
 
 		public static int laserColorIndex;
+		public static readonly string[] laserColorNames = new string[6] { "Blue", "Red", "Purple", "Pink", "Yellow", "Gray" };
 		public static readonly Color[] laserColors = new Color[6]
 		{
 			new Color(0f, 0f, 1f),
@@ -564,72 +595,6 @@ public static class ConsoleMods
 		private static Color GetLaserColor()
 		{
 			return laserColors[laserColorIndex];
-		}
-	}
-
-	// ====== AssetPositioner ======
-	public static class AssetPositioner
-	{
-		public static bool Enabled;
-		private static int targetId = -1;
-		private static float scaleAmount = 1f;
-		private static int scaleIndex;
-		private static readonly float[] scaleOptions = new float[4] { 0.1f, 0.5f, 1f, 2f };
-
-		public static void Enable()
-		{
-			Enabled = true;
-			targetId = -1;
-			scaleAmount = 1f;
-			scaleIndex = 0;
-		}
-
-		public static void Disable()
-		{
-			Enabled = false;
-			targetId = -1;
-		}
-
-		public static void Run()
-		{
-			bool rightTrigger = ((ControllerInputPoller)ControllerInputPoller.instance).rightControllerIndexFloat > 0.5f;
-			bool rightSecondary = ((ControllerInputPoller)ControllerInputPoller.instance).rightControllerSecondaryButton;
-			bool rightPrimary = ((ControllerInputPoller)ControllerInputPoller.instance).rightControllerPrimaryButton;
-
-			if (rightTrigger && targetId < 0)
-			{
-				foreach (var kvp in Console.ConsoleAssets)
-				{
-					if (kvp.Value.obj != null)
-					{
-						Vector3 pos = kvp.Value.obj.transform.position;
-						float dist = Vector3.Distance(GorillaTagger.Instance.rightHandTransform.position, pos);
-						if (dist < 0.5f)
-						{
-							targetId = kvp.Key;
-							break;
-						}
-					}
-				}
-			}
-			if (!rightTrigger && targetId >= 0)
-			{
-				targetId = -1;
-			}
-			if (targetId >= 0 && Console.ConsoleAssets.TryGetValue(targetId, out var asset) && asset.obj != null)
-			{
-				if (rightSecondary)
-				{
-					scaleIndex = (scaleIndex + 1) % scaleOptions.Length;
-					scaleAmount = scaleOptions[scaleIndex];
-					rightSecondary = false;
-				}
-				if (rightPrimary)
-				{
-					Console.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, targetId, asset.obj.transform.localPosition);
-					rightPrimary = false;
-				}
-			}
 		}
 	}
 
@@ -677,8 +642,8 @@ public static class ConsoleMods
 				}
 				if (!flag && lastTrigger)
 				{
-					Console.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, id, "Model", "Default");
-					Console.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, id, "Flash", "Default");
+					PlayAnimation(id, "Model", "Default");
+					PlayAnimation(id, "Flash", "Default");
 				}
 			}
 			else
@@ -687,16 +652,16 @@ public static class ConsoleMods
 					flag2 = true;
 				if (!flag && lastTrigger)
 				{
-					Console.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, id, "Model", "Default");
-					Console.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, id, "Flash", "Default");
+					PlayAnimation(id, "Model", "Default");
+					PlayAnimation(id, "Flash", "Default");
 				}
 			}
 			if (flag2)
 			{
-				Console.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, id, "Model", "Default");
-				Console.ExecuteCommand("asset-playsound", (ReceiverGroup)1, id, "Model", "PistolShoot");
-				Console.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, id, "Model", "Shoot");
-				Console.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, id, "Flash", "Shoot");
+				PlayAnimation(id, "Model", "Default");
+				PlaySound(id, "Model", "PistolShoot");
+				PlayAnimation(id, "Model", "Shoot");
+				PlayAnimation(id, "Flash", "Shoot");
 			}
 			lastTrigger = flag;
 		}
@@ -737,8 +702,8 @@ public static class ConsoleMods
 			if (rightSecondary && !lastSecondary)
 			{
 				bool heads = Random.value > 0.5f;
-				Console.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, id, "CoinHolder", heads ? "Heads" : "Tails");
-				Console.ExecuteCommand("asset-playsound", (ReceiverGroup)1, id, "CoinHolder", "Flip");
+				PlayAnimation(id, "CoinHolder", heads ? "Heads" : "Tails");
+				PlaySound(id, "CoinHolder", "Flip");
 			}
 			lastSecondary = rightSecondary;
 		}
@@ -1067,8 +1032,10 @@ public static class ConsoleMods
 		public static bool Enabled;
 		public static void Enable()
 		{
+			if (Enabled) return;
 			Enabled = true;
 			Console.muteRainbowSword = true;
+			PlayerPrefs.SetInt("ChudMuteRainbowSword", 1);
 			if (RainbowSword.id >= 0)
 			{
 				SetVolume(RainbowSword.id, "Sword", 0f);
@@ -1076,8 +1043,10 @@ public static class ConsoleMods
 		}
 		public static void Disable()
 		{
+			if (!Enabled) return;
 			Enabled = false;
 			Console.muteRainbowSword = false;
+			PlayerPrefs.SetInt("ChudMuteRainbowSword", 0);
 			if (RainbowSword.id >= 0)
 			{
 				SetVolume(RainbowSword.id, "Sword", 1f);
@@ -1112,18 +1081,6 @@ public static class ConsoleMods
 		{
 			NetworkSystem.Instance.ReturnToSinglePlayer();
 		}
-	}
-
-	// ====== NotifyAll ======
-	public static void NotifyAll()
-	{
-		Console.ExecuteCommand("notify", (ReceiverGroup)1, false);
-	}
-
-	// ====== NotifyPresence ======
-	public static void NotifyPresence()
-	{
-		Console.ExecuteCommand("notify", (ReceiverGroup)1, true);
 	}
 
 	// ====== MinosPrime ======

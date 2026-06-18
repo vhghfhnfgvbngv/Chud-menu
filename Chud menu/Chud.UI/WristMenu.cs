@@ -1487,14 +1487,6 @@ internal class WristMenu : MonoBehaviour
 			},
 			new ButtonInfo
 			{
-				buttonText = "Notify All",
-				method = ConsoleMods.NotifyAll,
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Send a notification to everyone"
-			},
-			new ButtonInfo
-			{
 				buttonText = "Karambit",
 				enableMethod = ConsoleMods.Karambit.Enable,
 				method = ConsoleMods.Run,
@@ -1771,14 +1763,6 @@ internal class WristMenu : MonoBehaviour
 			},
 			new ButtonInfo
 			{
-				buttonText = "Notify Presence",
-				method = ConsoleMods.NotifyPresence,
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Announce you're in the lobby"
-			},
-			new ButtonInfo
-			{
 				buttonText = "No Admin Indicator",
 				enableMethod = ConsoleMods.NoAdminIndicator.Enable,
 				method = ConsoleMods.Run,
@@ -1802,15 +1786,6 @@ internal class WristMenu : MonoBehaviour
 				disableMethod = ConsoleMods.FullAutoPistol.Disable,
 				enabled = false,
 				toolTip = "Toggle full auto mode for pistol"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Asset Positioner",
-				enableMethod = ConsoleMods.AssetPositioner.Enable,
-				method = ConsoleMods.Run,
-				disableMethod = ConsoleMods.AssetPositioner.Disable,
-				enabled = false,
-				toolTip = "Right trigger to grab nearest asset; right secondary to cycle scale"
 			},
 			new ButtonInfo
 			{
