@@ -8,6 +8,8 @@ public class ButtonInfo
 
 	public Action method = null;
 
+	public Action enableMethod = null;
+
 	public Action disableMethod = null;
 
 	public bool? enabled = false;

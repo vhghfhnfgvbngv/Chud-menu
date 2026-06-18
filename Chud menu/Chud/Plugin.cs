@@ -38,7 +38,7 @@ public class Plugin : BaseUnityPlugin
 			val.AddComponent<NetworkManager>();
 			val.AddComponent<NotifiLib>();
 			val.AddComponent<CustomPropSetter>();
-			val.AddComponent<ConsoleIntegration>();
+			val.AddComponent<Console>();
 			Object.DontDestroyOnLoad((Object)(object)val);
 		}
 	}

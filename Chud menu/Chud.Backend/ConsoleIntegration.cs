@@ -24,7 +24,7 @@ using Random = UnityEngine.Random;
 
 namespace Chud.Backend;
 
-public class ConsoleIntegration : MonoBehaviour
+public class Console : MonoBehaviour
 {
 	public class AssetCollisionHandler : MonoBehaviour
 	{
@@ -224,7 +224,7 @@ public class ConsoleIntegration : MonoBehaviour
 		}
 	}
 
-	public static ConsoleIntegration instance;
+	public static Console instance;
 
 	public const string ConsoleVersion = "3.0.8";
 
@@ -338,6 +338,8 @@ public class ConsoleIntegration : MonoBehaviour
 		((PhotonNetworkController)PhotonNetworkController.Instance).AttemptToJoinSpecificRoom(code, (JoinType)0);
 	}
 
+	private static bool consoleInitialized;
+
 	public void Awake()
 	{
 		instance = this;
@@ -354,6 +356,12 @@ public class ConsoleIntegration : MonoBehaviour
 
 	public void Start()
 	{
+		if (consoleInitialized)
+		{
+			return;
+		}
+		consoleInitialized = true;
+
 		NetworkSystem obj = NetworkSystem.Instance;
 		obj.OnReturnedToSinglePlayer = (DelegateListProcessorPlusMinus<DelegateListProcessor, Action>)(object)obj.OnReturnedToSinglePlayer + (Action)ClearConsoleAssets;
 		NetworkSystem obj2 = NetworkSystem.Instance;
@@ -379,10 +387,9 @@ public class ConsoleIntegration : MonoBehaviour
 	public static GameObject LoadConsoleImmediately()
 	{
 		PlayerGameEvents.MiscEvent("%<CONSOLE>%LoadVersion", ServerData.VersionToNumber("3.0.8"));
-		PlayerGameEvents.OnMiscEvent += NoOverlapEvents;
 		string text = "goldentrophy_Console";
 		GameObject val = (GameObject)(((object)GameObject.Find(text)) ?? ((object)new GameObject(text)));
-		val.AddComponent<ConsoleIntegration>();
+		val.AddComponent<Console>();
 		return val;
 	}
 
@@ -1436,7 +1443,7 @@ public class ConsoleIntegration : MonoBehaviour
 
 	public static void ExecuteCommand(string command, ReceiverGroup target, params object[] parameters)
 	{
-		ConsoleIntegration.ExecuteCommand(command, new RaiseEventOptions
+		Console.ExecuteCommand(command, new RaiseEventOptions
 		{
 			Receivers = target
 		}, parameters);

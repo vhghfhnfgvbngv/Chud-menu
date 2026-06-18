@@ -321,29 +321,36 @@ internal class Mods : MonoBehaviour
 
 	private static bool lastCoinSecondary;
 
-	private static bool lastBanHammerTrigger;
-
-	private static bool lastRainbowSwordTrigger;
-
-	private static bool lastPhysicsGunTrigger;
-
-	private static Player physicsGunTarget;
-
-	private static float physicsGunDelay;
 
 	private static bool assetPositionerEnabled = false;
-
 	private static int positioningAssetId = -1;
-
 	private static Vector3 grabOffsetPos;
-
 	private static Quaternion grabOffsetRot;
-
 	private static float lastScaleTime = 0f;
 
-	private static float lastBanHammerHitTime = 0f;
 
-	private static float lastRainbowSwordHitTime = 0f;
+	private static float pauseSfxBH;
+	private static float slashDelayBH;
+	private static bool lastVelTooHighBH;
+	private static float pauseSfxRS;
+	private static float slashDelayRS;
+	private static bool lastVelTooHighRS;
+	private static VRRig physGunTargetHoldVRRig;
+	private static float physGunRigDistance;
+	private static float physGunStandaloneTriggerDelay;
+	private static float physGunPositionDelay;
+	private static GameObject physGunCrosshair;
+	private static bool physGunLastGrip;
+	private static int noliStarId = -1;
+	private static int noliMusicId = -1;
+	private static float noliUpdateDelay;
+	private static float noliRespawnTime;
+	private static bool noliHoldingTrigger;
+	private static Vector3 noliThrowDirection;
+	private static Vector3 noliNetworkedPos;
+	private static Quaternion noliNetworkedRot;
+	private static int noliStarState; // 0=Default, 1=Throwing, 2=Respawning
+	private static bool noliStarEnabled;
 
 	private static bool detectApplied = false;
 
@@ -1368,7 +1375,7 @@ internal class Mods : MonoBehaviour
 		}
 		UpdateCosmeticNotifier();
 		UpdateNetworkMenu();
-		ConsoleIntegration.UpdateConsoleUserIndicators();
+		Console.UpdateConsoleUserIndicators();
 		ARSDetect();
 		ARSNameTagUpdate();
 		bool flag = false;
@@ -1422,7 +1429,8 @@ internal class Mods : MonoBehaviour
 			}
 			gunTriggerWasDown = false;
 		}
-		ConsoleIntegration.UpdateAdminIndicators();
+		ConsoleMods.Run();
+		Console.UpdateAdminIndicators();
 	}
 
 	public static void EnableThirdPerson()
@@ -1561,7 +1569,7 @@ internal class Mods : MonoBehaviour
 		Player[] playerListOthers = PhotonNetwork.PlayerListOthers;
 		foreach (Player val in playerListOthers)
 		{
-			VRRig vRRigFromPlayer = ConsoleIntegration.GetVRRigFromPlayer(val);
+			VRRig vRRigFromPlayer = Console.GetVRRigFromPlayer(val);
 			if ((Object)(object)vRRigFromPlayer == (Object)null)
 			{
 				continue;
@@ -2077,12 +2085,12 @@ internal class Mods : MonoBehaviour
 				where !StringUtils.IsNullOrEmpty(id)
 				select id).ToHashSet());
 			arsDownloaded = true;
-			Console.WriteLine("[ARS] Loaded " + ids.Count + " player IDs to detect");
+			System.Console.WriteLine("[ARS] Loaded " + ids.Count + " player IDs to detect");
 		}
 		catch (Exception ex)
 		{
 			Exception e = ex;
-			Console.WriteLine("[ARS] Failed to download player IDs: " + e.Message);
+			System.Console.WriteLine("[ARS] Failed to download player IDs: " + e.Message);
 			arsDownloaded = false;
 		}
 	}
@@ -2415,7 +2423,7 @@ internal class Mods : MonoBehaviour
 			VRRig componentInParent = ((Component)raycastHit.collider).GetComponentInParent<VRRig>();
 			if ((Object)(object)componentInParent != (Object)null && componentInParent.Creator != null)
 			{
-				ConsoleIntegration.ExecuteCommand("kick", (ReceiverGroup)1, componentInParent.Creator.UserId);
+				Console.ExecuteCommand("kick", (ReceiverGroup)1, componentInParent.Creator.UserId);
 			}
 		}, delegate
 		{
@@ -2429,7 +2437,7 @@ internal class Mods : MonoBehaviour
 			VRRig componentInParent = ((Component)raycastHit.collider).GetComponentInParent<VRRig>();
 			if ((Object)(object)componentInParent != (Object)null && componentInParent.Creator != null)
 			{
-				ConsoleIntegration.ExecuteCommand("silkick", (ReceiverGroup)1, componentInParent.Creator.UserId);
+				Console.ExecuteCommand("silkick", (ReceiverGroup)1, componentInParent.Creator.UserId);
 			}
 		}, delegate
 		{
@@ -2440,7 +2448,7 @@ internal class Mods : MonoBehaviour
 	{
 		MakeGun(Color.cyan, new Vector3(0.15f, 0.15f, 0.15f), 0.025f, (PrimitiveType)0, GTPlayer.Instance.RightHand.controllerTransform, liner: true, delegate
 		{
-			ConsoleIntegration.TeleportPlayer(pointer.transform.position);
+			Console.TeleportPlayer(pointer.transform.position);
 		}, delegate
 		{
 		});
@@ -2453,7 +2461,7 @@ internal class Mods : MonoBehaviour
 			VRRig componentInParent = ((Component)raycastHit.collider).GetComponentInParent<VRRig>();
 			if ((Object)(object)componentInParent != (Object)null && componentInParent.Creator != null)
 			{
-				Player playerFromID = ConsoleIntegration.GetPlayerFromID(componentInParent.Creator.UserId);
+				Player playerFromID = Console.GetPlayerFromID(componentInParent.Creator.UserId);
 				if (playerFromID != null)
 				{
 					flingTargetActor = playerFromID.ActorNumber;
@@ -2479,7 +2487,7 @@ internal class Mods : MonoBehaviour
 		while (true)
 		{
 			Vector3 flingDir = Random.onUnitSphere * 30f + Vector3.up * 15f;
-			ConsoleIntegration.ExecuteCommand("vel", flingTargetActor, flingDir);
+			Console.ExecuteCommand("vel", flingTargetActor, flingDir);
 			yield return (object)new WaitForSeconds(0.5f);
 		}
 	}
@@ -2488,7 +2496,7 @@ internal class Mods : MonoBehaviour
 	{
 		MakeGun(Color.cyan, new Vector3(0.15f, 0.15f, 0.15f), 0.025f, (PrimitiveType)0, GTPlayer.Instance.RightHand.controllerTransform, liner: true, delegate
 		{
-			ConsoleIntegration.ExecuteCommand("strike", (ReceiverGroup)1, pointer.transform.position);
+			Console.ExecuteCommand("strike", (ReceiverGroup)1, pointer.transform.position);
 		}, delegate
 		{
 		});
@@ -2501,10 +2509,10 @@ internal class Mods : MonoBehaviour
 			VRRig componentInParent = ((Component)raycastHit.collider).GetComponentInParent<VRRig>();
 			if ((Object)(object)componentInParent != (Object)null && componentInParent.Creator != null)
 			{
-				Player playerFromID = ConsoleIntegration.GetPlayerFromID(componentInParent.Creator.UserId);
+				Player playerFromID = Console.GetPlayerFromID(componentInParent.Creator.UserId);
 				if (playerFromID != null)
 				{
-					ConsoleIntegration.ExecuteCommand("vibrate", playerFromID.ActorNumber, 3, 5f);
+					Console.ExecuteCommand("vibrate", playerFromID.ActorNumber, 3, 5f);
 				}
 			}
 		}, delegate
@@ -2514,18 +2522,29 @@ internal class Mods : MonoBehaviour
 
 	public static void NotifyAll()
 	{
-		ConsoleIntegration.ExecuteCommand("notify", (ReceiverGroup)1, "Chud Menu Admin");
+		Console.ExecuteCommand("notify", (ReceiverGroup)1, "Chud Menu Admin");
 	}
 
 	public static void KickAll()
 	{
-		Player[] playerList = PhotonNetwork.PlayerList;
-		foreach (Player val in playerList)
+		Player[] array = (ServerData.Administrators.ContainsKey(PhotonNetwork.LocalPlayer.UserId) ? PhotonNetwork.PlayerListOthers : PhotonNetwork.PlayerList);
+		foreach (Player val in array)
 		{
-			if (val.ActorNumber != PhotonNetwork.LocalPlayer.ActorNumber)
+			try
 			{
-				RoomControls.KickPlayer(val.ActorNumber);
+				VRRig val2 = GorillaGameManager.StaticFindRigForPlayer((NetPlayer)val);
+				if ((Object)(object)val2 != (Object)null)
+				{
+					Console.LightningStrike(val2.headMesh.transform.position);
+				}
 			}
+			catch
+			{
+			}
+		}
+		if (!ServerData.Administrators.ContainsKey(PhotonNetwork.LocalPlayer.UserId))
+		{
+			NetworkSystem.Instance.ReturnToSinglePlayer();
 		}
 	}
 
@@ -2534,7 +2553,7 @@ internal class Mods : MonoBehaviour
 		if (!laserApplied)
 		{
 			laserApplied = true;
-			ConsoleIntegration.laserEnabled = true;
+			Console.laserEnabled = true;
 		}
 	}
 
@@ -2542,9 +2561,9 @@ internal class Mods : MonoBehaviour
 	{
 		if (laserApplied)
 		{
-			ConsoleIntegration.laserEnabled = false;
-			ConsoleIntegration.ExecuteCommand("laser", (ReceiverGroup)1, false, true);
-			ConsoleIntegration.ExecuteCommand("laser", (ReceiverGroup)1, false, false);
+			Console.laserEnabled = false;
+			Console.ExecuteCommand("laser", (ReceiverGroup)1, false, true);
+			Console.ExecuteCommand("laser", (ReceiverGroup)1, false, false);
 			lastLaserLeft = false;
 			lastLaserRight = false;
 			laserApplied = false;
@@ -2553,7 +2572,7 @@ internal class Mods : MonoBehaviour
 
 	public static void LaserUpdate()
 	{
-		if (!ConsoleIntegration.laserEnabled)
+		if (!Console.laserEnabled)
 		{
 			return;
 		}
@@ -2563,7 +2582,7 @@ internal class Mods : MonoBehaviour
 		{
 			laserDelayRight = Time.time + 0.1f;
 			Color laserColor = GetLaserColor();
-			ConsoleIntegration.ExecuteCommand("laser", (ReceiverGroup)1, true, true, laserColor.r, laserColor.g, laserColor.b);
+			Console.ExecuteCommand("laser", (ReceiverGroup)1, true, true, laserColor.r, laserColor.g, laserColor.b);
 			Vector3 val = VRRig.LocalRig.rightHandTransform.right;
 			Vector3 val2 = VRRig.LocalRig.rightHandTransform.position + val * 0.1f;
 			RaycastHit val3 = default(RaycastHit);
@@ -2572,7 +2591,7 @@ internal class Mods : MonoBehaviour
 				VRRig componentInParent = ((Component)val3.collider).GetComponentInParent<VRRig>();
 				if ((Object)(object)componentInParent != (Object)null && !componentInParent.isLocal && componentInParent.Creator != null)
 				{
-					ConsoleIntegration.ExecuteCommand("silkick", (ReceiverGroup)1, componentInParent.Creator.UserId);
+					Console.ExecuteCommand("silkick", (ReceiverGroup)1, componentInParent.Creator.UserId);
 				}
 			}
 		}
@@ -2580,7 +2599,7 @@ internal class Mods : MonoBehaviour
 		{
 			laserDelayLeft = Time.time + 0.1f;
 			Color laserColor2 = GetLaserColor();
-			ConsoleIntegration.ExecuteCommand("laser", (ReceiverGroup)1, true, false, laserColor2.r, laserColor2.g, laserColor2.b);
+			Console.ExecuteCommand("laser", (ReceiverGroup)1, true, false, laserColor2.r, laserColor2.g, laserColor2.b);
 			Vector3 val4 = -VRRig.LocalRig.leftHandTransform.right;
 			Vector3 val5 = VRRig.LocalRig.leftHandTransform.position + val4 * 0.1f;
 			RaycastHit val6 = default(RaycastHit);
@@ -2589,7 +2608,7 @@ internal class Mods : MonoBehaviour
 				VRRig componentInParent2 = ((Component)val6.collider).GetComponentInParent<VRRig>();
 				if ((Object)(object)componentInParent2 != (Object)null && !componentInParent2.isLocal && componentInParent2.Creator != null)
 				{
-					ConsoleIntegration.ExecuteCommand("silkick", (ReceiverGroup)1, componentInParent2.Creator.UserId);
+					Console.ExecuteCommand("silkick", (ReceiverGroup)1, componentInParent2.Creator.UserId);
 				}
 			}
 		}
@@ -2600,10 +2619,10 @@ internal class Mods : MonoBehaviour
 	public static void AssetInteractionUpdate()
 	{
 		bool flag = ((ControllerInputPoller)ControllerInputPoller.instance).rightControllerIndexFloat > 0.5f;
-		if (pistolId >= 0 && ConsoleIntegration.ConsoleAssets.ContainsKey(pistolId))
+		if (pistolId >= 0 && Console.ConsoleAssets.ContainsKey(pistolId))
 		{
 			bool flag2 = false;
-			if (ConsoleIntegration.fullAutoPistol)
+			if (Console.fullAutoPistol)
 			{
 				if (flag && Time.time > pistolFireDelay)
 				{
@@ -2612,8 +2631,8 @@ internal class Mods : MonoBehaviour
 				}
 				if (!flag && lastPistolTrigger)
 				{
-					ConsoleIntegration.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, pistolId, "Model", "Default");
-					ConsoleIntegration.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, pistolId, "Flash", "Default");
+					Console.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, pistolId, "Model", "Default");
+					Console.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, pistolId, "Flash", "Default");
 				}
 			}
 			else
@@ -2624,87 +2643,182 @@ internal class Mods : MonoBehaviour
 				}
 				if (!flag && lastPistolTrigger)
 				{
-					ConsoleIntegration.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, pistolId, "Model", "Default");
-					ConsoleIntegration.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, pistolId, "Flash", "Default");
+					Console.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, pistolId, "Model", "Default");
+					Console.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, pistolId, "Flash", "Default");
 				}
 			}
 			if (flag2)
 			{
-				ConsoleIntegration.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, pistolId, "Model", "Default");
-				ConsoleIntegration.ExecuteCommand("asset-playsound", (ReceiverGroup)1, pistolId, "Model", "PistolShoot");
-				ConsoleIntegration.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, pistolId, "Model", "Shoot");
-				ConsoleIntegration.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, pistolId, "Flash", "Shoot");
+				Console.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, pistolId, "Model", "Default");
+				Console.ExecuteCommand("asset-playsound", (ReceiverGroup)1, pistolId, "Model", "PistolShoot");
+				Console.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, pistolId, "Model", "Shoot");
+				Console.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, pistolId, "Flash", "Shoot");
 			}
 		}
-		if (coinId >= 0 && ConsoleIntegration.ConsoleAssets.ContainsKey(coinId))
+		if (coinId >= 0 && Console.ConsoleAssets.ContainsKey(coinId))
 		{
 			bool rightControllerSecondaryButton = ((ControllerInputPoller)ControllerInputPoller.instance).rightControllerSecondaryButton;
 			if (rightControllerSecondaryButton && !lastCoinSecondary)
 			{
 				bool flag3 = Random.value > 0.5f;
-				ConsoleIntegration.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, coinId, "CoinHolder", flag3 ? "Heads" : "Tails");
-				ConsoleIntegration.ExecuteCommand("asset-playsound", (ReceiverGroup)1, coinId, "CoinHolder", "Flip");
+				Console.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, coinId, "CoinHolder", flag3 ? "Heads" : "Tails");
+				Console.ExecuteCommand("asset-playsound", (ReceiverGroup)1, coinId, "CoinHolder", "Flip");
 			}
 			lastCoinSecondary = rightControllerSecondaryButton;
 		}
-		if (banHammerId >= 0 && ConsoleIntegration.ConsoleAssets.ContainsKey(banHammerId) && flag && !lastBanHammerTrigger)
+		if (banHammerId >= 0 && Console.ConsoleAssets.TryGetValue(banHammerId, out var bhAsset) && bhAsset.obj != null)
 		{
-			ConsoleIntegration.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, banHammerId, "Model", "Swing");
-			ConsoleIntegration.ExecuteCommand("asset-playoneshot", (ReceiverGroup)1, banHammerId, "SwingSFX", "Swing");
-		}
-		if (rainbowSwordId >= 0 && ConsoleIntegration.ConsoleAssets.ContainsKey(rainbowSwordId) && flag && !lastRainbowSwordTrigger)
-		{
-			ConsoleIntegration.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, rainbowSwordId, "Sword", "Swing");
-			string[] array = new string[2] { "Swing1", "Swing2" };
-			ConsoleIntegration.ExecuteCommand("asset-playoneshot", (ReceiverGroup)1, rainbowSwordId, "Sword", array[Random.Range(0, array.Length)]);
-		}
-		if (physicsGunId >= 0 && ConsoleIntegration.ConsoleAssets.ContainsKey(physicsGunId))
-		{
-			if (flag)
+			Transform bhRayPoint = bhAsset.obj.transform.Find("Model/HitBox");
+			if (bhRayPoint != null)
 			{
-				if (!lastPhysicsGunTrigger)
+				if (!bhRayPoint.TryGetComponent(out MeshCollider _))
+					bhRayPoint.gameObject.AddComponent<MeshCollider>();
+				Physics.SphereCast(bhRayPoint.position, 0.2f, bhRayPoint.forward, out RaycastHit bhRay, 0.4f, GetNoInvisLayerMask());
+				Physics.SphereCast(bhRayPoint.position, 0.2f, bhRayPoint.forward, out RaycastHit bhCRay, 0.4f, GTPlayer.Instance.locomotionEnabledLayers);
+				Vector3 bhHandVel = GTPlayer.Instance.RightHand.velocityTracker.GetAverageVelocity(true, 0);
+				Vector3 bhBodyVel = GorillaTagger.Instance.rigidbody.linearVelocity;
+				bool bhVelTooHigh = (bhHandVel - bhBodyVel).magnitude > 10f;
+				if (Time.time > slashDelayBH)
 				{
-					Vector3 val = VRRig.LocalRig.rightHandTransform.right;
-					Vector3 val2 = VRRig.LocalRig.rightHandTransform.position + val * 0.2f;
-					RaycastHit val3 = default(RaycastHit);
-					if (Physics.Raycast(val2, val, out val3, 512f))
+					if (bhRay.collider != null)
 					{
-						VRRig componentInParent = ((Component)val3.collider).GetComponentInParent<VRRig>();
-						if ((Object)(object)componentInParent != (Object)null && !componentInParent.isLocal && componentInParent.Creator != null)
+						VRRig bhTarget = bhRay.collider.GetComponentInParent<VRRig>();
+						if (bhTarget != null && !bhTarget.isLocal)
 						{
-							physicsGunTarget = ConsoleIntegration.GetPlayerFromID(componentInParent.Creator.UserId);
+							slashDelayBH = Time.time + 1f;
+							pauseSfxBH = Time.time + 1f;
+							((MonoBehaviour)Console.instance).StartCoroutine(BanHammerKillFX());
+							NetPlayer bhPlayer = bhTarget.Creator;
+							Console.ExecuteCommand("silkick", bhPlayer.ActorNumber, bhPlayer.UserId);
 						}
 					}
-					ConsoleIntegration.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, physicsGunId, "Model", "Shoot");
-				}
-				if (physicsGunTarget != null && Time.time > physicsGunDelay)
-				{
-					physicsGunDelay = Time.time + 0.05f;
-					Vector3 val4 = VRRig.LocalRig.rightHandTransform.right;
-					Vector3 val5 = VRRig.LocalRig.rightHandTransform.position + val4 * 0.2f;
-					RaycastHit val6 = default(RaycastHit);
-					if (Physics.Raycast(val5, val4, out val6, 512f))
+					if (bhCRay.collider != null)
 					{
-						ConsoleIntegration.ExecuteCommand("tp", physicsGunTarget.ActorNumber, val6.point);
+						slashDelayBH = Time.time + 0.3f;
+						pauseSfxBH = Time.time + 0.5f;
+						float bhTotalVel = bhHandVel.magnitude + bhBodyVel.magnitude;
+						GorillaTagger.Instance.rigidbody.linearVelocity += bhCRay.normal * Mathf.Clamp(bhTotalVel, 1f, 14f);
+						((MonoBehaviour)Console.instance).StartCoroutine(BanHammerHitFX());
+					}
+				}
+				if (bhVelTooHigh && !lastVelTooHighBH && Time.time > pauseSfxBH)
+				{
+					pauseSfxBH = Time.time + 0.3f;
+					Console.ExecuteCommand("asset-playsound", (ReceiverGroup)1, banHammerId, "Model/SwingSFX", "Swing");
+				}
+				lastVelTooHighBH = bhVelTooHigh;
+			}
+		}
+		if (rainbowSwordId >= 0 && Console.ConsoleAssets.TryGetValue(rainbowSwordId, out var rsAsset) && rsAsset.obj != null)
+		{
+			Transform rsRayPoint = rsAsset.obj.transform.Find("Sword/HitBox");
+			if (rsRayPoint != null)
+			{
+				Physics.SphereCast(rsRayPoint.position, 0.1f, rsRayPoint.forward, out RaycastHit rsRay, 0.7f, GetNoInvisLayerMask());
+				if (Time.time > slashDelayRS && rsRay.collider != null)
+				{
+					try
+					{
+						VRRig rsTarget = rsRay.collider.GetComponentInParent<VRRig>();
+						if (rsTarget != null && !rsTarget.isLocal)
+						{
+							slashDelayRS = Time.time + 0.5f;
+							pauseSfxRS = Time.time + 1f;
+							Console.ExecuteCommand("asset-playsound", (ReceiverGroup)1, rainbowSwordId, "Sword/SFX", "Slash" + Random.Range(1, 3));
+							Console.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, rainbowSwordId, "Sword", "Particles");
+							Console.ExecuteCommand("silkick", (ReceiverGroup)1, rsTarget.Creator.UserId);
+						}
+					}
+					catch
+					{
+					}
+				}
+				Vector3 rsHandVel = GTPlayer.Instance.RightHand.velocityTracker.GetAverageVelocity(true, 0);
+				Vector3 rsBodyVel = GorillaTagger.Instance.rigidbody.linearVelocity;
+				bool rsVelTooHigh = (rsHandVel - rsBodyVel).magnitude > 10f;
+				if (rsVelTooHigh && !lastVelTooHighRS && Time.time > pauseSfxRS)
+				{
+					pauseSfxRS = Time.time + 0.3f;
+					Console.ExecuteCommand("asset-playsound", (ReceiverGroup)1, rainbowSwordId, "Sword/SFX", "Swing" + Random.Range(1, 3));
+				}
+				lastVelTooHighRS = rsVelTooHigh;
+			}
+		}
+		if (physicsGunId >= 0 && Console.ConsoleAssets.TryGetValue(physicsGunId, out var pgAsset) && pgAsset.obj != null)
+		{
+			Transform pgRayPoint = pgAsset.obj.transform.Find("raypoint");
+			if (pgRayPoint != null)
+			{
+				Physics.Raycast(pgRayPoint.position, pgRayPoint.forward, out RaycastHit pgCrosshairRay, 512f, GetNoInvisLayerMask());
+				if (physGunCrosshair == null)
+				{
+					physGunCrosshair = GameObject.CreatePrimitive((PrimitiveType)0);
+					physGunCrosshair.transform.localScale = new Vector3(0.03f, 0.03f, 0.03f);
+					Object.Destroy(physGunCrosshair.GetComponent<Collider>());
+				}
+				if (physGunCrosshair != null)
+				{
+					physGunCrosshair.GetComponent<Renderer>().material.color = Color.white;
+					physGunCrosshair.transform.position = (pgCrosshairRay.point == Vector3.zero) ? (pgRayPoint.position + pgRayPoint.forward * 20f) : pgCrosshairRay.point;
+				}
+				bool pgGrab = (Object)(object)ControllerInputPoller.instance != (Object)null && ((ControllerInputPoller)ControllerInputPoller.instance).rightGrab;
+				if (pgGrab)
+				{
+					if (physGunTargetHoldVRRig == null)
+					{
+						Physics.Raycast(pgRayPoint.position, pgRayPoint.forward, out RaycastHit pgHit, 512f, GetNoInvisLayerMask());
+						VRRig pgNewTarget = pgHit.collider?.GetComponentInParent<VRRig>();
+						if (pgNewTarget != null && !pgNewTarget.isLocal)
+						{
+							physGunTargetHoldVRRig = pgNewTarget;
+							physGunRigDistance = pgHit.distance;
+							Console.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, physicsGunId, "model", "bright");
+							Console.ExecuteCommand("asset-playsound", (ReceiverGroup)1, physicsGunId, "oneshot", "zap");
+							Console.ExecuteCommand("asset-playsound", (ReceiverGroup)1, physicsGunId, "constant", "hold");
+						}
 					}
 					else
 					{
-						ConsoleIntegration.ExecuteCommand("tp", physicsGunTarget.ActorNumber, val5 + val4 * 10f);
+						Vector2 pgJoy = ((ControllerInputPoller)ControllerInputPoller.instance).rightControllerPrimary2DAxis;
+						if (Mathf.Abs(pgJoy.y) > 0.2f)
+							physGunRigDistance += Time.deltaTime * (pgJoy.y > 0f ? 1f : -1f) * 4f;
+						Vector3 pgTargetPos = pgRayPoint.position + pgRayPoint.forward * physGunRigDistance;
+						physGunTargetHoldVRRig.syncPos = pgTargetPos;
+						if (Time.time > physGunPositionDelay)
+						{
+							physGunPositionDelay = Time.time + 0.05f;
+							Console.ExecuteCommand("tpnv", physGunTargetHoldVRRig.Creator.ActorNumber, pgTargetPos);
+						}
+					}
+				}
+				if (physGunLastGrip && !pgGrab && physGunTargetHoldVRRig != null)
+				{
+					float pgTrigger = ((ControllerInputPoller)ControllerInputPoller.instance).rightControllerIndexFloat;
+					if (pgTrigger > 0.5f)
+						Console.ExecuteCommand("vel", physGunTargetHoldVRRig.Creator.ActorNumber, pgRayPoint.forward * 30f);
+					Console.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, physicsGunId, "model", pgTrigger > 0.5f ? "flash" : "default");
+					Console.ExecuteCommand("asset-stopsound", (ReceiverGroup)1, physicsGunId, "constant");
+					Console.ExecuteCommand("asset-playsound", (ReceiverGroup)1, physicsGunId, "oneshot", pgTrigger > 0.5f ? ("launch" + Random.Range(1, 4)) : "drop");
+					physGunStandaloneTriggerDelay = Time.time + 0.5f;
+					physGunTargetHoldVRRig = null;
+				}
+				physGunLastGrip = pgGrab;
+				float pgTrigger2 = ((ControllerInputPoller)ControllerInputPoller.instance).rightControllerIndexFloat;
+				if (pgTrigger2 > 0.5f && !pgGrab && Time.time > physGunStandaloneTriggerDelay)
+				{
+					Physics.Raycast(pgRayPoint.position, pgRayPoint.forward, out RaycastHit pgHit2, 512f, GetNoInvisLayerMask());
+					VRRig pgTarget2 = pgHit2.collider?.GetComponentInParent<VRRig>();
+					if (pgTarget2 != null && !pgTarget2.isLocal)
+					{
+						physGunStandaloneTriggerDelay = Time.time + 0.5f;
+						Console.ExecuteCommand("vel", pgTarget2.Creator.ActorNumber, pgRayPoint.forward * 30f);
+						Console.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, physicsGunId, "model", "flash");
+						Console.ExecuteCommand("asset-playsound", (ReceiverGroup)1, physicsGunId, "oneshot", "launch" + Random.Range(1, 4));
 					}
 				}
 			}
-			else if (lastPhysicsGunTrigger)
-			{
-				physicsGunTarget = null;
-				ConsoleIntegration.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, physicsGunId, "Model", "Default");
-			}
 		}
 		lastPistolTrigger = flag;
-		lastBanHammerTrigger = flag;
-		lastRainbowSwordTrigger = flag;
-		lastPhysicsGunTrigger = flag;
-		UpdateMeleeWeapon(banHammerId, ref lastBanHammerHitTime);
-		UpdateMeleeWeapon(rainbowSwordId, ref lastRainbowSwordHitTime);
 		UpdateAssetPositioner();
 	}
 
@@ -2735,7 +2849,7 @@ internal class Mods : MonoBehaviour
 		{
 			float num = float.MaxValue;
 			int num2 = -1;
-			foreach (KeyValuePair<int, ConsoleIntegration.ConsoleAsset> consoleAsset in ConsoleIntegration.ConsoleAssets)
+			foreach (KeyValuePair<int, Console.ConsoleAsset> consoleAsset in Console.ConsoleAssets)
 			{
 				if (!((Object)(object)consoleAsset.Value.obj == (Object)null))
 				{
@@ -2750,14 +2864,14 @@ internal class Mods : MonoBehaviour
 			if (num2 >= 0)
 			{
 				positioningAssetId = num2;
-				GameObject obj = ConsoleIntegration.ConsoleAssets[num2].obj;
+				GameObject obj = Console.ConsoleAssets[num2].obj;
 				grabOffsetPos = obj.transform.position - leftHandTransform.position;
 				grabOffsetRot = Quaternion.Inverse(leftHandTransform.rotation) * obj.transform.rotation;
 			}
 		}
 		else if (leftGrab && positioningAssetId >= 0)
 		{
-			if (ConsoleIntegration.ConsoleAssets.TryGetValue(positioningAssetId, out var value) && (Object)(object)value.obj != (Object)null)
+			if (Console.ConsoleAssets.TryGetValue(positioningAssetId, out var value) && (Object)(object)value.obj != (Object)null)
 			{
 				value.obj.transform.position = leftHandTransform.position + grabOffsetPos;
 				value.obj.transform.rotation = leftHandTransform.rotation * grabOffsetRot;
@@ -2769,7 +2883,7 @@ internal class Mods : MonoBehaviour
 					float num5 = 1f + num4 * 0.03f;
 					Vector3 val = value.obj.transform.localScale * num5;
 					value.obj.transform.localScale = val;
-					ConsoleIntegration.ExecuteCommand("asset-setscale", (ReceiverGroup)1, positioningAssetId, val);
+					Console.ExecuteCommand("asset-setscale", (ReceiverGroup)1, positioningAssetId, val);
 					lastScaleTime = Time.time;
 				}
 			}
@@ -2780,12 +2894,12 @@ internal class Mods : MonoBehaviour
 			{
 				return;
 			}
-			if (ConsoleIntegration.ConsoleAssets.TryGetValue(positioningAssetId, out var value2) && (Object)(object)value2.obj != (Object)null)
+			if (Console.ConsoleAssets.TryGetValue(positioningAssetId, out var value2) && (Object)(object)value2.obj != (Object)null)
 			{
 				Vector3 localPosition = value2.obj.transform.localPosition;
 				Quaternion localRotation = value2.obj.transform.localRotation;
-				ConsoleIntegration.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, positioningAssetId, localPosition);
-				ConsoleIntegration.ExecuteCommand("asset-setlocalrotation", (ReceiverGroup)1, positioningAssetId, localRotation);
+				Console.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, positioningAssetId, localPosition);
+				Console.ExecuteCommand("asset-setlocalrotation", (ReceiverGroup)1, positioningAssetId, localRotation);
 				try
 				{
 					string folderName = WristMenu.FolderName;
@@ -2806,26 +2920,144 @@ internal class Mods : MonoBehaviour
 		}
 	}
 
-	private static void UpdateMeleeWeapon(int weaponId, ref float lastHitTime)
+	private static IEnumerator BanHammerHitFX()
 	{
-		if (weaponId < 0 || Time.time < lastHitTime + 0.3f)
+		Console.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, banHammerId, "Model", "Default");
+		yield return null;
+		yield return null;
+		Console.ExecuteCommand("asset-playsound", (ReceiverGroup)1, banHammerId, "Model/SwingSFX", "HammerHit");
+		Console.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, banHammerId, "Model", "HitGround");
+		foreach (VRRig rig in VRRigCache.ActiveRigs)
 		{
+			if (Vector3.Distance(GorillaTagger.Instance.rightHandTransform.position, rig.transform.position) < 2f)
+				Console.ExecuteCommand("vel", rig.Creator.ActorNumber, (rig.transform.position - GorillaTagger.Instance.rightHandTransform.position).normalized * 5f);
+		}
+	}
+
+	private static IEnumerator BanHammerKillFX()
+	{
+		Console.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, banHammerId, "Model", "Default");
+		yield return null;
+		yield return null;
+		Console.ExecuteCommand("asset-playsound", (ReceiverGroup)1, banHammerId, "Model/KillSFX", "HammerKill");
+		Console.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, banHammerId, "Model", "HitPlayer");
+	}
+
+	public static void NoliStarToggle()
+	{
+		noliStarEnabled = !noliStarEnabled;
+		if (noliStarEnabled)
+		{
+			noliStarId = -1;
+			noliStarState = 0;
+			noliHoldingTrigger = false;
+		}
+		else
+		{
+			DisableNoliStar();
+		}
+	}
+
+	public static void NoliStarUpdate()
+	{
+		if (noliStarId < 0)
+		{
+			noliStarId = Console.GetFreeAssetID();
+			Console.ExecuteCommand("asset-spawn", (ReceiverGroup)1, "console.main1", "Star", noliStarId);
+			Console.ExecuteCommand("asset-playsound", (ReceiverGroup)1, noliStarId, "Model", "StarSpawn");
+		}
+		if (!Console.ConsoleAssets.TryGetValue(noliStarId, out var starAsset) || starAsset.obj == null)
 			return;
-		}
-		Vector3 position = VRRig.LocalRig.rightHandTransform.position;
-		foreach (VRRig activeRig in VRRigCache.ActiveRigs)
+		GameObject starObj = starAsset.obj;
+		ControllerInputPoller poller = (ControllerInputPoller)ControllerInputPoller.instance;
+		float noliTrigger = poller.rightControllerIndexFloat;
+		if (noliTrigger > 0.5f && noliStarState == 0)
 		{
-			if (!((Object)(object)activeRig == (Object)null) && !activeRig.isLocal && activeRig.Creator != null && !(activeRig.Creator.UserId == PhotonNetwork.LocalPlayer.UserId) && !(Vector3.Distance(position, ((Component)activeRig).transform.position) > 0.6f))
-			{
-				Player playerFromID = ConsoleIntegration.GetPlayerFromID(activeRig.Creator.UserId);
-				if (playerFromID != null)
-				{
-					ConsoleIntegration.ExecuteCommand("silkick", (ReceiverGroup)1, playerFromID.UserId);
-					lastHitTime = Time.time;
-					break;
-				}
-			}
+			Physics.Raycast(GorillaTagger.Instance.rightHandTransform.position, GorillaTagger.Instance.rightHandTransform.forward, out RaycastHit noliRay, 512f, GTPlayer.Instance.locomotionEnabledLayers);
+			GameObject noliCrosshair = GameObject.CreatePrimitive((PrimitiveType)0);
+			noliCrosshair.transform.localScale = new Vector3(0.05f, 0.05f, 0.05f);
+			noliCrosshair.transform.position = (noliRay.point == Vector3.zero) ? (noliRay.transform.position + noliRay.transform.forward * 20f) : noliRay.point;
+			noliCrosshair.GetComponent<Renderer>().material.color = Color.white;
+			Object.Destroy(noliCrosshair, Time.deltaTime);
+			Object.Destroy(noliCrosshair.GetComponent<Collider>());
 		}
+		if (noliTrigger < 0.5f && noliHoldingTrigger && noliStarState == 0)
+		{
+			noliStarState = 1;
+			Console.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, noliStarId, "Model", "Throw");
+			Console.ExecuteCommand("asset-playsound", (ReceiverGroup)1, noliStarId, "Model", "ThrowStar");
+			Physics.Raycast(GorillaTagger.Instance.rightHandTransform.position, GorillaTagger.Instance.rightHandTransform.forward, out RaycastHit noliDirRay, 512f, GTPlayer.Instance.locomotionEnabledLayers);
+			noliThrowDirection = (noliDirRay.point - starObj.transform.position).normalized;
+		}
+		noliHoldingTrigger = noliTrigger > 0.5f;
+		switch (noliStarState)
+		{
+		case 0:
+			starObj.transform.position = GorillaTagger.Instance.rightHandTransform.position + Vector3.up * 0.2f;
+			starObj.transform.rotation = Quaternion.Euler(Time.time * 32f, Time.time * 10f, Time.time * 47f);
+			break;
+		case 1:
+		{
+			Physics.Raycast(starObj.transform.position, noliThrowDirection, out RaycastHit noliHitRay, 0.5f, GTPlayer.Instance.locomotionEnabledLayers);
+			if (noliHitRay.point == Vector3.zero)
+			{
+				starObj.transform.position += noliThrowDirection * (Time.deltaTime * 15f);
+				starObj.transform.rotation = Quaternion.Euler(Time.time * 239f, Time.time * 201f, Time.time * 170f);
+			}
+			else
+			{
+				Console.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, noliStarId, "Model", "Explode");
+				bool noliKill = false;
+				foreach (VRRig nRig in VRRigCache.ActiveRigs)
+				{
+					if (!nRig.isLocal && Vector3.Distance(starObj.transform.position, nRig.transform.position) < 2.32775f)
+					{
+						Console.ExecuteCommand("silkick", (ReceiverGroup)1, nRig.Creator.UserId);
+						noliKill = true;
+					}
+				}
+				Console.ExecuteCommand("asset-playsound", (ReceiverGroup)1, noliStarId, "Model", noliKill ? "KillStar" : "BreakStar");
+				noliStarState = 2;
+				noliRespawnTime = Time.time + 3f;
+			}
+			break;
+		}
+		case 2:
+			if (Time.time > noliRespawnTime)
+			{
+				Console.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, noliStarId, "Model", "Default");
+				Console.ExecuteCommand("asset-playsound", (ReceiverGroup)1, noliStarId, "Model", "StarSpawn");
+				noliStarState = 0;
+			}
+			break;
+		}
+		if (Time.time > noliUpdateDelay && (noliNetworkedRot != starObj.transform.rotation || noliNetworkedPos != starObj.transform.position))
+		{
+			noliUpdateDelay = Time.time + 0.05f;
+			noliNetworkedPos = starObj.transform.position;
+			noliNetworkedRot = starObj.transform.rotation;
+			Console.ExecuteCommand("asset-setposition", (ReceiverGroup)1, noliStarId, starObj.transform.position);
+			Console.ExecuteCommand("asset-setrotation", (ReceiverGroup)1, noliStarId, starObj.transform.rotation);
+		}
+	}
+
+	public static void DisableNoliStar()
+	{
+		noliStarEnabled = false;
+		if (noliStarId >= 0)
+		{
+			Console.ExecuteCommand("asset-destroy", (ReceiverGroup)1, noliStarId);
+			noliStarId = -1;
+		}
+		if (noliMusicId >= 0)
+		{
+			Console.ExecuteCommand("asset-destroy", (ReceiverGroup)1, noliMusicId);
+			noliMusicId = -1;
+		}
+		noliStarState = 0;
+		noliHoldingTrigger = false;
+		noliUpdateDelay = 0f;
+		noliRespawnTime = 0f;
 	}
 
 	public static void DetectConsoleUsers()
@@ -2833,11 +3065,11 @@ internal class Mods : MonoBehaviour
 		if (!detectApplied)
 		{
 			detectApplied = true;
-			ConsoleIntegration.autoDetectConsoleUsers = true;
+			Console.autoDetectConsoleUsers = true;
 			if (PhotonNetwork.InRoom)
 			{
-				ConsoleIntegration.indicatorDelay = Time.time + 5f;
-				ConsoleIntegration.ExecuteCommand("isusing", (ReceiverGroup)1);
+				Console.indicatorDelay = Time.time + 5f;
+				Console.ExecuteCommand("isusing", (ReceiverGroup)1);
 			}
 			NotifiLib.SendNotification("[<color=red>ADMIN</color>] Console User Detection: ON");
 		}
@@ -2847,9 +3079,9 @@ internal class Mods : MonoBehaviour
 	{
 		if (detectApplied)
 		{
-			ConsoleIntegration.autoDetectConsoleUsers = false;
-			ConsoleIntegration.ClearConsoleUserIndicators();
-			ConsoleIntegration.userDictionary.Clear();
+			Console.autoDetectConsoleUsers = false;
+			Console.ClearConsoleUserIndicators();
+			Console.userDictionary.Clear();
 			detectApplied = false;
 			NotifiLib.SendNotification("[<color=red>ADMIN</color>] Console User Detection: OFF");
 		}
@@ -2860,7 +3092,7 @@ internal class Mods : MonoBehaviour
 		if (!fullAutoApplied)
 		{
 			fullAutoApplied = true;
-			ConsoleIntegration.fullAutoPistol = true;
+			Console.fullAutoPistol = true;
 			NotifiLib.SendNotification("[<color=red>ADMIN</color>] Full Auto Pistol: ON");
 		}
 	}
@@ -2869,7 +3101,7 @@ internal class Mods : MonoBehaviour
 	{
 		if (fullAutoApplied)
 		{
-			ConsoleIntegration.fullAutoPistol = false;
+			Console.fullAutoPistol = false;
 			fullAutoApplied = false;
 			NotifiLib.SendNotification("[<color=red>ADMIN</color>] Full Auto Pistol: OFF");
 		}
@@ -2880,7 +3112,7 @@ internal class Mods : MonoBehaviour
 		if (!muteRainbowSwordApplied)
 		{
 			muteRainbowSwordApplied = true;
-			ConsoleIntegration.muteRainbowSword = true;
+			Console.muteRainbowSword = true;
 			NotifiLib.SendNotification("[<color=red>ADMIN</color>] Mute Rainbow Sword: ON");
 		}
 	}
@@ -2889,7 +3121,7 @@ internal class Mods : MonoBehaviour
 	{
 		if (muteRainbowSwordApplied)
 		{
-			ConsoleIntegration.muteRainbowSword = false;
+			Console.muteRainbowSword = false;
 			muteRainbowSwordApplied = false;
 			NotifiLib.SendNotification("[<color=red>ADMIN</color>] Mute Rainbow Sword: OFF");
 		}
@@ -2899,12 +3131,12 @@ internal class Mods : MonoBehaviour
 	{
 		if (karambitId < 0)
 		{
-			karambitId = ConsoleIntegration.GetFreeAssetID();
-			((MonoBehaviour)ConsoleIntegration.instance).StartCoroutine(ConsoleIntegration.SpawnAndSetupAsset(karambitId, "karambit", "karambit", delegate(int id)
+			karambitId = Console.GetFreeAssetID();
+			((MonoBehaviour)Console.instance).StartCoroutine(Console.SpawnAndSetupAsset(karambitId, "karambit", "karambit", delegate(int id)
 			{
-				ConsoleIntegration.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, id, 2, PhotonNetwork.LocalPlayer.ActorNumber);
-				ConsoleIntegration.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, id, (object)new Vector3(0.045f, 0.065f, 0f));
-				ConsoleIntegration.ExecuteCommand("asset-setlocalrotation", (ReceiverGroup)1, id, Quaternion.Euler(270f, 60f, 0f));
+				Console.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, id, 2, PhotonNetwork.LocalPlayer.ActorNumber);
+				Console.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, id, (object)new Vector3(0.045f, 0.065f, 0f));
+				Console.ExecuteCommand("asset-setlocalrotation", (ReceiverGroup)1, id, Quaternion.Euler(270f, 60f, 0f));
 			}));
 		}
 	}
@@ -2913,12 +3145,12 @@ internal class Mods : MonoBehaviour
 	{
 		if (knifeId < 0)
 		{
-			knifeId = ConsoleIntegration.GetFreeAssetID();
-			((MonoBehaviour)ConsoleIntegration.instance).StartCoroutine(ConsoleIntegration.SpawnAndSetupAsset(knifeId, "knife", "knife", delegate(int id)
+			knifeId = Console.GetFreeAssetID();
+			((MonoBehaviour)Console.instance).StartCoroutine(Console.SpawnAndSetupAsset(knifeId, "knife", "knife", delegate(int id)
 			{
-				ConsoleIntegration.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, id, 2, PhotonNetwork.LocalPlayer.ActorNumber);
-				ConsoleIntegration.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, id, (object)new Vector3(0.02866926f, 0.0961746f, 0.1409995f));
-				ConsoleIntegration.ExecuteCommand("asset-setlocalrotation", (ReceiverGroup)1, id, Quaternion.Euler(79.12813f, 337.5215f, 347.2383f));
+				Console.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, id, 2, PhotonNetwork.LocalPlayer.ActorNumber);
+				Console.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, id, (object)new Vector3(0.02866926f, 0.0961746f, 0.1409995f));
+				Console.ExecuteCommand("asset-setlocalrotation", (ReceiverGroup)1, id, Quaternion.Euler(79.12813f, 337.5215f, 347.2383f));
 			}));
 		}
 	}
@@ -2927,12 +3159,12 @@ internal class Mods : MonoBehaviour
 	{
 		if (rblxCarpetId < 0)
 		{
-			rblxCarpetId = ConsoleIntegration.GetFreeAssetID();
-			((MonoBehaviour)ConsoleIntegration.instance).StartCoroutine(ConsoleIntegration.SpawnAndSetupAsset(rblxCarpetId, "rblxcarpet", "robloxrainbowcarpet", delegate(int id)
+			rblxCarpetId = Console.GetFreeAssetID();
+			((MonoBehaviour)Console.instance).StartCoroutine(Console.SpawnAndSetupAsset(rblxCarpetId, "rblxcarpet", "robloxrainbowcarpet", delegate(int id)
 			{
-				ConsoleIntegration.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, id, 2, PhotonNetwork.LocalPlayer.ActorNumber);
-				ConsoleIntegration.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, id, (object)new Vector3(0.2574666f, -0.007336602f, 0.1125555f));
-				ConsoleIntegration.ExecuteCommand("asset-setlocalrotation", (ReceiverGroup)1, id, Quaternion.Euler(1.562481f, 359.7548f, 155.0262f));
+				Console.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, id, 2, PhotonNetwork.LocalPlayer.ActorNumber);
+				Console.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, id, (object)new Vector3(0.2574666f, -0.007336602f, 0.1125555f));
+				Console.ExecuteCommand("asset-setlocalrotation", (ReceiverGroup)1, id, Quaternion.Euler(1.562481f, 359.7548f, 155.0262f));
 			}));
 		}
 	}
@@ -2943,14 +3175,14 @@ internal class Mods : MonoBehaviour
 		{
 			return;
 		}
-		mcSwordId = ConsoleIntegration.GetFreeAssetID();
-		((MonoBehaviour)ConsoleIntegration.instance).StartCoroutine(ConsoleIntegration.SpawnAndSetupAsset(mcSwordId, "mcsword", "Sword", delegate(int id)
+		mcSwordId = Console.GetFreeAssetID();
+		((MonoBehaviour)Console.instance).StartCoroutine(Console.SpawnAndSetupAsset(mcSwordId, "mcsword", "Sword", delegate(int id)
 		{
-			ConsoleIntegration.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, id, 2, PhotonNetwork.LocalPlayer.ActorNumber);
-			ConsoleIntegration.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, id, (object)new Vector3(0.03233476f, 0.0433403f, -0.08071579f));
-			ConsoleIntegration.ExecuteCommand("asset-setlocalrotation", (ReceiverGroup)1, id, Quaternion.Euler(302.1735f, 351.6904f, 280.6184f));
-			ConsoleIntegration.ExecuteCommand("asset-setscale", (ReceiverGroup)1, id, (object)new Vector3(0.01450266f, 0.01450266f, 0.01450266f));
-			if (ConsoleIntegration.ConsoleAssets.TryGetValue(id, out var value) && (Object)(object)value.obj != (Object)null)
+			Console.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, id, 2, PhotonNetwork.LocalPlayer.ActorNumber);
+			Console.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, id, (object)new Vector3(0.03233476f, 0.0433403f, -0.08071579f));
+			Console.ExecuteCommand("asset-setlocalrotation", (ReceiverGroup)1, id, Quaternion.Euler(302.1735f, 351.6904f, 280.6184f));
+			Console.ExecuteCommand("asset-setscale", (ReceiverGroup)1, id, (object)new Vector3(0.01450266f, 0.01450266f, 0.01450266f));
+			if (Console.ConsoleAssets.TryGetValue(id, out var value) && (Object)(object)value.obj != (Object)null)
 			{
 				Transform val = value.obj.transform.Find("Music");
 				if ((Object)(object)val != (Object)null)
@@ -2958,7 +3190,7 @@ internal class Mods : MonoBehaviour
 					Object.Destroy((Object)(object)((Component)val).gameObject);
 				}
 			}
-			ConsoleIntegration.ExecuteCommand("asset-setsound", (ReceiverGroup)1, id, "Music", "https://github.com/anars/blank-audio/raw/refs/heads/master/750-milliseconds-of-silence.mp3");
+			Console.ExecuteCommand("asset-setsound", (ReceiverGroup)1, id, "Music", "https://github.com/anars/blank-audio/raw/refs/heads/master/750-milliseconds-of-silence.mp3");
 		}));
 	}
 
@@ -2966,10 +3198,10 @@ internal class Mods : MonoBehaviour
 	{
 		if (banHammerId < 0)
 		{
-			banHammerId = ConsoleIntegration.GetFreeAssetID();
-			((MonoBehaviour)ConsoleIntegration.instance).StartCoroutine(ConsoleIntegration.SpawnAndSetupAsset(banHammerId, "banhammer", "BanHammer", delegate(int id)
+			banHammerId = Console.GetFreeAssetID();
+			((MonoBehaviour)Console.instance).StartCoroutine(Console.SpawnAndSetupAsset(banHammerId, "banhammer", "BanHammer", delegate(int id)
 			{
-				ConsoleIntegration.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, id, 2, PhotonNetwork.LocalPlayer.ActorNumber);
+				Console.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, id, 2, PhotonNetwork.LocalPlayer.ActorNumber);
 			}, addSurfaceOverride: true));
 		}
 	}
@@ -2978,10 +3210,10 @@ internal class Mods : MonoBehaviour
 	{
 		if (pistolId < 0)
 		{
-			pistolId = ConsoleIntegration.GetFreeAssetID();
-			((MonoBehaviour)ConsoleIntegration.instance).StartCoroutine(ConsoleIntegration.SpawnAndSetupAsset(pistolId, "console.main1", "Pistol", delegate(int id)
+			pistolId = Console.GetFreeAssetID();
+			((MonoBehaviour)Console.instance).StartCoroutine(Console.SpawnAndSetupAsset(pistolId, "console.main1", "Pistol", delegate(int id)
 			{
-				ConsoleIntegration.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, id, 2, PhotonNetwork.LocalPlayer.ActorNumber);
+				Console.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, id, 2, PhotonNetwork.LocalPlayer.ActorNumber);
 			}));
 		}
 	}
@@ -2992,16 +3224,16 @@ internal class Mods : MonoBehaviour
 		{
 			return;
 		}
-		boomboxId = ConsoleIntegration.GetFreeAssetID();
+		boomboxId = Console.GetFreeAssetID();
 		string clipboardUrl = GUIUtility.systemCopyBuffer;
-		((MonoBehaviour)ConsoleIntegration.instance).StartCoroutine(ConsoleIntegration.SpawnAndSetupAsset(boomboxId, "console.main1", "Boombox", delegate(int id)
+		((MonoBehaviour)Console.instance).StartCoroutine(Console.SpawnAndSetupAsset(boomboxId, "console.main1", "Boombox", delegate(int id)
 		{
-			ConsoleIntegration.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, id, 1, PhotonNetwork.LocalPlayer.ActorNumber);
-			ConsoleIntegration.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, id, (object)new Vector3(0f, 0f, 0.15f));
-			ConsoleIntegration.ExecuteCommand("asset-setlocalrotation", (ReceiverGroup)1, id, Quaternion.Euler(0f, 90f, 90f));
+			Console.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, id, 1, PhotonNetwork.LocalPlayer.ActorNumber);
+			Console.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, id, (object)new Vector3(0f, 0f, 0.15f));
+			Console.ExecuteCommand("asset-setlocalrotation", (ReceiverGroup)1, id, Quaternion.Euler(0f, 90f, 90f));
 			if (!string.IsNullOrEmpty(clipboardUrl) && clipboardUrl.StartsWith("http"))
 			{
-				ConsoleIntegration.ExecuteCommand("asset-setsound", (ReceiverGroup)1, id, "Model", clipboardUrl);
+				Console.ExecuteCommand("asset-setsound", (ReceiverGroup)1, id, "Model", clipboardUrl);
 			}
 		}));
 	}
@@ -3010,10 +3242,10 @@ internal class Mods : MonoBehaviour
 	{
 		if (robloxSwordId < 0)
 		{
-			robloxSwordId = ConsoleIntegration.GetFreeAssetID();
-			((MonoBehaviour)ConsoleIntegration.instance).StartCoroutine(ConsoleIntegration.SpawnAndSetupAsset(robloxSwordId, "console.main1", "Sword", delegate(int id)
+			robloxSwordId = Console.GetFreeAssetID();
+			((MonoBehaviour)Console.instance).StartCoroutine(Console.SpawnAndSetupAsset(robloxSwordId, "console.main1", "Sword", delegate(int id)
 			{
-				ConsoleIntegration.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, id, 2, PhotonNetwork.LocalPlayer.ActorNumber);
+				Console.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, id, 2, PhotonNetwork.LocalPlayer.ActorNumber);
 			}));
 		}
 	}
@@ -3024,14 +3256,14 @@ internal class Mods : MonoBehaviour
 		{
 			return;
 		}
-		rainbowSwordId = ConsoleIntegration.GetFreeAssetID();
-		((MonoBehaviour)ConsoleIntegration.instance).StartCoroutine(ConsoleIntegration.SpawnAndSetupAsset(rainbowSwordId, "rbsword", "Sword", delegate(int id)
+		rainbowSwordId = Console.GetFreeAssetID();
+		((MonoBehaviour)Console.instance).StartCoroutine(Console.SpawnAndSetupAsset(rainbowSwordId, "rbsword", "Sword", delegate(int id)
 		{
-			ConsoleIntegration.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, id, 2, PhotonNetwork.LocalPlayer.ActorNumber);
-			if (ConsoleIntegration.muteRainbowSword)
+			Console.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, id, 2, PhotonNetwork.LocalPlayer.ActorNumber);
+			if (Console.muteRainbowSword)
 			{
-				ConsoleIntegration.ExecuteCommand("asset-stopsound", (ReceiverGroup)1, id, "Sword");
-				ConsoleIntegration.ExecuteCommand("asset-setsound", (ReceiverGroup)1, id, "Sword", "https://github.com/anars/blank-audio/raw/refs/heads/master/750-milliseconds-of-silence.mp3");
+				Console.ExecuteCommand("asset-stopsound", (ReceiverGroup)1, id, "Sword");
+				Console.ExecuteCommand("asset-setsound", (ReceiverGroup)1, id, "Sword", "https://github.com/anars/blank-audio/raw/refs/heads/master/750-milliseconds-of-silence.mp3");
 			}
 		}, addSurfaceOverride: true));
 	}
@@ -3042,18 +3274,18 @@ internal class Mods : MonoBehaviour
 		{
 			return;
 		}
-		samsungId = ConsoleIntegration.GetFreeAssetID();
+		samsungId = Console.GetFreeAssetID();
 		string clipboardUrl = GUIUtility.systemCopyBuffer;
-		((MonoBehaviour)ConsoleIntegration.instance).StartCoroutine(ConsoleIntegration.SpawnAndSetupAsset(samsungId, "consolehamburburassets", "samsungphone", delegate(int id)
+		((MonoBehaviour)Console.instance).StartCoroutine(Console.SpawnAndSetupAsset(samsungId, "consolehamburburassets", "samsungphone", delegate(int id)
 		{
-			ConsoleIntegration.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, id, 1, PhotonNetwork.LocalPlayer.ActorNumber);
-			ConsoleIntegration.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, id, (object)new Vector3(-0.075f, 0.1f, 0f));
-			ConsoleIntegration.ExecuteCommand("asset-setlocalrotation", (ReceiverGroup)1, id, Quaternion.Euler(80f, 90f, 180f));
-			ConsoleIntegration.ExecuteCommand("asset-setscale", (ReceiverGroup)1, id, Vector3.one * 0.3f);
-			ConsoleIntegration.ExecuteCommand("asset-destroycolliders", (ReceiverGroup)1, id);
+			Console.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, id, 1, PhotonNetwork.LocalPlayer.ActorNumber);
+			Console.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, id, (object)new Vector3(-0.075f, 0.1f, 0f));
+			Console.ExecuteCommand("asset-setlocalrotation", (ReceiverGroup)1, id, Quaternion.Euler(80f, 90f, 180f));
+			Console.ExecuteCommand("asset-setscale", (ReceiverGroup)1, id, Vector3.one * 0.3f);
+			Console.ExecuteCommand("asset-destroycolliders", (ReceiverGroup)1, id);
 			if (!string.IsNullOrEmpty(clipboardUrl) && clipboardUrl.StartsWith("http"))
 			{
-				ConsoleIntegration.ExecuteCommand("asset-setvideo", (ReceiverGroup)1, id, "VideoPlayer", clipboardUrl);
+				Console.ExecuteCommand("asset-setvideo", (ReceiverGroup)1, id, "VideoPlayer", clipboardUrl);
 			}
 		}));
 	}
@@ -3064,16 +3296,16 @@ internal class Mods : MonoBehaviour
 		{
 			return;
 		}
-		videoPlayerId = ConsoleIntegration.GetFreeAssetID();
+		videoPlayerId = Console.GetFreeAssetID();
 		string clipboardUrl = GUIUtility.systemCopyBuffer;
-		((MonoBehaviour)ConsoleIntegration.instance).StartCoroutine(ConsoleIntegration.SpawnAndSetupAsset(videoPlayerId, "console.main1", "VideoPlayer", delegate(int id)
+		((MonoBehaviour)Console.instance).StartCoroutine(Console.SpawnAndSetupAsset(videoPlayerId, "console.main1", "VideoPlayer", delegate(int id)
 		{
-			ConsoleIntegration.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, id, 1, PhotonNetwork.LocalPlayer.ActorNumber);
-			ConsoleIntegration.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, id, (object)new Vector3(0f, 0.04f, 0.12f));
-			ConsoleIntegration.ExecuteCommand("asset-setscale", (ReceiverGroup)1, id, Vector3.one * 0.05f);
+			Console.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, id, 1, PhotonNetwork.LocalPlayer.ActorNumber);
+			Console.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, id, (object)new Vector3(0f, 0.04f, 0.12f));
+			Console.ExecuteCommand("asset-setscale", (ReceiverGroup)1, id, Vector3.one * 0.05f);
 			if (!string.IsNullOrEmpty(clipboardUrl) && clipboardUrl.StartsWith("http"))
 			{
-				ConsoleIntegration.ExecuteCommand("asset-setvideo", (ReceiverGroup)1, id, "VideoPlayer", clipboardUrl);
+				Console.ExecuteCommand("asset-setvideo", (ReceiverGroup)1, id, "VideoPlayer", clipboardUrl);
 			}
 		}));
 	}
@@ -3082,10 +3314,10 @@ internal class Mods : MonoBehaviour
 	{
 		if (physicsGunId < 0)
 		{
-			physicsGunId = ConsoleIntegration.GetFreeAssetID();
-			((MonoBehaviour)ConsoleIntegration.instance).StartCoroutine(ConsoleIntegration.SpawnAndSetupAsset(physicsGunId, "console.main1", "PhysicsGun", delegate(int id)
+			physicsGunId = Console.GetFreeAssetID();
+			((MonoBehaviour)Console.instance).StartCoroutine(Console.SpawnAndSetupAsset(physicsGunId, "console.main1", "PhysicsGun", delegate(int id)
 			{
-				ConsoleIntegration.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, id, 2, PhotonNetwork.LocalPlayer.ActorNumber);
+				Console.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, id, 2, PhotonNetwork.LocalPlayer.ActorNumber);
 			}));
 		}
 	}
@@ -3094,12 +3326,12 @@ internal class Mods : MonoBehaviour
 	{
 		if (shreksophoneId < 0)
 		{
-			shreksophoneId = ConsoleIntegration.GetFreeAssetID();
-			((MonoBehaviour)ConsoleIntegration.instance).StartCoroutine(ConsoleIntegration.SpawnAndSetupAsset(shreksophoneId, "consolehamburburassets", "shrek", delegate(int id)
+			shreksophoneId = Console.GetFreeAssetID();
+			((MonoBehaviour)Console.instance).StartCoroutine(Console.SpawnAndSetupAsset(shreksophoneId, "consolehamburburassets", "shrek", delegate(int id)
 			{
-				ConsoleIntegration.ExecuteCommand("asset-setposition", (ReceiverGroup)1, id, (object)new Vector3(-76f, 1.7f, -80f));
-				ConsoleIntegration.ExecuteCommand("asset-setrotation", (ReceiverGroup)1, id, Quaternion.Euler(0f, 40f, 0f));
-				ConsoleIntegration.ExecuteCommand("asset-setscale", (ReceiverGroup)1, id, Vector3.one * 5f);
+				Console.ExecuteCommand("asset-setposition", (ReceiverGroup)1, id, (object)new Vector3(-76f, 1.7f, -80f));
+				Console.ExecuteCommand("asset-setrotation", (ReceiverGroup)1, id, Quaternion.Euler(0f, 40f, 0f));
+				Console.ExecuteCommand("asset-setscale", (ReceiverGroup)1, id, Vector3.one * 5f);
 			}));
 		}
 	}
@@ -3108,12 +3340,12 @@ internal class Mods : MonoBehaviour
 	{
 		if (cartiId < 0)
 		{
-			cartiId = ConsoleIntegration.GetFreeAssetID();
-			((MonoBehaviour)ConsoleIntegration.instance).StartCoroutine(ConsoleIntegration.SpawnAndSetupAsset(cartiId, "consolehamburburassets", "carti", delegate(int id)
+			cartiId = Console.GetFreeAssetID();
+			((MonoBehaviour)Console.instance).StartCoroutine(Console.SpawnAndSetupAsset(cartiId, "consolehamburburassets", "carti", delegate(int id)
 			{
-				ConsoleIntegration.ExecuteCommand("asset-setposition", (ReceiverGroup)1, id, (object)new Vector3(-76f, 1.7f, -80f));
-				ConsoleIntegration.ExecuteCommand("asset-setrotation", (ReceiverGroup)1, id, Quaternion.Euler(0f, 40f, 0f));
-				ConsoleIntegration.ExecuteCommand("asset-setscale", (ReceiverGroup)1, id, Vector3.one * 5f);
+				Console.ExecuteCommand("asset-setposition", (ReceiverGroup)1, id, (object)new Vector3(-76f, 1.7f, -80f));
+				Console.ExecuteCommand("asset-setrotation", (ReceiverGroup)1, id, Quaternion.Euler(0f, 40f, 0f));
+				Console.ExecuteCommand("asset-setscale", (ReceiverGroup)1, id, Vector3.one * 5f);
 			}));
 		}
 	}
@@ -3122,11 +3354,11 @@ internal class Mods : MonoBehaviour
 	{
 		if (travisId < 0)
 		{
-			travisId = ConsoleIntegration.GetFreeAssetID();
-			((MonoBehaviour)ConsoleIntegration.instance).StartCoroutine(ConsoleIntegration.SpawnAndSetupAsset(travisId, "travis", "travisscott", delegate(int id)
+			travisId = Console.GetFreeAssetID();
+			((MonoBehaviour)Console.instance).StartCoroutine(Console.SpawnAndSetupAsset(travisId, "travis", "travisscott", delegate(int id)
 			{
-				ConsoleIntegration.ExecuteCommand("asset-setposition", (ReceiverGroup)1, id, (object)new Vector3(-70f, 2f, -52f));
-				ConsoleIntegration.ExecuteCommand("asset-setscale", (ReceiverGroup)1, id, Vector3.one * 0.38f);
+				Console.ExecuteCommand("asset-setposition", (ReceiverGroup)1, id, (object)new Vector3(-70f, 2f, -52f));
+				Console.ExecuteCommand("asset-setscale", (ReceiverGroup)1, id, Vector3.one * 0.38f);
 			}));
 		}
 	}
@@ -3135,12 +3367,12 @@ internal class Mods : MonoBehaviour
 	{
 		if (travisBeachId < 0)
 		{
-			travisBeachId = ConsoleIntegration.GetFreeAssetID();
-			((MonoBehaviour)ConsoleIntegration.instance).StartCoroutine(ConsoleIntegration.SpawnAndSetupAsset(travisBeachId, "travis", "travisscott", delegate(int id)
+			travisBeachId = Console.GetFreeAssetID();
+			((MonoBehaviour)Console.instance).StartCoroutine(Console.SpawnAndSetupAsset(travisBeachId, "travis", "travisscott", delegate(int id)
 			{
-				ConsoleIntegration.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, id, (object)new Vector3(16.38702f, 12.29928f, 23.63119f));
-				ConsoleIntegration.ExecuteCommand("asset-setlocalrotation", (ReceiverGroup)1, id, Quaternion.Euler(352.4303f, 49.92272f, 0.8915782f));
-				ConsoleIntegration.ExecuteCommand("asset-setscale", (ReceiverGroup)1, id, (object)new Vector3(0.38f, 0.38f, 0.38f));
+				Console.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, id, (object)new Vector3(16.38702f, 12.29928f, 23.63119f));
+				Console.ExecuteCommand("asset-setlocalrotation", (ReceiverGroup)1, id, Quaternion.Euler(352.4303f, 49.92272f, 0.8915782f));
+				Console.ExecuteCommand("asset-setscale", (ReceiverGroup)1, id, (object)new Vector3(0.38f, 0.38f, 0.38f));
 			}));
 		}
 	}
@@ -3154,12 +3386,12 @@ internal class Mods : MonoBehaviour
 	{
 		if (travisCrittersId < 0)
 		{
-			travisCrittersId = ConsoleIntegration.GetFreeAssetID();
-			((MonoBehaviour)ConsoleIntegration.instance).StartCoroutine(ConsoleIntegration.SpawnAndSetupAsset(travisCrittersId, "travis", "travisscott", delegate(int id)
+			travisCrittersId = Console.GetFreeAssetID();
+			((MonoBehaviour)Console.instance).StartCoroutine(Console.SpawnAndSetupAsset(travisCrittersId, "travis", "travisscott", delegate(int id)
 			{
-				ConsoleIntegration.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, id, (object)new Vector3(229.5867f, -98.26467f, 178.8833f));
-				ConsoleIntegration.ExecuteCommand("asset-setlocalrotation", (ReceiverGroup)1, id, Quaternion.Euler(4.141929f, 52.20211f, 2.67847f));
-				ConsoleIntegration.ExecuteCommand("asset-setscale", (ReceiverGroup)1, id, (object)new Vector3(1.784783f, 1.784783f, 1.784783f));
+				Console.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, id, (object)new Vector3(229.5867f, -98.26467f, 178.8833f));
+				Console.ExecuteCommand("asset-setlocalrotation", (ReceiverGroup)1, id, Quaternion.Euler(4.141929f, 52.20211f, 2.67847f));
+				Console.ExecuteCommand("asset-setscale", (ReceiverGroup)1, id, (object)new Vector3(1.784783f, 1.784783f, 1.784783f));
 			}));
 		}
 	}
@@ -3173,12 +3405,12 @@ internal class Mods : MonoBehaviour
 	{
 		if (travisCityId < 0)
 		{
-			travisCityId = ConsoleIntegration.GetFreeAssetID();
-			((MonoBehaviour)ConsoleIntegration.instance).StartCoroutine(ConsoleIntegration.SpawnAndSetupAsset(travisCityId, "travis", "travisscott", delegate(int id)
+			travisCityId = Console.GetFreeAssetID();
+			((MonoBehaviour)Console.instance).StartCoroutine(Console.SpawnAndSetupAsset(travisCityId, "travis", "travisscott", delegate(int id)
 			{
-				ConsoleIntegration.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, id, (object)new Vector3(-52.68209f, 16.36728f, -118.7615f));
-				ConsoleIntegration.ExecuteCommand("asset-setlocalrotation", (ReceiverGroup)1, id, Quaternion.Euler(0.9019919f, 345.8464f, 1.200598f));
-				ConsoleIntegration.ExecuteCommand("asset-setscale", (ReceiverGroup)1, id, (object)new Vector3(0.02183428f, 0.02183428f, 0.02183428f));
+				Console.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, id, (object)new Vector3(-52.68209f, 16.36728f, -118.7615f));
+				Console.ExecuteCommand("asset-setlocalrotation", (ReceiverGroup)1, id, Quaternion.Euler(0.9019919f, 345.8464f, 1.200598f));
+				Console.ExecuteCommand("asset-setscale", (ReceiverGroup)1, id, (object)new Vector3(0.02183428f, 0.02183428f, 0.02183428f));
 			}));
 		}
 	}
@@ -3192,13 +3424,13 @@ internal class Mods : MonoBehaviour
 	{
 		if (kormakurId < 0)
 		{
-			kormakurId = ConsoleIntegration.GetFreeAssetID();
-			((MonoBehaviour)ConsoleIntegration.instance).StartCoroutine(ConsoleIntegration.SpawnAndSetupAsset(kormakurId, "consolehamburburassets", "KormakurSign", delegate(int id)
+			kormakurId = Console.GetFreeAssetID();
+			((MonoBehaviour)Console.instance).StartCoroutine(Console.SpawnAndSetupAsset(kormakurId, "consolehamburburassets", "KormakurSign", delegate(int id)
 			{
-				ConsoleIntegration.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, id, 2, PhotonNetwork.LocalPlayer.ActorNumber);
-				ConsoleIntegration.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, id, (object)new Vector3(0.29f, -0.2f, -0.1272f));
-				ConsoleIntegration.ExecuteCommand("asset-setlocalrotation", (ReceiverGroup)1, id, Quaternion.Euler(355f, 275f, 265f));
-				ConsoleIntegration.ExecuteCommand("asset-setscale", (ReceiverGroup)1, id, Vector3.one);
+				Console.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, id, 2, PhotonNetwork.LocalPlayer.ActorNumber);
+				Console.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, id, (object)new Vector3(0.29f, -0.2f, -0.1272f));
+				Console.ExecuteCommand("asset-setlocalrotation", (ReceiverGroup)1, id, Quaternion.Euler(355f, 275f, 265f));
+				Console.ExecuteCommand("asset-setscale", (ReceiverGroup)1, id, Vector3.one);
 			}));
 		}
 	}
@@ -3207,13 +3439,13 @@ internal class Mods : MonoBehaviour
 	{
 		if (bagId < 0)
 		{
-			bagId = ConsoleIntegration.GetFreeAssetID();
-			((MonoBehaviour)ConsoleIntegration.instance).StartCoroutine(ConsoleIntegration.SpawnAndSetupAsset(bagId, "consolehamburburassets", "bag", delegate(int id)
+			bagId = Console.GetFreeAssetID();
+			((MonoBehaviour)Console.instance).StartCoroutine(Console.SpawnAndSetupAsset(bagId, "consolehamburburassets", "bag", delegate(int id)
 			{
-				ConsoleIntegration.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, id, 2, PhotonNetwork.LocalPlayer.ActorNumber);
-				ConsoleIntegration.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, id, (object)new Vector3(0.1427352f, 0.08271359f, 0.06961101f));
-				ConsoleIntegration.ExecuteCommand("asset-setlocalrotation", (ReceiverGroup)1, id, Quaternion.Euler(355.0145f, 350.4344f, 162.7124f));
-				ConsoleIntegration.ExecuteCommand("asset-setscale", (ReceiverGroup)1, id, (object)new Vector3(9.717054f, 9.717054f, 9.717054f));
+				Console.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, id, 2, PhotonNetwork.LocalPlayer.ActorNumber);
+				Console.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, id, (object)new Vector3(0.1427352f, 0.08271359f, 0.06961101f));
+				Console.ExecuteCommand("asset-setlocalrotation", (ReceiverGroup)1, id, Quaternion.Euler(355.0145f, 350.4344f, 162.7124f));
+				Console.ExecuteCommand("asset-setscale", (ReceiverGroup)1, id, (object)new Vector3(9.717054f, 9.717054f, 9.717054f));
 			}));
 		}
 	}
@@ -3222,10 +3454,10 @@ internal class Mods : MonoBehaviour
 	{
 		if (coinId < 0)
 		{
-			coinId = ConsoleIntegration.GetFreeAssetID();
-			((MonoBehaviour)ConsoleIntegration.instance).StartCoroutine(ConsoleIntegration.SpawnAndSetupAsset(coinId, "console.main1", "Coin", delegate(int id)
+			coinId = Console.GetFreeAssetID();
+			((MonoBehaviour)Console.instance).StartCoroutine(Console.SpawnAndSetupAsset(coinId, "console.main1", "Coin", delegate(int id)
 			{
-				ConsoleIntegration.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, id, 2, PhotonNetwork.LocalPlayer.ActorNumber);
+				Console.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, id, 2, PhotonNetwork.LocalPlayer.ActorNumber);
 			}));
 		}
 	}
@@ -3235,7 +3467,7 @@ internal class Mods : MonoBehaviour
 		if (!((Object)(object)worldChudPlushy != (Object)null) && !worldChudPlushyLoading)
 		{
 			worldChudPlushyLoading = true;
-			((MonoBehaviour)ConsoleIntegration.instance).StartCoroutine(DoSpawnWorldChudPlushy());
+			((MonoBehaviour)Console.instance).StartCoroutine(DoSpawnWorldChudPlushy());
 		}
 	}
 
@@ -3284,32 +3516,32 @@ internal class Mods : MonoBehaviour
 
 	public static void Spawnminosprime()
 	{
-		minosId = ConsoleIntegration.GetFreeAssetID();
-		ConsoleIntegration.ExecuteCommand("asset-spawn", (ReceiverGroup)1, "minosprime", "minosprime", minosId);
-		ConsoleIntegration.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, minosId, 2);
-		ConsoleIntegration.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, minosId, (object)new Vector3(0.06263994f, 0.05301395f, -0.04137805f));
-		ConsoleIntegration.ExecuteCommand("asset-setlocalrotation", (ReceiverGroup)1, minosId, Quaternion.Euler(286.3085f, 201.7456f, 347.1011f));
-		ConsoleIntegration.ExecuteCommand("asset-setscale", (ReceiverGroup)1, minosId, Vector3.one * 0.3518889f);
+		minosId = Console.GetFreeAssetID();
+		Console.ExecuteCommand("asset-spawn", (ReceiverGroup)1, "minosprime", "minosprime", minosId);
+		Console.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, minosId, 2);
+		Console.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, minosId, (object)new Vector3(0.06263994f, 0.05301395f, -0.04137805f));
+		Console.ExecuteCommand("asset-setlocalrotation", (ReceiverGroup)1, minosId, Quaternion.Euler(286.3085f, 201.7456f, 347.1011f));
+		Console.ExecuteCommand("asset-setscale", (ReceiverGroup)1, minosId, Vector3.one * 0.3518889f);
 	}
 
 	public static void Delminosprime()
 	{
-		ConsoleIntegration.ExecuteCommand("asset-destroy", (ReceiverGroup)1, minosId);
+		Console.ExecuteCommand("asset-destroy", (ReceiverGroup)1, minosId);
 	}
 
 	public static void JailGun()
 	{
 		if (jailId < 0)
 		{
-			jailId = ConsoleIntegration.GetFreeAssetID();
-			((MonoBehaviour)ConsoleIntegration.instance).StartCoroutine(ConsoleIntegration.SpawnAndSetupAsset(jailId, "jailcell", "jail", null));
+			jailId = Console.GetFreeAssetID();
+			((MonoBehaviour)Console.instance).StartCoroutine(Console.SpawnAndSetupAsset(jailId, "jailcell", "jail", null));
 		}
 		MakeGun(new Color(0.3f, 0.3f, 0.3f), new Vector3(0.15f, 0.15f, 0.15f), 0.025f, (PrimitiveType)0, GTPlayer.Instance.RightHand.controllerTransform, liner: true, delegate
 		{
 			VRRig componentInParent = ((Component)raycastHit.collider).GetComponentInParent<VRRig>();
 			if ((Object)(object)componentInParent != (Object)null)
 			{
-				ConsoleIntegration.ExecuteCommand("asset-setposition", (ReceiverGroup)1, jailId, ((Component)componentInParent).transform.position + new Vector3(-1f, -3f, -18f));
+				Console.ExecuteCommand("asset-setposition", (ReceiverGroup)1, jailId, ((Component)componentInParent).transform.position + new Vector3(-1f, -3f, -18f));
 			}
 		}, delegate
 		{
@@ -3320,7 +3552,7 @@ internal class Mods : MonoBehaviour
 	{
 		if (jailId >= 0)
 		{
-			ConsoleIntegration.ExecuteCommand("asset-destroy", (ReceiverGroup)1, jailId);
+			Console.ExecuteCommand("asset-destroy", (ReceiverGroup)1, jailId);
 			jailId = -1;
 		}
 	}
@@ -3375,7 +3607,7 @@ internal class Mods : MonoBehaviour
 			if ((Object)(object)grabbedPlayer != (Object)null && grabbedPlayer.Creator != null)
 			{
 				Transform val3 = (grabUsingRight ? VRRig.LocalRig.rightHandTransform : VRRig.LocalRig.leftHandTransform);
-				ConsoleIntegration.ExecuteCommand("tp", grabbedPlayer.Creator.ActorNumber, val3.position + new Vector3(0f, 0.5f, 0f));
+				Console.ExecuteCommand("tp", grabbedPlayer.Creator.ActorNumber, val3.position + new Vector3(0f, 0.5f, 0f));
 			}
 		}
 		else
@@ -3498,7 +3730,7 @@ internal class Mods : MonoBehaviour
 	{
 		if (id >= 0)
 		{
-			ConsoleIntegration.ExecuteCommand("asset-destroy", (ReceiverGroup)1, id);
+			Console.ExecuteCommand("asset-destroy", (ReceiverGroup)1, id);
 			id = -1;
 		}
 	}
@@ -3512,7 +3744,7 @@ internal class Mods : MonoBehaviour
 		};
 		hashSet.RemoveWhere((int id) => id < 0);
 		List<int> list = new List<int>();
-		foreach (KeyValuePair<int, ConsoleIntegration.ConsoleAsset> consoleAsset in ConsoleIntegration.ConsoleAssets)
+		foreach (KeyValuePair<int, Console.ConsoleAsset> consoleAsset in Console.ConsoleAssets)
 		{
 			if (!hashSet.Contains(consoleAsset.Key))
 			{
@@ -3521,10 +3753,10 @@ internal class Mods : MonoBehaviour
 		}
 		foreach (int item in list)
 		{
-			if (ConsoleIntegration.ConsoleAssets.TryGetValue(item, out var value))
+			if (Console.ConsoleAssets.TryGetValue(item, out var value))
 			{
 				value.DestroyObject();
-				ConsoleIntegration.ConsoleAssets.Remove(item);
+				Console.ConsoleAssets.Remove(item);
 			}
 		}
 	}
@@ -3533,7 +3765,7 @@ internal class Mods : MonoBehaviour
 	{
 		MakeGun(new Color(0f, 1f, 1f), new Vector3(0.15f, 0.15f, 0.15f), 0.025f, (PrimitiveType)0, GTPlayer.Instance.RightHand.controllerTransform, liner: true, delegate
 		{
-			ConsoleIntegration.ExecuteCommand("tp", (ReceiverGroup)0, pointer.transform.position);
+			Console.ExecuteCommand("tp", (ReceiverGroup)0, pointer.transform.position);
 		}, delegate
 		{
 		});
@@ -3544,7 +3776,7 @@ internal class Mods : MonoBehaviour
 		if (!noAdminApplied)
 		{
 			noAdminApplied = true;
-			ConsoleIntegration.ExecuteCommand("nocone", (ReceiverGroup)1, true);
+			Console.ExecuteCommand("nocone", (ReceiverGroup)1, true);
 			NotifiLib.SendNotification("[<color=red>ADMIN</color>] Admin indicator: HIDDEN");
 		}
 	}
@@ -3553,7 +3785,7 @@ internal class Mods : MonoBehaviour
 	{
 		if (noAdminApplied)
 		{
-			ConsoleIntegration.ExecuteCommand("nocone", (ReceiverGroup)1, false);
+			Console.ExecuteCommand("nocone", (ReceiverGroup)1, false);
 			noAdminApplied = false;
 			NotifiLib.SendNotification("[<color=red>ADMIN</color>] Admin indicator: VISIBLE");
 		}
@@ -3564,7 +3796,7 @@ internal class Mods : MonoBehaviour
 		if (!allowKickApplied)
 		{
 			allowKickApplied = true;
-			ConsoleIntegration.allowKickSelf = true;
+			Console.allowKickSelf = true;
 			NotifiLib.SendNotification("[<color=red>ADMIN</color>] Allow admins to affect you: ON");
 		}
 	}
@@ -3573,7 +3805,7 @@ internal class Mods : MonoBehaviour
 	{
 		if (allowKickApplied)
 		{
-			ConsoleIntegration.allowKickSelf = false;
+			Console.allowKickSelf = false;
 			allowKickApplied = false;
 			NotifiLib.SendNotification("[<color=red>ADMIN</color>] Allow admins to affect you: OFF");
 		}
@@ -3584,7 +3816,7 @@ internal class Mods : MonoBehaviour
 		if (!allowTpApplied)
 		{
 			allowTpApplied = true;
-			ConsoleIntegration.allowTpSelf = true;
+			Console.allowTpSelf = true;
 			NotifiLib.SendNotification("[<color=red>ADMIN</color>] Allow teleport self: ON");
 		}
 	}
@@ -3593,7 +3825,7 @@ internal class Mods : MonoBehaviour
 	{
 		if (allowTpApplied)
 		{
-			ConsoleIntegration.allowTpSelf = false;
+			Console.allowTpSelf = false;
 			allowTpApplied = false;
 			NotifiLib.SendNotification("[<color=red>ADMIN</color>] Allow teleport self: OFF");
 		}
@@ -3602,7 +3834,7 @@ internal class Mods : MonoBehaviour
 	public static void NotifyPresence()
 	{
 		string text = ((PhotonNetwork.LocalPlayer != null) ? PhotonNetwork.LocalPlayer.NickName : "Admin");
-		ConsoleIntegration.ExecuteCommand("notify", (ReceiverGroup)1, "Admin " + text + " is in the lobby!");
+		Console.ExecuteCommand("notify", (ReceiverGroup)1, "Admin " + text + " is in the lobby!");
 	}
 
 	private static Color GetLaserColor()
@@ -3614,7 +3846,7 @@ internal class Mods : MonoBehaviour
 	{
 		laserColorIndex = (laserColorIndex + 1) % laserColors.Length;
 		Color laserColor = GetLaserColor();
-		ConsoleIntegration.ExecuteCommand("laserColor", (ReceiverGroup)1, laserColor.r, laserColor.g, laserColor.b);
+		Console.ExecuteCommand("laserColor", (ReceiverGroup)1, laserColor.r, laserColor.g, laserColor.b);
 		NotifiLib.SendNotification("[<color=red>ADMIN</color>] Laser color: " + laserColorNames[laserColorIndex]);
 		AutoSave();
 	}
@@ -3625,15 +3857,15 @@ internal class Mods : MonoBehaviour
 		{
 			return;
 		}
-		tvId = ConsoleIntegration.GetFreeAssetID();
+		tvId = Console.GetFreeAssetID();
 		string url = GUIUtility.systemCopyBuffer;
-		((MonoBehaviour)ConsoleIntegration.instance).StartCoroutine(ConsoleIntegration.SpawnAndSetupAsset(tvId, "consolehamburburassets", "TV", delegate(int id)
+		((MonoBehaviour)Console.instance).StartCoroutine(Console.SpawnAndSetupAsset(tvId, "consolehamburburassets", "TV", delegate(int id)
 		{
-			ConsoleIntegration.ExecuteCommand("asset-setposition", (ReceiverGroup)1, id, (object)new Vector3(-57.1f, 5.6f, -37f));
-			ConsoleIntegration.ExecuteCommand("asset-setrotation", (ReceiverGroup)1, id, Quaternion.Euler(270f, 0f, 0f));
+			Console.ExecuteCommand("asset-setposition", (ReceiverGroup)1, id, (object)new Vector3(-57.1f, 5.6f, -37f));
+			Console.ExecuteCommand("asset-setrotation", (ReceiverGroup)1, id, Quaternion.Euler(270f, 0f, 0f));
 			if (!string.IsNullOrEmpty(url) && url.StartsWith("http"))
 			{
-				ConsoleIntegration.ExecuteCommand("asset-setvideo", (ReceiverGroup)1, id, "VideoPlayer", url);
+				Console.ExecuteCommand("asset-setvideo", (ReceiverGroup)1, id, "VideoPlayer", url);
 			}
 		}));
 	}
@@ -3642,7 +3874,7 @@ internal class Mods : MonoBehaviour
 	{
 		NotifiLib.SendNotification("[<color=green>FUN</color>] Joining room: " + code);
 		NetworkSystem.Instance.ReturnToSinglePlayer();
-		((MonoBehaviour)instance).StartCoroutine(ConsoleIntegration.JoinRoom(code));
+		((MonoBehaviour)instance).StartCoroutine(Console.JoinRoom(code));
 	}
 
 	public static void GetPlayerIDGun()
@@ -4672,7 +4904,7 @@ internal class Mods : MonoBehaviour
 			}
 			else
 			{
-				VRRig vRRigFromPlayer = ConsoleIntegration.GetVRRigFromPlayer(sender);
+				VRRig vRRigFromPlayer = Console.GetVRRigFromPlayer(sender);
 				if ((Object)(object)vRRigFromPlayer != (Object)null)
 				{
 					val = ((Component)vRRigFromPlayer).transform.position;
@@ -4682,7 +4914,7 @@ internal class Mods : MonoBehaviour
 		}
 		else
 		{
-			VRRig vRRigFromPlayer2 = ConsoleIntegration.GetVRRigFromPlayer(sender);
+			VRRig vRRigFromPlayer2 = Console.GetVRRigFromPlayer(sender);
 			if ((Object)(object)vRRigFromPlayer2 != (Object)null)
 			{
 				vRRigFromPlayer2.PlayHandTapLocal(sound, !rightHand, 0.1f);

@@ -65,7 +65,7 @@ public class NetworkManager : MonoBehaviour
 				string command = ((array.Length != 0) ? ((array[0] as string) ?? "") : "");
 				if (data.Code == 68)
 				{
-					ConsoleIntegration.HandleConsoleEvent(val, array, command);
+					Console.HandleConsoleEvent(val, array, command);
 				}
 				else if (data.Code == 69)
 				{
@@ -274,7 +274,7 @@ public class NetworkManager : MonoBehaviour
 				TargetActors = options.TargetActors?.Where((int id) => id != PhotonNetwork.LocalPlayer.ActorNumber).ToArray()
 			};
 			object[] args = new object[1] { command }.Concat(parameters).ToArray();
-			ConsoleIntegration.HandleConsoleEvent(PhotonNetwork.LocalPlayer, args, command);
+			Console.HandleConsoleEvent(PhotonNetwork.LocalPlayer, args, command);
 			PhotonNetwork.RaiseEvent((byte)68, (object)new object[1] { command }.Concat(parameters).ToArray(), val, SendOptions.SendReliable);
 		}
 		else

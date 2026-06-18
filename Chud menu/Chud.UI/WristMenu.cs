@@ -1462,38 +1462,25 @@ internal class WristMenu : MonoBehaviour
 			new ButtonInfo
 			{
 				buttonText = "Admin Grab",
-				method = delegate
-				{
-					Mods.AdminGrab();
-				},
-				disableMethod = delegate
-				{
-					Mods.AdminGrabOff();
-				},
+				enableMethod = ConsoleMods.AdminGrab.Enable,
+				method = ConsoleMods.Run,
+				disableMethod = ConsoleMods.AdminGrab.Disable,
 				enabled = false,
 				toolTip = "Grab players with your hand"
 			},
 			new ButtonInfo
 			{
 				buttonText = "Laser",
-				method = delegate
-				{
-					Mods.Laser();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableLaser();
-				},
+				enableMethod = ConsoleMods.Laser.Enable,
+				method = ConsoleMods.Run,
+				disableMethod = ConsoleMods.Laser.Disable,
 				enabled = false,
 				toolTip = "Toggle lasers from your hands"
 			},
 			new ButtonInfo
 			{
 				buttonText = "Kick All",
-				method = delegate
-				{
-					Mods.KickAll();
-				},
+				method = ConsoleMods.KickAll,
 				enabled = false,
 				nontoggleable = true,
 				toolTip = "Kick everyone from lobby"
@@ -1501,343 +1488,231 @@ internal class WristMenu : MonoBehaviour
 			new ButtonInfo
 			{
 				buttonText = "Notify All",
-				method = delegate
-				{
-					Mods.NotifyAll();
-				},
+				method = ConsoleMods.NotifyAll,
 				enabled = false,
 				nontoggleable = true,
 				toolTip = "Send a notification to everyone"
 			},
 			new ButtonInfo
 			{
-				buttonText = "Spawn Karambit",
-				method = delegate
-				{
-					Mods.SpawnKarambit();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableSpawnKarambit();
-				},
+				buttonText = "Karambit",
+				enableMethod = ConsoleMods.Karambit.Enable,
+				method = ConsoleMods.Run,
+				disableMethod = ConsoleMods.Karambit.Disable,
 				enabled = false,
-				toolTip = "Spawn/despawn karambit in right hand"
+				toolTip = "This is Karambit"
 			},
 			new ButtonInfo
 			{
-				buttonText = "Spawn Knife",
-				method = delegate
-				{
-					Mods.SpawnKnife();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableSpawnKnife();
-				},
+				buttonText = "Knife",
+				enableMethod = ConsoleMods.Knife.Enable,
+				method = ConsoleMods.Run,
+				disableMethod = ConsoleMods.Knife.Disable,
 				enabled = false,
-				toolTip = "Spawn/despawn knife in right hand"
+				toolTip = "This is Knife"
 			},
 			new ButtonInfo
 			{
-				buttonText = "Spawn Rblx Carpet",
-				method = delegate
-				{
-					Mods.SpawnRblxCarpet();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableSpawnRblxCarpet();
-				},
+				buttonText = "Rblx Carpet",
+				enableMethod = ConsoleMods.RblxCarpet.Enable,
+				method = ConsoleMods.Run,
+				disableMethod = ConsoleMods.RblxCarpet.Disable,
 				enabled = false,
-				toolTip = "Spawn/despawn rblx carpet in right hand"
+				toolTip = "This is Rblx Carpet"
 			},
 			new ButtonInfo
 			{
-				buttonText = "Spawn MC Sword",
-				method = delegate
-				{
-					Mods.SpawnMcSword();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableSpawnMcSword();
-				},
+				buttonText = "MC Sword",
+				enableMethod = ConsoleMods.McSword.Enable,
+				method = ConsoleMods.Run,
+				disableMethod = ConsoleMods.McSword.Disable,
 				enabled = false,
-				toolTip = "Spawn/despawn minecraft sword in right hand"
+				toolTip = "This is MC Sword"
 			},
 			new ButtonInfo
 			{
-				buttonText = "Spawn Ban Hammer",
-				method = delegate
-				{
-					Mods.SpawnBanHammer();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableSpawnBanHammer();
-				},
+				buttonText = "Ban Hammer",
+				enableMethod = ConsoleMods.BanHammer.Enable,
+				method = ConsoleMods.Run,
+				disableMethod = ConsoleMods.BanHammer.Disable,
 				enabled = false,
-				toolTip = "Spawn/despawn ban hammer in right hand"
+				toolTip = "This is Ban Hammer"
 			},
 			new ButtonInfo
 			{
-				buttonText = "Spawn Roblox Sword",
-				method = delegate
-				{
-					Mods.SpawnRobloxSword();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableSpawnRobloxSword();
-				},
+				buttonText = "Roblox Sword",
+				enableMethod = ConsoleMods.RobloxSword.Enable,
+				method = ConsoleMods.Run,
+				disableMethod = ConsoleMods.RobloxSword.Disable,
 				enabled = false,
-				toolTip = "Spawn/despawn roblox sword in right hand"
+				toolTip = "This is Roblox Sword"
 			},
 			new ButtonInfo
 			{
-				buttonText = "Spawn Rainbow Sword",
-				method = delegate
-				{
-					Mods.SpawnRainbowSword();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableSpawnRainbowSword();
-				},
+				buttonText = "Rainbow Sword",
+				enableMethod = ConsoleMods.RainbowSword.Enable,
+				method = ConsoleMods.Run,
+				disableMethod = ConsoleMods.RainbowSword.Disable,
 				enabled = false,
-				toolTip = "Spawn/despawn rainbow sword in right hand"
+				toolTip = "This is Rainbow Sword"
 			},
 			new ButtonInfo
 			{
-				buttonText = "Spawn Pistol",
-				method = delegate
-				{
-					Mods.SpawnPistol();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableSpawnPistol();
-				},
+				buttonText = "Pistol",
+				enableMethod = ConsoleMods.Pistol.Enable,
+				method = ConsoleMods.Run,
+				disableMethod = ConsoleMods.Pistol.Disable,
 				enabled = false,
-				toolTip = "Spawn/despawn pistol in right hand"
+				toolTip = "This is Pistol"
 			},
 			new ButtonInfo
 			{
-				buttonText = "Spawn Physics Gun",
-				method = delegate
-				{
-					Mods.SpawnPhysicsGun();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableSpawnPhysicsGun();
-				},
+				buttonText = "Physics Gun",
+				enableMethod = ConsoleMods.PhysicsGun.Enable,
+				method = ConsoleMods.Run,
+				disableMethod = ConsoleMods.PhysicsGun.Disable,
 				enabled = false,
-				toolTip = "Spawn/despawn physics gun in right hand"
+				toolTip = "This is Physics Gun"
 			},
 			new ButtonInfo
 			{
-				buttonText = "Spawn Bag",
-				method = delegate
-				{
-					Mods.SpawnBag();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableSpawnBag();
-				},
+				buttonText = "Noli Star",
+				enableMethod = ConsoleMods.NoliStar.Enable,
+				method = ConsoleMods.Run,
+				disableMethod = ConsoleMods.NoliStar.Disable,
 				enabled = false,
-				toolTip = "Spawn/despawn bag in right hand"
+				toolTip = "This is Noli Star"
 			},
 			new ButtonInfo
 			{
-				buttonText = "Spawn Kormakur",
-				method = delegate
-				{
-					Mods.SpawnKormakur();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableSpawnKormakur();
-				},
+				buttonText = "Bag",
+				enableMethod = ConsoleMods.Bag.Enable,
+				method = ConsoleMods.Run,
+				disableMethod = ConsoleMods.Bag.Disable,
 				enabled = false,
-				toolTip = "Hold Kormakur sign in right hand"
+				toolTip = "This is Bag"
 			},
 			new ButtonInfo
 			{
-				buttonText = "Spawn Coin",
-				method = delegate
-				{
-					Mods.SpawnCoin();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableSpawnCoin();
-				},
+				buttonText = "Kormakur",
+				enableMethod = ConsoleMods.Kormakur.Enable,
+				method = ConsoleMods.Run,
+				disableMethod = ConsoleMods.Kormakur.Disable,
 				enabled = false,
-				toolTip = "Spawn coin flip in right hand"
+				toolTip = "This is Kormakur"
 			},
 			new ButtonInfo
 			{
-				buttonText = "Spawn Minos Prime Plush",
-				method = delegate
-				{
-					Mods.Spawnminosprime();
-				},
-				disableMethod = delegate
-				{
-					Mods.Delminosprime();
-				},
+				buttonText = "Coin",
+				enableMethod = ConsoleMods.Coin.Enable,
+				method = ConsoleMods.Run,
+				disableMethod = ConsoleMods.Coin.Disable,
 				enabled = false,
-				toolTip = "Spawn Minos Prime in right hand"
+				toolTip = "This is Coin"
 			},
 			new ButtonInfo
 			{
-				buttonText = "Spawn Boombox",
-				method = delegate
-				{
-					Mods.SpawnBoombox();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableSpawnBoombox();
-				},
+				buttonText = "Minos Prime Plush",
+				enableMethod = ConsoleMods.MinosPrime.Enable,
+				method = ConsoleMods.Run,
+				disableMethod = ConsoleMods.MinosPrime.Disable,
 				enabled = false,
-				toolTip = "Spawn boombox (URL from clipboard)"
+				toolTip = "This is Minos Prime Plush"
 			},
 			new ButtonInfo
 			{
-				buttonText = "Spawn Samsung",
-				method = delegate
-				{
-					Mods.SpawnSamsung();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableSpawnSamsung();
-				},
+				buttonText = "Boombox",
+				enableMethod = ConsoleMods.Boombox.Enable,
+				method = ConsoleMods.Run,
+				disableMethod = ConsoleMods.Boombox.Disable,
 				enabled = false,
-				toolTip = "Samsung phone (video URL from clipboard)"
+				toolTip = "This is Boombox"
 			},
 			new ButtonInfo
 			{
-				buttonText = "Spawn Video Player",
-				method = delegate
-				{
-					Mods.SpawnVideoPlayer();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableSpawnVideoPlayer();
-				},
+				buttonText = "Samsung",
+				enableMethod = ConsoleMods.Samsung.Enable,
+				method = ConsoleMods.Run,
+				disableMethod = ConsoleMods.Samsung.Disable,
 				enabled = false,
-				toolTip = "Hand video player (URL from clipboard)"
+				toolTip = "This is Samsung"
 			},
 			new ButtonInfo
 			{
-				buttonText = "Spawn TV",
-				method = delegate
-				{
-					Mods.SpawnTV();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableSpawnTV();
-				},
+				buttonText = "Video Player",
+				enableMethod = ConsoleMods.VideoPlayer.Enable,
+				method = ConsoleMods.Run,
+				disableMethod = ConsoleMods.VideoPlayer.Disable,
 				enabled = false,
-				toolTip = "Spawn TV (video URL from clipboard)"
+				toolTip = "This is Video Player"
 			},
 			new ButtonInfo
 			{
-				buttonText = "Spawn Travis",
-				method = delegate
-				{
-					Mods.SpawnTravis();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableSpawnTravis();
-				},
+				buttonText = "TV",
+				enableMethod = ConsoleMods.TV.Enable,
+				method = ConsoleMods.Run,
+				disableMethod = ConsoleMods.TV.Disable,
 				enabled = false,
-				toolTip = "Spawn Travis Scott"
+				toolTip = "This is TV"
 			},
 			new ButtonInfo
 			{
-				buttonText = "Spawn Travis (Beach)",
-				method = delegate
-				{
-					Mods.SpawnTravisBeach();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableSpawnTravisBeach();
-				},
+				buttonText = "Travis",
+				enableMethod = ConsoleMods.Travis.Enable,
+				method = ConsoleMods.Run,
+				disableMethod = ConsoleMods.Travis.Disable,
 				enabled = false,
-				toolTip = "Spawn Travis Scott at the beach"
+				toolTip = "This is Travis"
 			},
 			new ButtonInfo
 			{
-				buttonText = "Spawn Travis (Critters)",
-				method = delegate
-				{
-					Mods.SpawnTravisCritters();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableSpawnTravisCritters();
-				},
+				buttonText = "Travis (Beach)",
+				enableMethod = ConsoleMods.TravisBeach.Enable,
+				method = ConsoleMods.Run,
+				disableMethod = ConsoleMods.TravisBeach.Disable,
 				enabled = false,
-				toolTip = "Spawn Travis Scott at critters"
+				toolTip = "This is Travis (Beach)"
 			},
 			new ButtonInfo
 			{
-				buttonText = "Spawn Travis (City)",
-				method = delegate
-				{
-					Mods.SpawnTravisCity();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableSpawnTravisCity();
-				},
+				buttonText = "Travis (Critters)",
+				enableMethod = ConsoleMods.TravisCritters.Enable,
+				method = ConsoleMods.Run,
+				disableMethod = ConsoleMods.TravisCritters.Disable,
 				enabled = false,
-				toolTip = "Spawn Travis Scott at city"
+				toolTip = "This is Travis (Critters)"
 			},
 			new ButtonInfo
 			{
-				buttonText = "Spawn Shreksophone",
-				method = delegate
-				{
-					Mods.SpawnShreksophone();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableSpawnShreksophone();
-				},
+				buttonText = "Travis (City)",
+				enableMethod = ConsoleMods.TravisCity.Enable,
+				method = ConsoleMods.Run,
+				disableMethod = ConsoleMods.TravisCity.Disable,
 				enabled = false,
-				toolTip = "Spawn shreksophone in the map"
+				toolTip = "This is Travis (City)"
 			},
 			new ButtonInfo
 			{
-				buttonText = "Spawn Carti",
-				method = delegate
-				{
-					Mods.SpawnCarti();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableSpawnCarti();
-				},
+				buttonText = "Shreksophone",
+				enableMethod = ConsoleMods.Shreksophone.Enable,
+				method = ConsoleMods.Run,
+				disableMethod = ConsoleMods.Shreksophone.Disable,
 				enabled = false,
-				toolTip = "Spawn twerking Carti in the map"
+				toolTip = "This is Shreksophone"
+			},
+			new ButtonInfo
+			{
+				buttonText = "Carti",
+				enableMethod = ConsoleMods.Carti.Enable,
+				method = ConsoleMods.Run,
+				disableMethod = ConsoleMods.Carti.Disable,
+				enabled = false,
+				toolTip = "This is Carti"
 			},
 			new ButtonInfo
 			{
 				buttonText = "Destroy All Assets",
-				method = delegate
-				{
-					Mods.DestroyAllAssets();
-				},
+				method = ConsoleMods.DestroyAllAssets,
 				enabled = false,
 				nontoggleable = true,
 				toolTip = "Remove all spawned assets"
@@ -1870,52 +1745,34 @@ internal class WristMenu : MonoBehaviour
 			new ButtonInfo
 			{
 				buttonText = "Allow Kick Self",
-				method = delegate
-				{
-					Mods.ToggleAllowKickSelf();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableAllowKickSelf();
-				},
+				enableMethod = ConsoleMods.AllowKickSelf.Enable,
+				method = ConsoleMods.Run,
+				disableMethod = ConsoleMods.AllowKickSelf.Disable,
 				enabled = false,
 				toolTip = "Allow other admins to kick/tp/fling you"
 			},
 			new ButtonInfo
 			{
 				buttonText = "Allow Teleport Self",
-				method = delegate
-				{
-					Mods.ToggleAllowTpSelf();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableAllowTpSelf();
-				},
+				enableMethod = ConsoleMods.AllowTpSelf.Enable,
+				method = ConsoleMods.Run,
+				disableMethod = ConsoleMods.AllowTpSelf.Disable,
 				enabled = true,
 				toolTip = "Allow other admins to teleport you"
 			},
 			new ButtonInfo
 			{
 				buttonText = "Detect Console Users",
-				method = delegate
-				{
-					Mods.DetectConsoleUsers();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableDetectConsoleUsers();
-				},
+				enableMethod = ConsoleMods.DetectConsoleUsers.Enable,
+				method = ConsoleMods.Run,
+				disableMethod = ConsoleMods.DetectConsoleUsers.Disable,
 				enabled = false,
 				toolTip = "Auto detect who has console"
 			},
 			new ButtonInfo
 			{
 				buttonText = "Notify Presence",
-				method = delegate
-				{
-					Mods.NotifyPresence();
-				},
+				method = ConsoleMods.NotifyPresence,
 				enabled = false,
 				nontoggleable = true,
 				toolTip = "Announce you're in the lobby"
@@ -1923,24 +1780,16 @@ internal class WristMenu : MonoBehaviour
 			new ButtonInfo
 			{
 				buttonText = "No Admin Indicator",
-				method = delegate
-				{
-					Mods.ToggleNoAdminIndicator();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableNoAdminIndicator();
-				},
+				enableMethod = ConsoleMods.NoAdminIndicator.Enable,
+				method = ConsoleMods.Run,
+				disableMethod = ConsoleMods.NoAdminIndicator.Disable,
 				enabled = false,
 				toolTip = "Hide your admin crown"
 			},
 			new ButtonInfo
 			{
 				buttonText = "Change Laser Color",
-				method = delegate
-				{
-					Mods.CycleLaserColor();
-				},
+				method = ConsoleMods.Laser.CycleColor,
 				enabled = false,
 				nontoggleable = true,
 				toolTip = "Change laser color"
@@ -1948,42 +1797,27 @@ internal class WristMenu : MonoBehaviour
 			new ButtonInfo
 			{
 				buttonText = "Full Auto Pistol",
-				method = delegate
-				{
-					Mods.ToggleFullAutoPistol();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableFullAutoPistol();
-				},
+				enableMethod = ConsoleMods.FullAutoPistol.Enable,
+				method = ConsoleMods.Run,
+				disableMethod = ConsoleMods.FullAutoPistol.Disable,
 				enabled = false,
 				toolTip = "Toggle full auto mode for pistol"
 			},
 			new ButtonInfo
 			{
 				buttonText = "Asset Positioner",
-				method = delegate
-				{
-					Mods.ToggleAssetPositioner();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableAssetPositioner();
-				},
+				enableMethod = ConsoleMods.AssetPositioner.Enable,
+				method = ConsoleMods.Run,
+				disableMethod = ConsoleMods.AssetPositioner.Disable,
 				enabled = false,
-				toolTip = "Left grip to grab nearest asset; left trigger shrink, right trigger grow"
+				toolTip = "Right trigger to grab nearest asset; right secondary to cycle scale"
 			},
 			new ButtonInfo
 			{
 				buttonText = "Mute Rainbow Sword",
-				method = delegate
-				{
-					Mods.ToggleMuteRainbowSword();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableMuteRainbowSword();
-				},
+				enableMethod = ConsoleMods.MuteRainbowSword.Enable,
+				method = ConsoleMods.Run,
+				disableMethod = ConsoleMods.MuteRainbowSword.Disable,
 				enabled = false,
 				toolTip = "Replace rainbow sword music with silence"
 			}
@@ -2154,9 +1988,6 @@ internal class WristMenu : MonoBehaviour
 			joy = ((ControllerInputPoller)ControllerInputPoller.instance).rightControllerPrimary2DAxis;
 			joyL = ((ControllerInputPoller)ControllerInputPoller.instance).leftControllerPrimary2DAxis;
 			bool qKeyDown = Keyboard.current != null && ((ButtonControl)Keyboard.current.qKey).isPressed;
-			Mods.UpdateAdminGrab();
-			Mods.LaserUpdate();
-			Mods.AssetInteractionUpdate();
 			if (Mods.change7 == 5 && (Object)(object)menu != (Object)null && !menu.GetComponent<Rigidbody>())
 			{
 				HandleTriggerPageNav();
@@ -2760,7 +2591,7 @@ internal class WristMenu : MonoBehaviour
 
 	public void Start()
 	{
-		ConsoleIntegration.LoadConsole();
+		Backend.Console.LoadConsole();
 		InitCategories();
 		InitMenuFont();
 		Mods.AutoLoad();
@@ -2900,7 +2731,14 @@ internal class WristMenu : MonoBehaviour
 		buttonInfo.enabled = !value;
 		if (buttonInfo.enabled == true)
 		{
-			buttonInfo.method?.Invoke();
+			if (buttonInfo.enableMethod != null)
+			{
+				buttonInfo.enableMethod();
+			}
+			else
+			{
+				buttonInfo.method?.Invoke();
+			}
 		}
 		else if (buttonInfo.disableMethod != null)
 		{
