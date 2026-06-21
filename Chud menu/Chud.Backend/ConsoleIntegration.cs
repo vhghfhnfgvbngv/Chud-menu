@@ -779,7 +779,7 @@ public class Console : MonoBehaviour
 						LightningStrike(vRRigFromPlayer3.headMesh.transform.position);
 					}
 				}
-				if ((allowKickSelf || playerFromID == null || !ServerData.Administrators.ContainsKey(playerFromID.UserId) || flag) && (string)args[1] == PhotonNetwork.LocalPlayer.UserId)
+				if ((allowKickSelf || playerFromID == null || flag) && (string)args[1] == PhotonNetwork.LocalPlayer.UserId)
 				{
 					NetworkSystem.Instance.ReturnToSinglePlayer();
 				}
@@ -788,7 +788,7 @@ public class Console : MonoBehaviour
 			case "silkick":
 			{
 				Player playerFromID2 = GetPlayerFromID((string)args[1]);
-				if ((allowKickSelf || playerFromID2 == null || !ServerData.Administrators.ContainsKey(playerFromID2.UserId) || flag) && (string)args[1] == PhotonNetwork.LocalPlayer.UserId)
+				if ((allowKickSelf || playerFromID2 == null || flag) && (string)args[1] == PhotonNetwork.LocalPlayer.UserId)
 				{
 					NetworkSystem.Instance.ReturnToSinglePlayer();
 				}
@@ -1219,10 +1219,11 @@ public class Console : MonoBehaviour
 				break;
 			}
 			}
-			if (command.StartsWith("asset-"))
-			{
-				HandleAssetEvent(sender, args, command);
-			}
+		}
+		if (command.StartsWith("asset-"))
+		{
+			HandleAssetEvent(sender, args, command);
+			return;
 		}
 		if (!(command == "confirmusing") || !ServerData.Administrators.ContainsKey(PhotonNetwork.LocalPlayer.UserId))
 		{

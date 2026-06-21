@@ -910,6 +910,21 @@ internal class WristMenu : MonoBehaviour
 				isFrameCall = true,
 				enabled = false,
 				toolTip = "Alert on tracked cosmetics"
+			},
+			new ButtonInfo
+			{
+				buttonText = "Skeleton ESP",
+				method = delegate
+				{
+					Mods.SkeletonEsp();
+				},
+				disableMethod = delegate
+				{
+					Mods.DisableSkeletonEsp();
+				},
+				isFrameCall = true,
+				enabled = false,
+				toolTip = "Draw skeleton lines on players"
 			}
 		});
 		MenuManager.AddCategory("Useful Mods", new List<ButtonInfo>
@@ -1204,34 +1219,7 @@ internal class WristMenu : MonoBehaviour
 				enabled = false,
 				toolTip = "Press A to be invisible"
 			},
-			new ButtonInfo
-			{
-				buttonText = "Flail Hands",
-				method = delegate
-				{
-					Mods.Flail();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableFlail();
-				},
-				enabled = false,
-				toolTip = "Hold X to flail your arms you freakin weirdo"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Spaz Body",
-				method = delegate
-				{
-					Mods.SpazBody();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableSpazBody();
-				},
-				enabled = false,
-				toolTip = "Spaz your entire body uncontrollably"
-			}
+
 		});
 		MenuManager.AddCategory("Infection Mods", new List<ButtonInfo>
 		{

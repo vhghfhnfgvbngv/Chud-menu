@@ -468,14 +468,6 @@ internal class Mods : MonoBehaviour
 
 	public static bool antiGuardianGrab = false;
 
-	private static bool flailEnabled = false;
-
-	private static Quaternion flailLeftOrig;
-
-	private static Quaternion flailRightOrig;
-
-	private static bool flailOrigSaved = false;
-
 	private static bool pcButtonClickEnabled = false;
 
 	private static Vector3? pcButtonOldLocalPosition;
@@ -483,8 +475,6 @@ internal class Mods : MonoBehaviour
 	private static int? noInvisLayerMask;
 
 	private static bool pcGunsEnabled = false;
-
-	private static bool spazBodyOn = false;
 
 	public static bool NetworkMenuEnabled = false;
 
@@ -519,6 +509,8 @@ internal class Mods : MonoBehaviour
 	public static bool hand1 = false;
 
 	private static readonly Dictionary<Player, LineRenderer> tracerLines = new Dictionary<Player, LineRenderer>();
+
+	private static readonly Dictionary<Player, LineRenderer[]> skeletonLines = new Dictionary<Player, LineRenderer[]>();
 
 	private static int noclipCacheFrame = 0;
 
@@ -1029,9 +1021,7 @@ internal class Mods : MonoBehaviour
 			((Behaviour)VRRig.LocalRig).enabled = false;
 			((Component)VRRig.LocalRig).transform.position = new Vector3(9999f, 9999f, 9999f);
 		}
-		UpdateFlail();
 		UpdateBoop();
-		UpdateSpazBody();
 	}
 
 	private static void UpdateJoystickFly()
@@ -1617,6 +1607,178 @@ internal class Mods : MonoBehaviour
 			Object.Destroy((Object)(object)((Component)value).gameObject);
 		}
 		tracerLines.Clear();
+	}
+
+	// Seralyth-Menu bone index pairs: 19 connections using mainSkin.bones indices
+	private static readonly int[] bonePairs = {
+		4,3, 5,4, 19,18, 20,19, 3,18, 21,20, 22,21, 25,21, 29,21, 31,29,
+		27,25, 24,22, 6,5, 7,6, 10,6, 14,6, 16,14, 12,10, 9,7
+	};
+	private static readonly int boneConnCount = 19;
+
+	public static void SkeletonEsp()
+	{
+		List<Player> dead = null;
+		foreach (var kvp in skeletonLines)
+		{
+			if (!PhotonNetwork.PlayerListOthers.Contains(kvp.Key))
+			{
+				dead ??= new List<Player>();
+				dead.Add(kvp.Key);
+			}
+		}
+		if (dead != null)
+		{
+			foreach (Player p in dead)
+			{
+				foreach (LineRenderer lr in skeletonLines[p])
+					Object.Destroy(((Component)lr).gameObject);
+				skeletonLines.Remove(p);
+			}
+		}
+
+		// Total lines: 1 (head vertical) + 19 (bone index connections) + up to 6 (fingers) = 26
+		int totalLines = 1 + boneConnCount; // base lines
+		int fingerStart = totalLines; // fingers added on the fly if bones found
+
+		foreach (Player player in PhotonNetwork.PlayerListOthers)
+		{
+			VRRig rig = Console.GetVRRigFromPlayer(player);
+			if (rig == null) continue;
+			if (rig.mainSkin == null || rig.mainSkin.bones == null) continue;
+			if (rig.head == null || rig.head.rigTarget == null) continue;
+
+			Transform[] bones = rig.mainSkin.bones;
+
+			if (!skeletonLines.TryGetValue(player, out var lines))
+			{
+				int count = totalLines;
+				lines = new LineRenderer[count + 6]; // room for fingers
+				for (int i = 0; i < count + 6; i++)
+					lines[i] = null;
+
+				// Create base line renderers
+				for (int i = 0; i < count; i++)
+				{
+					GameObject obj = new GameObject("skel" + i);
+					LineRenderer lr = obj.AddComponent<LineRenderer>();
+					lr.startWidth = 0.025f;
+					lr.endWidth = 0.025f;
+					lr.positionCount = 2;
+					lr.useWorldSpace = true;
+					lr.material = new Material(Shader.Find("GUI/Text Shader"));
+					lines[i] = lr;
+				}
+				skeletonLines[player] = lines;
+			}
+
+			Color color = rig.playerColor;
+			try
+			{
+				GorillaGameManager gm = GorillaGameManager.instance;
+				if (gm != null && gm is GorillaTagManager tgm && rig.Creator != null && tgm.IsInfected(rig.Creator))
+					color = new Color(1f, 0.5f, 0f);
+			}
+			catch { }
+
+			if (color.r == 0f && color.g == 0f && color.b == 0f)
+				color = Color.white;
+
+			// Line 0: head vertical line (same as Seralyth)
+			Vector3 headPos = rig.head.rigTarget.position;
+			LineRenderer headLine = lines[0];
+			headLine.startColor = color;
+			headLine.endColor = color;
+			headLine.SetPosition(0, headPos + new Vector3(0f, 0.16f, 0f));
+			headLine.SetPosition(1, headPos - new Vector3(0f, 0.4f, 0f));
+
+			// Lines 1-19: bone index connections
+			for (int i = 0; i < boneConnCount; i++)
+			{
+				int idxA = bonePairs[i * 2];
+				int idxB = bonePairs[i * 2 + 1];
+				if (idxA >= bones.Length || idxB >= bones.Length) continue;
+				if (bones[idxA] == null || bones[idxB] == null) continue;
+
+				LineRenderer lr = lines[1 + i];
+				lr.startColor = color;
+				lr.endColor = color;
+				lr.SetPosition(0, bones[idxA].position);
+				lr.SetPosition(1, bones[idxB].position);
+			}
+
+			// Extra: finger connections by name lookup
+			VRMap lm = rig.leftHand;
+			Vector3 lHand = (lm != null && lm.rigTarget != null) ? lm.rigTarget.position : headPos;
+			VRMap rm = rig.rightHand;
+			Vector3 rHand = (rm != null && rm.rigTarget != null) ? rm.rigTarget.position : headPos;
+
+			Vector3 forward = rig.head.rigTarget.forward;
+			Vector3 right = rig.head.rigTarget.right;
+
+			Transform lThumbT = FindBoneTransform(rig, "thumb.03.L");
+			Transform lIndexT = FindBoneTransform(rig, "f_index.02.L");
+			Transform lMiddleT = FindBoneTransform(rig, "f_middle.02.L");
+			Transform rThumbT = FindBoneTransform(rig, "thumb.03.R");
+			Transform rIndexT = FindBoneTransform(rig, "f_index.02.R");
+			Transform rMiddleT = FindBoneTransform(rig, "f_middle.02.R");
+
+			Vector3 lThumb = lThumbT != null ? lThumbT.position : lHand - right * 0.05f + forward * 0.03f;
+			Vector3 lIndex = lIndexT != null ? lIndexT.position : lHand + forward * 0.06f;
+			Vector3 lMiddle = lMiddleT != null ? lMiddleT.position : lHand + forward * 0.06f - right * 0.02f;
+			Vector3 rThumb = rThumbT != null ? rThumbT.position : rHand + right * 0.05f + forward * 0.03f;
+			Vector3 rIndex = rIndexT != null ? rIndexT.position : rHand + forward * 0.06f;
+			Vector3 rMiddle = rMiddleT != null ? rMiddleT.position : rHand + forward * 0.06f + right * 0.02f;
+
+			(Vector3, Vector3)[] fingerConns = new (Vector3, Vector3)[]
+			{
+				(lHand, lThumb), (lHand, lIndex), (lHand, lMiddle),
+				(rHand, rThumb), (rHand, rIndex), (rHand, rMiddle)
+			};
+
+			for (int i = 0; i < 6; i++)
+			{
+				LineRenderer lr = lines[fingerStart + i];
+				if (lr == null)
+				{
+					GameObject obj = new GameObject("finger" + i);
+					lr = obj.AddComponent<LineRenderer>();
+					lr.startWidth = 0.025f;
+					lr.endWidth = 0.025f;
+					lr.positionCount = 2;
+					lr.useWorldSpace = true;
+					lr.material = new Material(Shader.Find("GUI/Text Shader"));
+					lines[fingerStart + i] = lr;
+				}
+				lr.startColor = color;
+				lr.endColor = color;
+				lr.SetPosition(0, fingerConns[i].Item1);
+				lr.SetPosition(1, fingerConns[i].Item2);
+			}
+		}
+	}
+
+	private static Transform FindBoneTransform(VRRig rig, string prefix)
+	{
+		if (rig.mainSkin != null && rig.mainSkin.bones != null)
+		{
+			foreach (Transform b in rig.mainSkin.bones)
+			{
+				if (b != null && b.name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+					return b;
+			}
+		}
+		return null;
+	}
+
+	public static void DisableSkeletonEsp()
+	{
+		foreach (LineRenderer[] arr in skeletonLines.Values)
+		{
+			foreach (LineRenderer lr in arr)
+				Object.Destroy(((Component)lr).gameObject);
+		}
+		skeletonLines.Clear();
 	}
 
 	private static int GetFps(VRRig rig)
@@ -4347,69 +4509,6 @@ internal class Mods : MonoBehaviour
 		GuardianGrabbedByPatch.enabled = false;
 	}
 
-	public static void Flail()
-	{
-		flailEnabled = true;
-	}
-
-	public static void DisableFlail()
-	{
-		flailEnabled = false;
-		RestoreFlail();
-	}
-
-	private static void RestoreFlail()
-	{
-		if (flailOrigSaved && (Object)(object)VRRig.LocalRig != (Object)null)
-		{
-			if (VRRig.LocalRig.leftHand != null && (Object)(object)VRRig.LocalRig.leftHand.rigTarget != (Object)null)
-			{
-				((Component)VRRig.LocalRig.leftHand.rigTarget).transform.localRotation = flailLeftOrig;
-			}
-			if (VRRig.LocalRig.rightHand != null && (Object)(object)VRRig.LocalRig.rightHand.rigTarget != (Object)null)
-			{
-				((Component)VRRig.LocalRig.rightHand.rigTarget).transform.localRotation = flailRightOrig;
-			}
-		}
-		flailOrigSaved = false;
-	}
-
-	private static void UpdateFlail()
-	{
-		if (!flailEnabled || (Object)(object)VRRig.LocalRig == (Object)null)
-		{
-			return;
-		}
-		if (((ControllerInputPoller)ControllerInputPoller.instance).leftControllerPrimaryButton)
-		{
-			if (!flailOrigSaved)
-			{
-				if (VRRig.LocalRig.leftHand != null && (Object)(object)VRRig.LocalRig.leftHand.rigTarget != (Object)null)
-				{
-					flailLeftOrig = ((Component)VRRig.LocalRig.leftHand.rigTarget).transform.localRotation;
-				}
-				if (VRRig.LocalRig.rightHand != null && (Object)(object)VRRig.LocalRig.rightHand.rigTarget != (Object)null)
-				{
-					flailRightOrig = ((Component)VRRig.LocalRig.rightHand.rigTarget).transform.localRotation;
-				}
-				flailOrigSaved = true;
-			}
-			float num = Time.time * 28f;
-			if (VRRig.LocalRig.leftHand != null && (Object)(object)VRRig.LocalRig.leftHand.rigTarget != (Object)null)
-			{
-				((Component)VRRig.LocalRig.leftHand.rigTarget).transform.localRotation = Quaternion.Euler(Mathf.Sin(num) * 130f + Mathf.Sin(num * 1.9f) * 100f, Mathf.Cos(num * 1.2f) * 140f, Mathf.Sin(num * 1.5f + 1f) * 130f);
-			}
-			if (VRRig.LocalRig.rightHand != null && (Object)(object)VRRig.LocalRig.rightHand.rigTarget != (Object)null)
-			{
-				((Component)VRRig.LocalRig.rightHand.rigTarget).transform.localRotation = Quaternion.Euler(Mathf.Sin(num + 2.5f) * 130f + Mathf.Cos(num * 1.6f) * 100f, Mathf.Cos(num * 1.3f + 1.2f) * 140f, Mathf.Sin(num * 1.1f + 3f) * 130f);
-			}
-		}
-		else if (flailOrigSaved)
-		{
-			RestoreFlail();
-		}
-	}
-
 	public static void AntiAFK()
 	{
 		try
@@ -4593,25 +4692,6 @@ internal class Mods : MonoBehaviour
 		}, delegate
 		{
 		});
-	}
-
-	public static void SpazBody()
-	{
-		spazBodyOn = true;
-	}
-
-	public static void DisableSpazBody()
-	{
-		spazBodyOn = false;
-	}
-
-	private static void UpdateSpazBody()
-	{
-		if (spazBodyOn && !((Object)(object)VRRig.LocalRig == (Object)null))
-		{
-			float num = Time.time * 9f;
-			((Component)VRRig.LocalRig).transform.rotation = Quaternion.Euler(Mathf.Sin(num * 0.5f) * 360f, Mathf.Cos(num * 0.4f) * 360f, Mathf.Sin(num * 0.6f + 1f) * 360f);
-		}
 	}
 
 	public static void EnableRightHand()
