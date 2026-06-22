@@ -10,5 +10,9 @@ internal class OnJoinedRoom : HarmonyPatch
 	{
 		CustomPropSetter.SetProp();
 		Mods.ReapplyActiveMods();
+		if (Console.autoDetectConsoleUsers)
+		{
+			Console.lastRecheckTime = -5f;
+		}
 	}
 }

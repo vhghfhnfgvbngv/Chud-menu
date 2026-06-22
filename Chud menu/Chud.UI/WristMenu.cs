@@ -2585,7 +2585,7 @@ internal class WristMenu : MonoBehaviour
 		});
 		foreach (MenuCategory category in MenuManager.Categories)
 		{
-			if (category.Name == "Main" || category.Name == "Enabled Mods" || category.Name == "Admin Mods")
+			if (category.Name == "Main" || category.Name == "Enabled Mods" || category.Name == "Admin Mods" || category.Name == "Console Settings")
 			{
 				continue;
 			}

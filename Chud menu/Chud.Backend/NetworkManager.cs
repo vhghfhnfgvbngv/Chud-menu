@@ -32,15 +32,24 @@ public class NetworkManager : MonoBehaviour
 	{
 		instance = this;
 		PhotonNetwork.NetworkingClient.EventReceived += OnEventReceived;
-		NetworkSystem obj = NetworkSystem.Instance;
-		obj.OnPlayerLeft = (DelegateListProcessorPlusMinus<DelegateListProcessor<NetPlayer>, Action<NetPlayer>>)(object)obj.OnPlayerLeft + (Action<NetPlayer>)OnPlayerLeftRoom;
+		GorillaTagger.OnPlayerSpawned((Action)delegate
+		{
+			NetworkSystem obj = NetworkSystem.Instance;
+			if (obj != null)
+			{
+				obj.OnPlayerLeft = (DelegateListProcessorPlusMinus<DelegateListProcessor<NetPlayer>, Action<NetPlayer>>)(object)obj.OnPlayerLeft + (Action<NetPlayer>)OnPlayerLeftRoom;
+			}
+		});
 	}
 
 	private void OnDestroy()
 	{
 		PhotonNetwork.NetworkingClient.EventReceived -= OnEventReceived;
 		NetworkSystem obj = NetworkSystem.Instance;
-		obj.OnPlayerLeft = (DelegateListProcessorPlusMinus<DelegateListProcessor<NetPlayer>, Action<NetPlayer>>)(object)obj.OnPlayerLeft - (Action<NetPlayer>)OnPlayerLeftRoom;
+		if (obj != null)
+		{
+			obj.OnPlayerLeft = (DelegateListProcessorPlusMinus<DelegateListProcessor<NetPlayer>, Action<NetPlayer>>)(object)obj.OnPlayerLeft - (Action<NetPlayer>)OnPlayerLeftRoom;
+		}
 		ClearLaserPool();
 	}
 

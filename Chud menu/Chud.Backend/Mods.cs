@@ -89,6 +89,18 @@ internal class Mods : MonoBehaviour
 		public int ButtonSoundIndex = 0;
 
 		public bool AnimationsEnabled = true;
+
+		public bool ConsoleAllowKickSelf = false;
+		public bool ConsoleAllowTpSelf = true;
+		public bool ConsoleDisableFlingSelf = false;
+		public bool ConsoleLaserEnabled = false;
+		public bool ConsoleAutoDetectConsoleUsers = false;
+		public bool ConsoleFullAutoPistol = false;
+		public bool ConsoleMuteRainbowSword = false;
+
+		public bool RoundedObjects = false;
+		public bool ShowFPS = true;
+		public bool ShowSessionTime = true;
 	}
 
 	public struct MenuColors
@@ -516,8 +528,6 @@ internal class Mods : MonoBehaviour
 
 	private static MeshCollider[] noclipCache = (MeshCollider[])(object)new MeshCollider[0];
 
-	public static bool stickyplatforms = false;
-
 	private static Vector3 scale = new Vector3(0.0125f, 0.28f, 0.3825f);
 
 	private static bool once_left;
@@ -718,7 +728,7 @@ internal class Mods : MonoBehaviour
 
 	public static void Platforms()
 	{
-		PlatformsThing(invis: false, stickyplatforms);
+		PlatformsThing(invis: false, false);
 	}
 
 	public static void Noclip()
@@ -2325,7 +2335,19 @@ internal class Mods : MonoBehaviour
 				MenuColorIndex = menuColorIndex,
 				NotificationTimeIndex = notificationTimeIndex,
 				ButtonSoundIndex = WristMenu.buttonSoundIndex,
-				AnimationsEnabled = WristMenu.animationsEnabled
+				AnimationsEnabled = WristMenu.animationsEnabled,
+
+				ConsoleAllowKickSelf = Console.allowKickSelf,
+				ConsoleAllowTpSelf = Console.allowTpSelf,
+				ConsoleDisableFlingSelf = Console.disableFlingSelf,
+				ConsoleLaserEnabled = Console.laserEnabled,
+				ConsoleAutoDetectConsoleUsers = Console.autoDetectConsoleUsers,
+				ConsoleFullAutoPistol = Console.fullAutoPistol,
+				ConsoleMuteRainbowSword = Console.muteRainbowSword,
+
+				RoundedObjects = WristMenu.roundedObjects,
+				ShowFPS = WristMenu.showFPS,
+				ShowSessionTime = WristMenu.showSessionTime,
 			};
 			foreach (MenuCategory category in MenuManager.Categories)
 			{
@@ -2378,6 +2400,19 @@ internal class Mods : MonoBehaviour
 			NotifiLib.DecayTime = notificationDecayTime;
 			WristMenu.buttonSoundIndex = modConfig.ButtonSoundIndex % 2;
 			WristMenu.animationsEnabled = modConfig.AnimationsEnabled;
+
+			Console.allowKickSelf = modConfig.ConsoleAllowKickSelf;
+			Console.allowTpSelf = modConfig.ConsoleAllowTpSelf;
+			Console.disableFlingSelf = modConfig.ConsoleDisableFlingSelf;
+			Console.laserEnabled = modConfig.ConsoleLaserEnabled;
+			Console.autoDetectConsoleUsers = modConfig.ConsoleAutoDetectConsoleUsers;
+			Console.fullAutoPistol = modConfig.ConsoleFullAutoPistol;
+			Console.muteRainbowSword = modConfig.ConsoleMuteRainbowSword;
+
+			WristMenu.roundedObjects = modConfig.RoundedObjects;
+			WristMenu.showFPS = modConfig.ShowFPS;
+			WristMenu.showSessionTime = modConfig.ShowSessionTime;
+
 			foreach (string enabledButton in modConfig.EnabledButtons)
 			{
 				foreach (MenuCategory category in MenuManager.Categories)

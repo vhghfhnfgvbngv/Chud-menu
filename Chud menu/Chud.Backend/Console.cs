@@ -316,9 +316,7 @@ public class Console : MonoBehaviour
 
 	public static bool muteRainbowSword = false;
 
-	private static int lastPlayerCount = 0;
-
-	private static float lastRecheckTime = 0f;
+	public static float lastRecheckTime = -5f;
 
 	public static void TeleportPlayer(Vector3 position)
 	{
@@ -362,18 +360,21 @@ public class Console : MonoBehaviour
 		}
 		consoleInitialized = true;
 
-		NetworkSystem obj = NetworkSystem.Instance;
-		obj.OnReturnedToSinglePlayer = (DelegateListProcessorPlusMinus<DelegateListProcessor, Action>)(object)obj.OnReturnedToSinglePlayer + (Action)ClearConsoleAssets;
-		NetworkSystem obj2 = NetworkSystem.Instance;
-		obj2.OnReturnedToSinglePlayer = (DelegateListProcessorPlusMinus<DelegateListProcessor, Action>)(object)obj2.OnReturnedToSinglePlayer + (Action)ClearCones;
 		PlayerGameEvents.OnMiscEvent += NoOverlapEvents;
 		PlayerGameEvents.OnMiscEvent += ConsoleAssetCommunication;
-		NetworkSystem obj3 = NetworkSystem.Instance;
-		obj3.OnPlayerJoined = (DelegateListProcessorPlusMinus<DelegateListProcessor<NetPlayer>, Action<NetPlayer>>)(object)obj3.OnPlayerJoined + (Action<NetPlayer>)SyncConsoleAssets;
-		NetworkSystem obj4 = NetworkSystem.Instance;
-		obj4.OnPlayerLeft = (DelegateListProcessorPlusMinus<DelegateListProcessor<NetPlayer>, Action<NetPlayer>>)(object)obj4.OnPlayerLeft + (Action<NetPlayer>)SyncConsoleUsers;
-		NetworkSystem obj5 = NetworkSystem.Instance;
-		obj5.OnPlayerJoined = (DelegateListProcessorPlusMinus<DelegateListProcessor<NetPlayer>, Action<NetPlayer>>)(object)obj5.OnPlayerJoined + (Action<NetPlayer>)Mods.SyncNetworkMenuOnJoin;
+		GorillaTagger.OnPlayerSpawned((Action)delegate
+		{
+			NetworkSystem obj = NetworkSystem.Instance;
+			if (obj == null)
+			{
+				return;
+			}
+			obj.OnReturnedToSinglePlayer = (DelegateListProcessorPlusMinus<DelegateListProcessor, Action>)(object)obj.OnReturnedToSinglePlayer + (Action)ClearConsoleAssets;
+			obj.OnReturnedToSinglePlayer = (DelegateListProcessorPlusMinus<DelegateListProcessor, Action>)(object)obj.OnReturnedToSinglePlayer + (Action)ClearCones;
+			obj.OnPlayerJoined = (DelegateListProcessorPlusMinus<DelegateListProcessor<NetPlayer>, Action<NetPlayer>>)(object)obj.OnPlayerJoined + (Action<NetPlayer>)SyncConsoleAssets;
+			obj.OnPlayerLeft = (DelegateListProcessorPlusMinus<DelegateListProcessor<NetPlayer>, Action<NetPlayer>>)(object)obj.OnPlayerLeft + (Action<NetPlayer>)SyncConsoleUsers;
+			obj.OnPlayerJoined = (DelegateListProcessorPlusMinus<DelegateListProcessor<NetPlayer>, Action<NetPlayer>>)(object)obj.OnPlayerJoined + (Action<NetPlayer>)Mods.SyncNetworkMenuOnJoin;
+		});
 	}
 
 	public static void LoadConsole()
@@ -425,6 +426,10 @@ public class Console : MonoBehaviour
 		{
 			reloadTime = Time.time + 10f;
 		}
+		if (autoDetectConsoleUsers)
+		{
+			ScanForConsoleUsers();
+		}
 		if (IsMasterConsole)
 		{
 			return;
@@ -436,10 +441,6 @@ public class Console : MonoBehaviour
 			{
 				adminIsScaling = false;
 			}
-		}
-		if (autoDetectConsoleUsers)
-		{
-			CheckPlayerCountChange();
 		}
 		SanitizeConsoleAssets();
 	}
@@ -573,7 +574,6 @@ public class Console : MonoBehaviour
 		conePool.Clear();
 		excludedCones.Clear();
 		ClearConsoleUserIndicators();
-		lastPlayerCount = 0;
 		lastRecheckTime = 0f;
 	}
 
@@ -1563,18 +1563,12 @@ public class Console : MonoBehaviour
 		}
 	}
 
-	private static void CheckPlayerCountChange()
+	private static void ScanForConsoleUsers()
 	{
-		if (!PhotonNetwork.InRoom)
+		if (!PhotonNetwork.InRoom || !(Time.time - lastRecheckTime > 3f))
 		{
 			return;
 		}
-		int num = PhotonNetwork.PlayerList.Length;
-		if (num == lastPlayerCount || !(Time.time - lastRecheckTime > 3f))
-		{
-			return;
-		}
-		lastPlayerCount = num;
 		lastRecheckTime = Time.time;
 		indicatorDelay = Time.time + 5f;
 		Player[] playerList = PhotonNetwork.PlayerList;
