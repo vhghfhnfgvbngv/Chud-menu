@@ -466,6 +466,8 @@ internal class Mods : MonoBehaviour
 
 	private static float tagUntaggedCooldown = 0f;
 
+	private static Vector3 stumpPosition = new Vector3(-66.871f, 12.086f, -82.637f);
+
 	private static bool spazAllActive = false;
 
 	private static bool spazSelfActive = false;
@@ -4309,6 +4311,29 @@ internal class Mods : MonoBehaviour
 				}
 			}
 		}
+	}
+
+	public static void TeleportToSpawn()
+	{
+		GorillaTagger gt = GorillaTagger.Instance;
+		if (gt == null) return;
+		GTPlayer player = GTPlayer.Instance;
+		if (player == null) return;
+		Vector3 stump = stumpPosition;
+		Transform bodyT = ((Component)gt.bodyCollider).transform;
+		player.TeleportTo(stump - bodyT.position + ((Component)player).transform.position, ((Component)player).transform.rotation, true, false);
+		bodyT.position = stump;
+		if (VRRig.LocalRig != null)
+			((Component)VRRig.LocalRig).transform.position = stump;
+		((Collider)gt.bodyCollider).enabled = false;
+		((MonoBehaviour)gt).StartCoroutine(ReenableBodyCollider());
+	}
+
+	private static IEnumerator ReenableBodyCollider()
+	{
+		yield return (object)new WaitForSeconds(1.5f);
+		if (GorillaTagger.Instance != null)
+			((Collider)GorillaTagger.Instance.bodyCollider).enabled = true;
 	}
 
 	public static void SpazAll()

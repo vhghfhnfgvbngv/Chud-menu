@@ -731,6 +731,17 @@ internal class WristMenu : MonoBehaviour
 				isFrameCall = true,
 				enabled = false,
 				toolTip = "Right B to jump, then Right A to slam"
+			},
+			new ButtonInfo
+			{
+				buttonText = "Teleport to Stump",
+				method = delegate
+				{
+					Mods.TeleportToSpawn();
+				},
+				enabled = false,
+				nontoggleable = true,
+				toolTip = "Teleport to the forest stump"
 			}
 		});
 		MenuManager.AddCategory("Visual Mods", new List<ButtonInfo>
