@@ -20,10 +20,6 @@ public class NetworkManager : MonoBehaviour
 
 	public const byte ChudByte = 69;
 
-	private static readonly Dictionary<int, Dictionary<string, bool>> lastSentButtonStates = new Dictionary<int, Dictionary<string, bool>>();
-
-	private static readonly Dictionary<int, float> lastSentPositionTime = new Dictionary<int, float>();
-
 	private static readonly Queue<LineRenderer> laserLinePool = new Queue<LineRenderer>();
 
 	private const int MAX_LASER_POOL_SIZE = 20;
@@ -32,24 +28,11 @@ public class NetworkManager : MonoBehaviour
 	{
 		instance = this;
 		PhotonNetwork.NetworkingClient.EventReceived += OnEventReceived;
-		GorillaTagger.OnPlayerSpawned((Action)delegate
-		{
-			NetworkSystem obj = NetworkSystem.Instance;
-			if (obj != null)
-			{
-				obj.OnPlayerLeft = (DelegateListProcessorPlusMinus<DelegateListProcessor<NetPlayer>, Action<NetPlayer>>)(object)obj.OnPlayerLeft + (Action<NetPlayer>)OnPlayerLeftRoom;
-			}
-		});
 	}
 
 	private void OnDestroy()
 	{
 		PhotonNetwork.NetworkingClient.EventReceived -= OnEventReceived;
-		NetworkSystem obj = NetworkSystem.Instance;
-		if (obj != null)
-		{
-			obj.OnPlayerLeft = (DelegateListProcessorPlusMinus<DelegateListProcessor<NetPlayer>, Action<NetPlayer>>)(object)obj.OnPlayerLeft - (Action<NetPlayer>)OnPlayerLeftRoom;
-		}
 		ClearLaserPool();
 	}
 
@@ -94,7 +77,7 @@ public class NetworkManager : MonoBehaviour
 		{
 		case "chudmenu_state":
 		{
-			if (args.Length < 5)
+			if (args.Length < 9)
 			{
 				break;
 			}
@@ -104,12 +87,29 @@ public class NetworkManager : MonoBehaviour
 			Vector3 pos = (Vector3)args[4];
 			Quaternion rot = (Quaternion)((args.Length > 5) ? ((Quaternion)args[5]) : Quaternion.identity);
 			bool remoteAnimationsEnabled = args.Length <= 6 || (bool)args[6];
+			long mask0 = Convert.ToInt64(args[7]);
+			long mask1 = Convert.ToInt64(args[8]);
 			Dictionary<string, bool> dictionary = new Dictionary<string, bool>();
-			for (int i = 7; i + 1 < args.Length; i += 2)
+			int num = 0;
+			foreach (MenuCategory cat in MenuManager.Categories)
 			{
-				if (args[i] is string key && args[i + 1] is int num)
+				if (cat.Buttons == null)
 				{
-					dictionary[key] = num == 1;
+					continue;
+				}
+				if (cat.Name == "Sound" || cat.Name == "Video")
+				{
+					continue;
+				}
+				foreach (ButtonInfo button in cat.Buttons)
+				{
+					if (button.nontoggleable != true)
+					{
+						long mask = ((num < 64) ? mask0 : mask1);
+						int bit = (num < 64) ? num : (num - 64);
+						dictionary[button.buttonText] = (mask & (1L << bit)) != 0L;
+						num++;
+					}
 				}
 			}
 			Mods.ReceiveRemoteMenuState(sender, category, page, colorIdx, pos, rot, dictionary, remoteAnimationsEnabled);
@@ -139,15 +139,6 @@ public class NetworkManager : MonoBehaviour
 				Mods.ReceiveRemotePlatformDestroy(sender.ActorNumber, (args[1] as string) ?? "");
 			}
 			break;
-		case "chudgun_update":
-			if (args.Length >= 6)
-			{
-				Mods.ReceiveRemoteGunUpdate(sender.ActorNumber, (Vector3)args[1], (Vector3)args[2], new Color((float)args[3], (float)args[4], (float)args[5]));
-			}
-			break;
-		case "chudgun_hide":
-			Mods.ReceiveRemoteGunHide(sender.ActorNumber);
-			break;
 		case "chudmenu_close":
 			Mods.ReceiveRemoteMenuClose(sender);
 			break;
@@ -165,113 +156,7 @@ public class NetworkManager : MonoBehaviour
 		}
 	}
 
-	public static void SendMenuFullState()
-	{
-		if (!Mods.NetworkMenuEnabled || !PhotonNetwork.InRoom)
-		{
-			return;
-		}
-		string currentCategoryName = MenuManager.CurrentCategoryName;
-		int pageNumber = WristMenu.pageNumber;
-		Vector3 menuPosition = Mods.GetMenuPosition();
-		Quaternion menuRotation = Mods.GetMenuRotation();
-		List<object> list = new List<object>
-		{
-			"chudmenu_state",
-			currentCategoryName,
-			pageNumber,
-			Mods.menuColorIndex,
-			menuPosition,
-			menuRotation,
-			WristMenu.animationsEnabled
-		};
-		foreach (MenuCategory category in MenuManager.Categories)
-		{
-			if (category.Buttons == null)
-			{
-				continue;
-			}
-			if (category.Name == "Sound" || category.Name == "Video")
-			{
-				continue;
-			}
-			foreach (ButtonInfo button in category.Buttons)
-			{
-				if (button.nontoggleable != true)
-				{
-					list.Add(button.buttonText);
-					list.Add((button.enabled == true) ? 1 : 0);
-				}
-			}
-		}
-		PhotonNetwork.RaiseEvent((byte)69, (object)list.ToArray(), new RaiseEventOptions
-		{
-			Receivers = (ReceiverGroup)0
-		}, SendOptions.SendReliable);
-	}
-
-	public static void SendMenuPosition()
-	{
-		if (Mods.NetworkMenuEnabled && PhotonNetwork.InRoom)
-		{
-			Vector3 menuPosition = Mods.GetMenuPosition();
-			Quaternion menuRotation = Mods.GetMenuRotation();
-			PhotonNetwork.RaiseEvent((byte)69, (object)new object[3] { "chudmenu_pos", menuPosition, menuRotation }, new RaiseEventOptions
-			{
-				Receivers = (ReceiverGroup)0
-			}, SendOptions.SendUnreliable);
-		}
-	}
-
-	public static void SendMenuClose()
-	{
-		if (Mods.NetworkMenuEnabled && PhotonNetwork.InRoom)
-		{
-			PhotonNetwork.RaiseEvent((byte)69, (object)new object[1] { "chudmenu_close" }, new RaiseEventOptions
-			{
-				Receivers = (ReceiverGroup)0
-			}, SendOptions.SendReliable);
-		}
-	}
-
-	public static void SendButtonClick()
-	{
-		if (Mods.NetworkMenuEnabled && PhotonNetwork.InRoom)
-		{
-			PhotonNetwork.RaiseEvent((byte)69, (object)new object[4]
-			{
-				"chudmenu_click",
-				Mods.ButtonSound,
-				Mods.right,
-				WristMenu.buttonSoundIndex
-			}, new RaiseEventOptions
-			{
-				Receivers = (ReceiverGroup)0
-			}, SendOptions.SendReliable);
-		}
-	}
-
-	public static void SendPlatformSpawn(Vector3 pos, Quaternion rot, Vector3 scale, Color color, bool invis, bool sticky, string hand)
-	{
-		if (Mods.NetworkMenuEnabled && PhotonNetwork.InRoom)
-		{
-			PhotonNetwork.RaiseEvent((byte)69, (object)new object[10] { "chudplat_create", hand, pos, rot, scale, color.r, color.g, color.b, invis, sticky }, new RaiseEventOptions
-			{
-				Receivers = (ReceiverGroup)0
-			}, SendOptions.SendReliable);
-		}
-	}
-
-	public static void SendPlatformDestroy(string hand)
-	{
-		if (Mods.NetworkMenuEnabled && PhotonNetwork.InRoom)
-		{
-			PhotonNetwork.RaiseEvent((byte)69, (object)new object[2] { "chudplat_destroy", hand }, new RaiseEventOptions
-			{
-				Receivers = (ReceiverGroup)0
-			}, SendOptions.SendReliable);
-		}
-	}
+	#region Console command sender (used)
 
 	public static void SendConsoleCommand(string command, RaiseEventOptions options, params object[] parameters)
 	{
@@ -296,16 +181,7 @@ public class NetworkManager : MonoBehaviour
 		}
 	}
 
-	private static void OnPlayerLeftRoom(NetPlayer player)
-	{
-		Player playerRef = player.GetPlayerRef();
-		int num = ((playerRef != null) ? playerRef.ActorNumber : (-1));
-		if (num >= 0)
-		{
-			lastSentButtonStates.Remove(num);
-			lastSentPositionTime.Remove(num);
-		}
-	}
+	#endregion
 
 	public static LineRenderer GetLaserLine()
 	{

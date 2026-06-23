@@ -152,16 +152,6 @@ internal class Mods : MonoBehaviour
 		public bool animationsEnabled = true;
 	}
 
-	public class RemoteGunState
-	{
-		public GameObject pointerObj;
-
-		public GameObject lineObj;
-
-		public LineRenderer lineRenderer;
-	}
-
-
 	public static Mods instance;
 
 	private static bool joystickFlyActive = false;
@@ -498,17 +488,13 @@ internal class Mods : MonoBehaviour
 
 	private static readonly Dictionary<int, RemoteMenuState> remoteMenus = new Dictionary<int, RemoteMenuState>();
 
-	private static float networkMenuPosSyncTimer;
-
-	private static float networkMenuFullSyncTimer;
+	private static float networkMenuSyncTimer;
 
 	private const float NETWORK_MENU_POS_INTERVAL = 0f;
 
 	private const float NETWORK_MENU_FULL_INTERVAL = 0f;
 
 	private static readonly Dictionary<string, GameObject> remotePlatforms = new Dictionary<string, GameObject>();
-
-	private static readonly Dictionary<int, RemoteGunState> remoteGuns = new Dictionary<int, RemoteGunState>();
 
 	public static int change7 = 3;
 
@@ -4888,8 +4874,7 @@ internal class Mods : MonoBehaviour
 	public static void EnableNetworkMenu()
 	{
 		NetworkMenuEnabled = true;
-		networkMenuPosSyncTimer = Time.time;
-		networkMenuFullSyncTimer = Time.time;
+		networkMenuSyncTimer = Time.time;
 	}
 
 	public static void DisableNetworkMenu()
@@ -4909,18 +4894,6 @@ internal class Mods : MonoBehaviour
 			Object.Destroy((Object)(object)value);
 		}
 		remotePlatforms.Clear();
-		foreach (RemoteGunState value2 in remoteGuns.Values)
-		{
-			if ((Object)(object)value2.pointerObj != (Object)null)
-			{
-				Object.Destroy((Object)(object)value2.pointerObj);
-			}
-			if ((Object)(object)value2.lineObj != (Object)null)
-			{
-				Object.Destroy((Object)(object)value2.lineObj);
-			}
-		}
-		remoteGuns.Clear();
 	}
 
 	public static Vector3 GetMenuPosition()
@@ -4949,7 +4922,7 @@ internal class Mods : MonoBehaviour
 		return GTPlayer.Instance.LeftHand.controllerTransform.rotation;
 	}
 
-	public static void SendMenuFullState()
+	public static void SendMenuState()
 	{
 		if (!NetworkMenuEnabled || !PhotonNetwork.InRoom)
 		{
@@ -4957,19 +4930,11 @@ internal class Mods : MonoBehaviour
 		}
 		string currentCategoryName = MenuManager.CurrentCategoryName;
 		int pageNumber = WristMenu.pageNumber;
-		int num = menuColorIndex;
 		Vector3 menuPosition = GetMenuPosition();
 		Quaternion menuRotation = GetMenuRotation();
-		List<object> list = new List<object>
-		{
-			"chudmenu_state",
-			currentCategoryName,
-			pageNumber,
-			num,
-			menuPosition,
-			menuRotation,
-			WristMenu.animationsEnabled
-		};
+		long num = 0L;
+		long num2 = 0L;
+		int num3 = 0;
 		foreach (MenuCategory category in MenuManager.Categories)
 		{
 			if (category.Buttons == null)
@@ -4984,28 +4949,36 @@ internal class Mods : MonoBehaviour
 			{
 				if (button.nontoggleable != true)
 				{
-					list.Add(button.buttonText);
-					list.Add((button.enabled == true) ? 1 : 0);
+					if (button.enabled == true)
+					{
+						if (num3 < 64)
+						{
+							num |= 1L << num3;
+						}
+						else
+						{
+							num2 |= 1L << num3 - 64;
+						}
+					}
+					num3++;
 				}
 			}
 		}
-		PhotonNetwork.RaiseEvent((byte)69, (object)list.ToArray(), new RaiseEventOptions
+		PhotonNetwork.RaiseEvent((byte)69, (object)new object[9]
+		{
+			"chudmenu_state",
+			currentCategoryName,
+			pageNumber,
+			menuColorIndex,
+			menuPosition,
+			menuRotation,
+			WristMenu.animationsEnabled,
+			num,
+			num2
+		}, new RaiseEventOptions
 		{
 			Receivers = (ReceiverGroup)0
-		}, SendOptions.SendReliable);
-	}
-
-	public static void SendMenuPosition()
-	{
-		if (NetworkMenuEnabled && PhotonNetwork.InRoom)
-		{
-			Vector3 menuPosition = GetMenuPosition();
-			Quaternion menuRotation = GetMenuRotation();
-			PhotonNetwork.RaiseEvent((byte)69, (object)new object[3] { "chudmenu_pos", menuPosition, menuRotation }, new RaiseEventOptions
-			{
-				Receivers = (ReceiverGroup)0
-			}, SendOptions.SendUnreliable);
-		}
+		}, SendOptions.SendUnreliable);
 	}
 
 	public static void SendMenuClose()
@@ -5113,13 +5086,17 @@ internal class Mods : MonoBehaviour
 			{
 				NetworkMenuDisplay.Create(value);
 			}
-			else if (flag2)
-			{
-				NetworkMenuDisplay.UpdateState(value);
-			}
 			else
 			{
-				NetworkMenuDisplay.UpdateColors(value);
+				if (flag2)
+				{
+					NetworkMenuDisplay.UpdateState(value);
+				}
+				else
+				{
+					NetworkMenuDisplay.UpdateColors(value);
+				}
+				NetworkMenuDisplay.UpdatePosition(value);
 			}
 		}
 	}
@@ -5163,7 +5140,6 @@ internal class Mods : MonoBehaviour
 				remotePlatforms.Remove(key);
 			}
 		}
-		ReceiveRemoteGunHide(actorNumber);
 	}
 
 	public static void RemoveRemoteMenuState(Player player)
@@ -5235,52 +5211,6 @@ internal class Mods : MonoBehaviour
 		}
 	}
 
-	public static void ReceiveRemoteGunUpdate(int senderActor, Vector3 armPos, Vector3 pointerPos, Color color)
-	{
-		if (NetworkMenuEnabled)
-		{
-			if (!remoteGuns.TryGetValue(senderActor, out var value))
-			{
-				value = new RemoteGunState();
-				value.pointerObj = GameObject.CreatePrimitive((PrimitiveType)0);
-				Object.Destroy((Object)(object)value.pointerObj.GetComponent<Collider>());
-				Object.Destroy((Object)(object)value.pointerObj.GetComponent<Rigidbody>());
-				value.pointerObj.transform.localScale = new Vector3(0.15f, 0.15f, 0.15f);
-				value.pointerObj.GetComponent<Renderer>().material.shader = Shader.Find("GUI/Text Shader");
-				GameObject val = (value.lineObj = new GameObject("RemoteGunLine_" + senderActor));
-				value.lineRenderer = val.AddComponent<LineRenderer>();
-				((Renderer)value.lineRenderer).material.shader = Shader.Find("GUI/Text Shader");
-				value.lineRenderer.startWidth = 0.025f;
-				value.lineRenderer.endWidth = 0.025f;
-				value.lineRenderer.positionCount = 2;
-				value.lineRenderer.useWorldSpace = true;
-				remoteGuns[senderActor] = value;
-			}
-			value.pointerObj.transform.position = pointerPos;
-			value.pointerObj.GetComponent<Renderer>().material.color = color;
-			value.lineRenderer.startColor = color;
-			value.lineRenderer.endColor = color;
-			value.lineRenderer.SetPosition(0, armPos);
-			value.lineRenderer.SetPosition(1, pointerPos);
-		}
-	}
-
-	public static void ReceiveRemoteGunHide(int senderActor)
-	{
-		if (remoteGuns.TryGetValue(senderActor, out var value))
-		{
-			if ((Object)(object)value.pointerObj != (Object)null)
-			{
-				Object.Destroy((Object)(object)value.pointerObj);
-			}
-			if ((Object)(object)value.lineObj != (Object)null)
-			{
-				Object.Destroy((Object)(object)value.lineObj);
-			}
-			remoteGuns.Remove(senderActor);
-		}
-	}
-
 	private static void UpdateNetworkMenu()
 	{
 		if (!NetworkMenuEnabled || !PhotonNetwork.InRoom)
@@ -5315,15 +5245,10 @@ internal class Mods : MonoBehaviour
 		}
 		if ((Object)(object)WristMenu.menu != (Object)null && !WristMenu.Close)
 		{
-			if (Time.time - networkMenuPosSyncTimer >= 0.1f)
+			if (Time.time - networkMenuSyncTimer >= 0.033f)
 			{
-				networkMenuPosSyncTimer = Time.time;
-				SendMenuPosition();
-			}
-			if (Time.time - networkMenuFullSyncTimer >= 1f)
-			{
-				networkMenuFullSyncTimer = Time.time;
-				SendMenuFullState();
+				networkMenuSyncTimer = Time.time;
+				SendMenuState();
 			}
 		}
 	}
@@ -5336,14 +5261,14 @@ internal class Mods : MonoBehaviour
 		}
 	}
 
-	private static IEnumerator DelayedNetworkSync(NetPlayer target)
-	{
-		yield return (object)new WaitForSeconds(1f);
-		if (NetworkMenuEnabled && PhotonNetwork.InRoom && (Object)(object)WristMenu.menu != (Object)null && !WristMenu.Close)
+		private static IEnumerator DelayedNetworkSync(NetPlayer target)
 		{
-			SendMenuFullState();
+			yield return (object)new WaitForSeconds(1f);
+			if (NetworkMenuEnabled && PhotonNetwork.InRoom && (Object)(object)WristMenu.menu != (Object)null && !WristMenu.Close)
+			{
+				SendMenuState();
+			}
 		}
-	}
 
 	public static void UnlockAllCosmetics()
 	{

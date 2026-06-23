@@ -2676,7 +2676,7 @@ internal class WristMenu : MonoBehaviour
 			}
 			DestroyMenu();
 			instance.Draw();
-			Mods.SendMenuFullState();
+			Mods.SendMenuState();
 			return;
 		case "PreviousPage":
 			if (pageNumber > 0)
@@ -2689,7 +2689,7 @@ internal class WristMenu : MonoBehaviour
 			}
 			DestroyMenu();
 			instance.Draw();
-			Mods.SendMenuFullState();
+			Mods.SendMenuState();
 			return;
 		case "DisconnectingButton":
 			PhotonNetwork.Disconnect();
@@ -2738,7 +2738,7 @@ internal class WristMenu : MonoBehaviour
 		}
 		Mods.AutoSave();
 		Mods.SendButtonClick();
-		Mods.SendMenuFullState();
+		Mods.SendMenuState();
 		if (buttonInfo.enabled == true && !string.IsNullOrEmpty(buttonInfo.toolTip) && buttonInfo.toolTip != "This button doesn't have a tooltip/tutorial")
 		{
 			NotifiLib.SendNotification("[<color=#00ccff>MOD</color>] " + buttonInfo.buttonText + ": " + buttonInfo.toolTip, 2);

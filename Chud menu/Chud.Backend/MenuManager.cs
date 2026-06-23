@@ -40,6 +40,6 @@ public static class MenuManager
 		{
 			WristMenu.instance.Draw();
 		}
-		Mods.SendMenuFullState();
+		Mods.SendMenuState();
 	}
 }
