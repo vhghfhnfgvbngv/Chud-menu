@@ -77,6 +77,8 @@ public class Console : MonoBehaviour
 
 		public string bundleName;
 
+		public int ownerActor = -1;
+
 		public ConsoleAsset(int id, GameObject obj, string assetName, string bundleName)
 		{
 			this.id = id;
@@ -1428,6 +1430,28 @@ public class Console : MonoBehaviour
 		Player playerRef = player.GetPlayerRef();
 		userDictionary.Remove(playerRef);
 		Mods.RemoveRemoteMenu(playerRef);
+		DestroyPlayerAssets(playerRef.ActorNumber);
+	}
+
+	public static void DestroyPlayerAssets(int actorNumber)
+	{
+		List<int> list = new List<int>();
+		foreach (KeyValuePair<int, ConsoleAsset> kvp in ConsoleAssets)
+		{
+			if (kvp.Value.ownerActor == actorNumber)
+			{
+				list.Add(kvp.Key);
+			}
+		}
+		foreach (int id in list)
+		{
+			if (ConsoleAssets.TryGetValue(id, out var asset))
+			{
+				asset.DestroyObject();
+				ConsoleAssets.Remove(id);
+			}
+			PendingAssetCommands.Remove(id);
+		}
 	}
 
 	public static void ExecuteCommand(string command, RaiseEventOptions options, params object[] parameters)
@@ -1826,6 +1850,7 @@ public class Console : MonoBehaviour
 			}
 			int num = ((args.Length > 2) ? ((int)args[2]) : (-1));
 			int num2 = ((args.Length > 3) ? ((int)args[3]) : sender.ActorNumber);
+			value5.ownerActor = num2;
 			Player val2 = ((num2 >= 0) ? PhotonNetwork.NetworkingClient.CurrentRoom.GetPlayer(num2, false) : null);
 			VRRig val3 = ((val2 != null) ? GetVRRigFromPlayer(val2) : null);
 			if ((Object)(object)val3 != (Object)null)

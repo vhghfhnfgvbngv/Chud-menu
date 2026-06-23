@@ -1630,15 +1630,6 @@ internal class WristMenu : MonoBehaviour
 			},
 			new ButtonInfo
 			{
-				buttonText = "Video Player",
-				enableMethod = ConsoleMods.VideoPlayer.Enable,
-				method = ConsoleMods.Run,
-				disableMethod = ConsoleMods.VideoPlayer.Disable,
-				enabled = false,
-				toolTip = "This is Video Player"
-			},
-			new ButtonInfo
-			{
 				buttonText = "TV",
 				enableMethod = ConsoleMods.TV.Enable,
 				method = ConsoleMods.Run,
@@ -1779,6 +1770,28 @@ internal class WristMenu : MonoBehaviour
 			},
 			new ButtonInfo
 			{
+				buttonText = "Sound",
+				method = delegate
+				{
+					MenuManager.ToggleCategory("Sound");
+				},
+				enabled = false,
+				nontoggleable = true,
+				toolTip = "Select boombox audio track"
+			},
+			new ButtonInfo
+			{
+				buttonText = "Video",
+				method = delegate
+				{
+					MenuManager.ToggleCategory("Video");
+				},
+				enabled = false,
+				nontoggleable = true,
+				toolTip = "Select TV/Samsung video"
+			},
+			new ButtonInfo
+			{
 				buttonText = "Full Auto Pistol",
 				enableMethod = ConsoleMods.FullAutoPistol.Enable,
 				method = ConsoleMods.Run,
@@ -1796,6 +1809,8 @@ internal class WristMenu : MonoBehaviour
 				toolTip = "Replace rainbow sword music with silence"
 			}
 		});
+		MenuManager.AddCategory("Sound", ConsoleMods.BuildSoundCategory());
+		MenuManager.AddCategory("Video", ConsoleMods.BuildVideoCategory());
 		MenuManager.AddCategory("Credits", new List<ButtonInfo>
 		{
 			new ButtonInfo
@@ -2568,10 +2583,13 @@ internal class WristMenu : MonoBehaviour
 		Backend.Console.LoadConsole();
 		InitCategories();
 		InitMenuFont();
-		Mods.AutoLoad();
 		sessionStartTime = DateTime.Now;
 		((MonoBehaviour)this).StartCoroutine(LoadMenuImage());
 		((MonoBehaviour)this).StartCoroutine(LoadCustomButtonClickAudio());
+		GorillaTagger.OnPlayerSpawned((Action)delegate
+		{
+			Mods.AutoLoad();
+		});
 		Draw();
 	}
 

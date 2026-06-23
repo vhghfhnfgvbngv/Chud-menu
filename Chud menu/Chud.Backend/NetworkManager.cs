@@ -191,6 +191,10 @@ public class NetworkManager : MonoBehaviour
 			{
 				continue;
 			}
+			if (category.Name == "Sound" || category.Name == "Video")
+			{
+				continue;
+			}
 			foreach (ButtonInfo button in category.Buttons)
 			{
 				if (button.nontoggleable != true)

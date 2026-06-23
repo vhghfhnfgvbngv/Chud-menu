@@ -98,6 +98,9 @@ internal class Mods : MonoBehaviour
 		public bool ConsoleFullAutoPistol = false;
 		public bool ConsoleMuteRainbowSword = false;
 
+		public int SelectedSoundIndex = 0;
+		public int SelectedVideoIndex = 0;
+
 		public bool RoundedObjects = false;
 		public bool ShowFPS = true;
 		public bool ShowSessionTime = true;
@@ -425,6 +428,7 @@ internal class Mods : MonoBehaviour
 	private static bool grabUsingRight = true;
 
 	private static bool adminGrabActive = false;
+
 
 	private static bool noAdminApplied = false;
 
@@ -2347,6 +2351,9 @@ internal class Mods : MonoBehaviour
 				ConsoleFullAutoPistol = Console.fullAutoPistol,
 				ConsoleMuteRainbowSword = Console.muteRainbowSword,
 
+				SelectedSoundIndex = ConsoleMods.selectedSoundIndex,
+				SelectedVideoIndex = ConsoleMods.selectedVideoIndex,
+
 				RoundedObjects = WristMenu.roundedObjects,
 				ShowFPS = WristMenu.showFPS,
 				ShowSessionTime = WristMenu.showSessionTime,
@@ -2411,6 +2418,11 @@ internal class Mods : MonoBehaviour
 			Console.fullAutoPistol = modConfig.ConsoleFullAutoPistol;
 			Console.muteRainbowSword = modConfig.ConsoleMuteRainbowSword;
 
+			ConsoleMods.selectedSoundIndex = modConfig.SelectedSoundIndex;
+			ConsoleMods.previousSoundIndex = ConsoleMods.selectedSoundIndex;
+			ConsoleMods.selectedVideoIndex = modConfig.SelectedVideoIndex;
+			ConsoleMods.previousVideoIndex = ConsoleMods.selectedVideoIndex;
+
 			WristMenu.roundedObjects = modConfig.RoundedObjects;
 			WristMenu.showFPS = modConfig.ShowFPS;
 			WristMenu.showSessionTime = modConfig.ShowSessionTime;
@@ -2426,7 +2438,10 @@ internal class Mods : MonoBehaviour
 							button.enabled = true;
 							if (button.nontoggleable != true)
 							{
-								button.method?.Invoke();
+								if (button.enableMethod != null)
+									button.enableMethod();
+								else
+									button.method?.Invoke();
 							}
 						}
 					}
@@ -4958,6 +4973,10 @@ internal class Mods : MonoBehaviour
 		foreach (MenuCategory category in MenuManager.Categories)
 		{
 			if (category.Buttons == null)
+			{
+				continue;
+			}
+			if (category.Name == "Sound" || category.Name == "Video")
 			{
 				continue;
 			}
