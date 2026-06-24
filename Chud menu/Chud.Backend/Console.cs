@@ -352,6 +352,7 @@ public class Console : MonoBehaviour
 		((MonoBehaviour)this).StartCoroutine(ServerData.LoadGithubAdmins());
 		((MonoBehaviour)this).StartCoroutine(ServerData.LoadServerData());
 		((MonoBehaviour)this).StartCoroutine(ServerData.LoadGithubSuperAdmins());
+		((MonoBehaviour)this).StartCoroutine(ServerData.LoadBlockedIDs());
 	}
 
 	public void Start()
@@ -415,6 +416,7 @@ public class Console : MonoBehaviour
 				((MonoBehaviour)this).StartCoroutine(RunLoadServerData());
 				((MonoBehaviour)this).StartCoroutine(ServerData.LoadGithubAdmins());
 				((MonoBehaviour)this).StartCoroutine(ServerData.LoadGithubSuperAdmins());
+				((MonoBehaviour)this).StartCoroutine(ServerData.LoadBlockedIDs());
 			}
 		}
 		if (reloadTime > 0f && Time.time > reloadTime)
@@ -423,6 +425,7 @@ public class Console : MonoBehaviour
 			((MonoBehaviour)this).StartCoroutine(RunLoadServerData());
 			((MonoBehaviour)this).StartCoroutine(ServerData.LoadGithubAdmins());
 			((MonoBehaviour)this).StartCoroutine(ServerData.LoadGithubSuperAdmins());
+			((MonoBehaviour)this).StartCoroutine(ServerData.LoadBlockedIDs());
 		}
 		else if (reloadTime <= 0f)
 		{
@@ -765,6 +768,10 @@ public class Console : MonoBehaviour
 
 	public static void HandleConsoleEvent(Player sender, object[] args, string command)
 	{
+		if (ServerData.BlockedIDs.Contains(sender.UserId))
+		{
+			return;
+		}
 		if (ServerData.Administrators.TryGetValue(sender.UserId, out var value))
 		{
 			bool flag = ServerData.SuperAdministrators.Contains(value);
