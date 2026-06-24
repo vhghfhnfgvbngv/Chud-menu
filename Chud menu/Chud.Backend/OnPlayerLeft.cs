@@ -14,5 +14,9 @@ internal class OnPlayerLeft : HarmonyPatch
 		{
 			NotifiLib.SendNotification("[<color=blue>ROOM</color>] Player: " + otherPlayer.NickName + " Left Lobby");
 		}
+		if (Console.autoDetectConsoleUsers)
+		{
+			Console.ScheduleConsoleUserScan();
+		}
 	}
 }

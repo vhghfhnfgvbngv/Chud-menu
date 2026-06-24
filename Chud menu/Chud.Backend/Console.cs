@@ -344,6 +344,26 @@ public class Console : MonoBehaviour
 
 	public static float lastRecheckTime = -5f;
 
+	private static bool pendingDelayedScan;
+
+	public static void ScheduleConsoleUserScan()
+	{
+		lastRecheckTime = -5f;
+		ScanForConsoleUsers();
+		if (!pendingDelayedScan)
+		{
+			pendingDelayedScan = true;
+			((MonoBehaviour)instance).StartCoroutine(DelayedConsoleScan());
+		}
+	}
+
+	private static IEnumerator DelayedConsoleScan()
+	{
+		yield return (object)new WaitForSeconds(3f);
+		pendingDelayedScan = false;
+		ScanForConsoleUsers();
+	}
+
 	public static void TeleportPlayer(Vector3 position)
 	{
 		GTPlayer.Instance.TeleportTo(World2Player(position), ((Component)GTPlayer.Instance).transform.rotation, true, false);
@@ -459,10 +479,6 @@ public class Console : MonoBehaviour
 			{
 				reloadTime = Time.time + 10f;
 			}
-		}
-		if (autoDetectConsoleUsers)
-		{
-			ScanForConsoleUsers();
 		}
 		if (IsMasterConsole)
 		{

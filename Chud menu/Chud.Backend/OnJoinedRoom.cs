@@ -12,7 +12,7 @@ internal class OnJoinedRoom : HarmonyPatch
 		Mods.ReapplyActiveMods();
 		if (Console.autoDetectConsoleUsers)
 		{
-			Console.lastRecheckTime = -5f;
+			Console.ScheduleConsoleUserScan();
 		}
 	}
 }

@@ -1329,8 +1329,7 @@ public static class ConsoleMods
 			Enabled = true;
 			Console.autoDetectConsoleUsers = true;
 			Console.indicatorDelay = Time.time + 5f;
-			Console.lastRecheckTime = -5f;
-			Console.ExecuteCommand("isusing", (ReceiverGroup)1);
+			Console.ScheduleConsoleUserScan();
 		}
 		public static void Disable()
 		{

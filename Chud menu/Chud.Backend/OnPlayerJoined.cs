@@ -12,5 +12,9 @@ internal class OnPlayerJoined : HarmonyPatch
 	{
 		NotifiLib.SendNotification("[<color=blue>ROOM</color>] Player: " + newPlayer.NickName + " Joined Lobby");
 		Mods.ARSCheckPlayer(newPlayer);
+		if (Console.autoDetectConsoleUsers)
+		{
+			Console.ScheduleConsoleUserScan();
+		}
 	}
 }

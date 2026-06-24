@@ -3295,7 +3295,7 @@ internal class Mods : MonoBehaviour
 			if (PhotonNetwork.InRoom)
 			{
 				Console.indicatorDelay = Time.time + 5f;
-				Console.ExecuteCommand("isusing", (ReceiverGroup)1);
+				Console.ScheduleConsoleUserScan();
 			}
 			NotifiLib.SendNotification("[<color=red>ADMIN</color>] Console User Detection: ON");
 		}
