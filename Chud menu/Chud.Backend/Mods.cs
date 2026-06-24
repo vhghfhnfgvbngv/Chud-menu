@@ -4948,6 +4948,14 @@ internal class Mods : MonoBehaviour
 		return GTPlayer.Instance.LeftHand.controllerTransform.rotation;
 	}
 
+	private static int[] GetChudPlayerTargets()
+	{
+		return PhotonNetwork.PlayerListOthers
+			.Where((Player p) => p.CustomProperties.TryGetValue("Chud menu", out var val) && val is bool b && b)
+			.Select((Player p) => p.ActorNumber)
+			.ToArray();
+	}
+
 	public static void SendMenuState()
 	{
 		if (!NetworkMenuEnabled || !PhotonNetwork.InRoom)
@@ -5003,7 +5011,7 @@ internal class Mods : MonoBehaviour
 			num2
 		}, new RaiseEventOptions
 		{
-			Receivers = (ReceiverGroup)0
+			TargetActors = GetChudPlayerTargets()
 		}, SendOptions.SendUnreliable);
 	}
 
@@ -5013,7 +5021,7 @@ internal class Mods : MonoBehaviour
 		{
 			PhotonNetwork.RaiseEvent((byte)69, (object)new object[1] { "chudmenu_close" }, new RaiseEventOptions
 			{
-				Receivers = (ReceiverGroup)0
+				TargetActors = GetChudPlayerTargets()
 			}, SendOptions.SendReliable);
 		}
 	}
@@ -5042,7 +5050,7 @@ internal class Mods : MonoBehaviour
 				WristMenu.buttonSoundIndex
 			}, new RaiseEventOptions
 			{
-				Receivers = (ReceiverGroup)0
+				TargetActors = GetChudPlayerTargets()
 			}, SendOptions.SendReliable);
 		}
 	}
@@ -5184,7 +5192,7 @@ internal class Mods : MonoBehaviour
 		{
 			PhotonNetwork.RaiseEvent((byte)69, (object)new object[10] { "chudplat_create", hand, pos, rot, scale, color.r, color.g, color.b, invis, sticky }, new RaiseEventOptions
 			{
-				Receivers = (ReceiverGroup)0
+				TargetActors = GetChudPlayerTargets()
 			}, SendOptions.SendReliable);
 		}
 	}
@@ -5195,7 +5203,7 @@ internal class Mods : MonoBehaviour
 		{
 			PhotonNetwork.RaiseEvent((byte)69, (object)new object[2] { "chudplat_destroy", hand }, new RaiseEventOptions
 			{
-				Receivers = (ReceiverGroup)0
+				TargetActors = GetChudPlayerTargets()
 			}, SendOptions.SendReliable);
 		}
 	}
