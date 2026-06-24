@@ -324,6 +324,7 @@ public static class ConsoleMods
 		if (AdminGrab.Enabled) AdminGrab.Run();
 		if (Pistol.Enabled) Pistol.Run();
 		if (Coin.Enabled) Coin.Run();
+		if (CherryBomb.Enabled) CherryBomb.Run();
 	}
 
 	// ====== Helpers ======
@@ -1017,7 +1018,7 @@ public static class ConsoleMods
 				if (grabbedPlayer != null && grabbedPlayer.Creator != null)
 				{
 					Transform hand2 = rightGrip ? VRRig.LocalRig.rightHandTransform : VRRig.LocalRig.leftHandTransform;
-					Console.ExecuteCommand("tp", (ReceiverGroup)0, grabbedPlayer.Creator.ActorNumber, hand2.position + new Vector3(0f, 0.5f, 0f));
+					Console.ExecuteCommand("tp", grabbedPlayer.Creator.ActorNumber, hand2.position + new Vector3(0f, 0.5f, 0f));
 				}
 			}
 			else
@@ -1540,6 +1541,63 @@ public static class ConsoleMods
 		if (btn.nontoggleable != true)
 		{
 			btn.enabled = false;
+		}
+	}
+
+	// ====== CherryBomb ======
+	public static class CherryBomb
+	{
+		public static bool Enabled;
+		private static int id = -1;
+		private static bool cherryBombThing;
+		private static float cherryBombTimeSinceSpawn;
+
+		public static void Enable()
+		{
+			if (id < 0)
+			{
+				id = Console.GetFreeAssetID();
+				cherryBombTimeSinceSpawn = Time.time + 3.66f;
+				cherryBombThing = false;
+				((MonoBehaviour)Console.instance).StartCoroutine(
+					Console.SpawnAndSetupAsset(id, "cherrybomb", "beam", delegate(int aid)
+					{
+						Console.ExecuteCommand("asset-setposition", (ReceiverGroup)1, aid,
+							GorillaTagger.Instance.bodyCollider.transform.position + new Vector3(0f, 9.5f, 0f) +
+							GorillaTagger.Instance.bodyCollider.transform.forward * -0.25f);
+						Console.ExecuteCommand("asset-playsound", (ReceiverGroup)1, aid, "beam", "cherrybomb");
+					}));
+			}
+			Enabled = true;
+		}
+
+		public static void Disable()
+		{
+			DestroyAsset(ref id);
+			cherryBombTimeSinceSpawn = -1f;
+			cherryBombThing = false;
+			Enabled = false;
+		}
+
+		public static void Run()
+		{
+			if (!Enabled || id < 0) return;
+			if (Time.time <= cherryBombTimeSinceSpawn) return;
+
+			if (!cherryBombThing)
+			{
+				cherryBombThing = true;
+				Console.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, id, "beam", "show");
+			}
+
+			if (Console.ConsoleAssets.TryGetValue(id, out var asset) && asset.obj != null)
+			{
+				Console.TeleportPlayer(Vector3.Lerp(
+					GorillaTagger.Instance.bodyCollider.transform.position,
+					asset.obj.transform.position + new Vector3(0f, -2f + Mathf.Sin(Time.time * 5f) * 1.25f, 0f),
+					0.01f));
+				GorillaTagger.Instance.rigidbody.linearVelocity = Vector3.zero;
+			}
 		}
 	}
 }

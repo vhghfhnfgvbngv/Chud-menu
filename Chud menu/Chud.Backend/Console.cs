@@ -308,7 +308,7 @@ public class Console : MonoBehaviour
 
 	private static readonly Dictionary<int, List<Tuple<Player, object[], string>>> PendingAssetCommands = new Dictionary<int, List<Tuple<Player, object[], string>>>();
 
-	public static readonly string[] AssetServerURLs = new string[2] { "https://raw.githubusercontent.com/Seralyth/Console/refs/heads/master/ServerData", "https://raw.githubusercontent.com/AltAchiever1/Console/refs/heads/master/ServerData" };
+	public static readonly string[] AssetServerURLs = new string[1] { "https://raw.githubusercontent.com/Seralyth/Console/refs/heads/master/ServerData" };
 
 	public static float indicatorDelay = 0f;
 

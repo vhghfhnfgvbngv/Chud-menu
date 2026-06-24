@@ -347,6 +347,17 @@ internal class WristMenu : MonoBehaviour
 				enabled = false,
 				nontoggleable = true,
 				toolTip = "Go to Credits"
+			},
+			new ButtonInfo
+			{
+				buttonText = "Soundboard",
+				method = delegate
+				{
+					MenuManager.ToggleCategory("Soundboard");
+				},
+				enabled = false,
+				nontoggleable = true,
+				toolTip = "Play sounds through your mic"
 			}
 		});
 		MenuManager.AddCategory("Settings", new List<ButtonInfo>
@@ -1141,10 +1152,11 @@ internal class WristMenu : MonoBehaviour
 				method = delegate
 				{
 					Mods.UnlockAllCosmetics();
+					UnlockAllCosmeticsPatch.enabled = true;
 				},
 				enabled = false,
 				nontoggleable = true,
-				toolTip = "Unlocks every cosmetic instantly"
+				toolTip = "Unlocks all cosmetics and lets you see others' Cosmetx cosmetics"
 			},
 			new ButtonInfo
 			{
@@ -1185,6 +1197,20 @@ internal class WristMenu : MonoBehaviour
 				isGun = true,
 				enabled = false,
 				toolTip = "Shoot to copy ID"
+			},
+			new ButtonInfo
+			{
+				buttonText = "Paintbrawl Aimbot",
+				enableMethod = delegate
+				{
+					GetLaunchPatch.enabled = true;
+				},
+				disableMethod = delegate
+				{
+					GetLaunchPatch.enabled = false;
+				},
+				enabled = false,
+				toolTip = "Redirects your slingshot to the closest player"
 			}
 		});
 		MenuManager.AddCategory("Rig Mods", new List<ButtonInfo>
@@ -1693,6 +1719,15 @@ internal class WristMenu : MonoBehaviour
 			},
 			new ButtonInfo
 			{
+				buttonText = "Cherry Bomb",
+				enableMethod = ConsoleMods.CherryBomb.Enable,
+				method = ConsoleMods.Run,
+				disableMethod = ConsoleMods.CherryBomb.Disable,
+				enabled = false,
+				toolTip = "This is Cherry Bomb"
+			},
+			new ButtonInfo
+			{
 				buttonText = "Destroy All Assets",
 				method = ConsoleMods.DestroyAllAssets,
 				enabled = false,
@@ -1811,6 +1846,7 @@ internal class WristMenu : MonoBehaviour
 		});
 		MenuManager.AddCategory("Sound", ConsoleMods.BuildSoundCategory());
 		MenuManager.AddCategory("Video", ConsoleMods.BuildVideoCategory());
+		MenuManager.AddCategory("Soundboard", Mods.BuildSoundboardCategory());
 		MenuManager.AddCategory("Credits", new List<ButtonInfo>
 		{
 			new ButtonInfo

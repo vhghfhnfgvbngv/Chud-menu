@@ -4941,7 +4941,7 @@ internal class Mods : MonoBehaviour
 			{
 				continue;
 			}
-			if (category.Name == "Sound" || category.Name == "Video")
+			if (category.Name == "Sound" || category.Name == "Video" || category.Name == "Soundboard")
 			{
 				continue;
 			}
@@ -5326,6 +5326,115 @@ internal class Mods : MonoBehaviour
 	private static Vector3 JObjectToVector3(JObject o)
 	{
 		return new Vector3((float)o["x"], (float)o["y"], (float)o["z"]);
+	}
+
+	private static string soundboardBasePath = Path.Combine(new string[]
+	{
+		Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "..", "..", "Chud Menu", "Sounds"
+	});
+
+	public static List<ButtonInfo> BuildSoundboardCategory()
+	{
+		Directory.CreateDirectory(soundboardBasePath);
+		List<ButtonInfo> buttons = new List<ButtonInfo>
+		{
+			new ButtonInfo
+			{
+				buttonText = "Exit Soundboard",
+				method = delegate
+				{
+					MenuManager.ToggleCategory("Soundboard");
+				},
+				enabled = false,
+				nontoggleable = true,
+				toolTip = "Go to Main"
+			}
+		};
+		if (Directory.Exists(soundboardBasePath))
+		{
+			string[] files = Directory.GetFiles(soundboardBasePath);
+			foreach (string text in files)
+			{
+				string text2 = text;
+				string text3 = Path.GetFileNameWithoutExtension(text2);
+				string fileName = text3;
+				buttons.Add(new ButtonInfo
+				{
+					buttonText = fileName,
+					enableMethod = delegate
+					{
+						SoundboardStop();
+						SoundboardPlay(text2);
+					},
+					disableMethod = SoundboardStop,
+					enabled = false,
+					toolTip = fileName
+				});
+			}
+		}
+		return buttons;
+	}
+
+	private static AudioSource soundboardAudioSource;
+
+	private static void SoundboardPlay(string path)
+	{
+		if (soundboardAudioSource == null)
+		{
+			GameObject gameObject = new GameObject("SoundboardAudio");
+			Object.DontDestroyOnLoad(gameObject);
+			soundboardAudioSource = gameObject.AddComponent<AudioSource>();
+			soundboardAudioSource.spatialBlend = 0f;
+		}
+		((MonoBehaviour)instance).StartCoroutine(SoundboardLoadAndPlay(path));
+	}
+
+	private static IEnumerator SoundboardLoadAndPlay(string path)
+	{
+		AudioType audioType = (AudioType)14;
+		string a = Path.GetExtension(path).ToLower();
+		if (a == ".wav")
+		{
+			audioType = (AudioType)20;
+		}
+		else if (a == ".mp3")
+		{
+			audioType = (AudioType)13;
+		}
+		string text = "file:///" + path.Replace("\\", "/");
+		UnityWebRequest unityWebRequest = UnityWebRequestMultimedia.GetAudioClip(text, audioType);
+		try
+		{
+			yield return unityWebRequest.SendWebRequest();
+			if ((int)unityWebRequest.result == 1)
+			{
+				AudioClip audioClip = DownloadHandlerAudioClip.GetContent(unityWebRequest);
+				Recorder myRecorder = GorillaTagger.Instance.myRecorder;
+				if (myRecorder != null)
+				{
+					myRecorder.SourceType = (Recorder.InputSourceType)1;
+					myRecorder.AudioClip = audioClip;
+					myRecorder.RestartRecording(true);
+					myRecorder.DebugEchoMode = true;
+				}
+			}
+		}
+		finally
+		{
+			((IDisposable)unityWebRequest)?.Dispose();
+		}
+	}
+
+	private static void SoundboardStop()
+	{
+		Recorder myRecorder = GorillaTagger.Instance.myRecorder;
+		if (myRecorder != null)
+		{
+			myRecorder.SourceType = (Recorder.InputSourceType)0;
+			myRecorder.AudioClip = null;
+			myRecorder.RestartRecording(true);
+			myRecorder.DebugEchoMode = false;
+		}
 	}
 
 	private static JObject JObjectFromQuaternion(Quaternion q)
