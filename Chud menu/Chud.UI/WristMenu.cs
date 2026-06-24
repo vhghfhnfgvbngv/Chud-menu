@@ -60,7 +60,7 @@ internal class WristMenu : MonoBehaviour
 
 	public static Color EnableTextColor = Color.white;
 
-	public static Color DIsableTextColor = new Color(0.75f, 0.75f, 0.75f);
+	public static Color DisableTextColor = new Color(0.75f, 0.75f, 0.75f);
 
 	public static Color MenuTitleColor = Color.white;
 
@@ -2554,7 +2554,7 @@ internal class WristMenu : MonoBehaviour
 				val18.text = array[num];
 				val18.fontSize = 200;
 				val18.supportRichText = true;
-				((Graphic)val18).color = ((flag == true) ? EnableTextColor : DIsableTextColor);
+				((Graphic)val18).color = ((flag == true) ? EnableTextColor : DisableTextColor);
 				val18.fontStyle = (FontStyle)2;
 				val18.alignment = (TextAnchor)4;
 				val18.resizeTextForBestFit = true;
@@ -2865,7 +2865,7 @@ internal class WristMenu : MonoBehaviour
 			Text component3 = ((Component)val4).GetComponent<Text>();
 			if ((Object)(object)component3 != (Object)null && component3.text == buttonText)
 			{
-				((Graphic)component3).color = (isEnabled ? EnableTextColor : DIsableTextColor);
+				((Graphic)component3).color = (isEnabled ? EnableTextColor : DisableTextColor);
 				break;
 			}
 		}

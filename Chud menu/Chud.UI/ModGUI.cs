@@ -112,7 +112,7 @@ public class ModGUI : MonoBehaviour
 			val = new Rect(windowRect.x / scale, windowRect.y / scale, windowRect.width / scale, windowRect.height / scale);
 			Matrix4x4 matrix = GUI.matrix;
 			GUI.matrix = Matrix4x4.Scale(Vector3.one * scale);
-			val = GUI.Window(((object)this).GetHashCode(), val, DoWindow, "");
+			val = GUI.Window(98765, val, DoWindow, "");
 			GUI.matrix = matrix;
 			windowRect = new Rect(val.x * scale, val.y * scale, val.width * scale, val.height * scale);
 		}
@@ -395,8 +395,9 @@ public class ModGUI : MonoBehaviour
 				btn.method?.Invoke();
 				return;
 			}
-			catch
+			catch (System.Exception ex)
 			{
+				Debug.LogError("[ModGUI] Error invoking non-toggle method: " + ex.Message);
 				return;
 			}
 		}
@@ -413,8 +414,9 @@ public class ModGUI : MonoBehaviour
 			{
 				btn.method?.Invoke();
 			}
-			catch
+			catch (System.Exception ex)
 			{
+				Debug.LogError("[ModGUI] Error invoking toggle method: " + ex.Message);
 			}
 		}
 		else if (btn.disableMethod != null)
@@ -423,8 +425,9 @@ public class ModGUI : MonoBehaviour
 			{
 				btn.disableMethod();
 			}
-			catch
+			catch (System.Exception ex)
 			{
+				Debug.LogError("[ModGUI] Error invoking disable method: " + ex.Message);
 			}
 		}
 		Mods.AutoSave();

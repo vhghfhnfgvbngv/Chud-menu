@@ -46,7 +46,11 @@ public static class ServerData
 		{
 			return -1;
 		}
-		return int.Parse(array[0]) * 100 + int.Parse(array[1]) * 10 + int.Parse(array[2]);
+		if (int.TryParse(array[0], out var major) && int.TryParse(array[1], out var minor) && int.TryParse(array[2], out var patch))
+		{
+			return major * 100 + minor * 10 + patch;
+		}
+		return -1;
 	}
 
 	public static IEnumerator DownloadAdminTextures()

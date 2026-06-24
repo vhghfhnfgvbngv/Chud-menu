@@ -14,12 +14,34 @@ internal static class NetworkMenuDisplay
 
 	private const float CLOSE_ANIMATION_SPEED = 0.3f;
 
+	private static Shader _cachedUberShader;
+	private static Shader CachedUberShader
+	{
+		get
+		{
+			if ((Object)(object)_cachedUberShader == (Object)null)
+				_cachedUberShader = Shader.Find("GorillaTag/UberShader");
+			return _cachedUberShader;
+		}
+	}
+
+	private static Shader _cachedGuiTextShader;
+	private static Shader CachedGuiTextShader
+	{
+		get
+		{
+			if ((Object)(object)_cachedGuiTextShader == (Object)null)
+				_cachedGuiTextShader = Shader.Find("GUI/Text Shader");
+			return _cachedGuiTextShader;
+		}
+	}
+
 	public static void Create(Mods.RemoteMenuState state)
 	{
 		if (!((Object)(object)state.displayObject != (Object)null))
 		{
 			GameObject val = new GameObject("RemoteMenu_" + state.player.ActorNumber);
-			Shader val2 = Shader.Find("GorillaTag/UberShader");
+			Shader val2 = CachedUberShader;
 			val.transform.localScale = new Vector3(0.1f, 0.3f, 0.3825f);
 			GameObject val3 = GameObject.CreatePrimitive((PrimitiveType)3);
 			Object.Destroy((Object)(object)val3.GetComponent<Rigidbody>());
@@ -331,7 +353,7 @@ internal static class NetworkMenuDisplay
 		{
 			return;
 		}
-		Shader val = Shader.Find("GorillaTag/UberShader");
+		Shader val = CachedUberShader;
 		foreach (Transform item in state.displayObject.transform)
 		{
 			Transform val2 = item;
@@ -434,7 +456,7 @@ internal static class NetworkMenuDisplay
 				break;
 			}
 		}
-		Shader uber = Shader.Find("GorillaTag/UberShader");
+		Shader uber = CachedUberShader;
 		List<Transform> list = new List<Transform>();
 		foreach (Transform item2 in displayObject.transform)
 		{
@@ -526,7 +548,7 @@ internal static class NetworkMenuDisplay
 		val.transform.localScale = scale;
 		Renderer component = val.GetComponent<Renderer>();
 		component.material.color = color;
-		Shader val2 = Shader.Find("GUI/Text Shader");
+		Shader val2 = CachedGuiTextShader;
 		if ((Object)(object)val2 != (Object)null)
 		{
 			component.material.shader = val2;

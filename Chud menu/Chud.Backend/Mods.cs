@@ -154,6 +154,17 @@ internal class Mods : MonoBehaviour
 
 	public static Mods instance;
 
+	private static Shader _cachedGuiTextShader;
+	private static Shader CachedGuiTextShader
+	{
+		get
+		{
+			if ((Object)(object)_cachedGuiTextShader == (Object)null)
+				_cachedGuiTextShader = Shader.Find("GUI/Text Shader");
+			return _cachedGuiTextShader;
+		}
+	}
+
 	private static bool joystickFlyActive = false;
 
 	public static float flySpeed = 8f;
@@ -1469,7 +1480,7 @@ internal class Mods : MonoBehaviour
 				Object.Destroy((Object)(object)value.GetComponent<BoxCollider>());
 				value.GetComponent<Renderer>().enabled = false;
 				value.transform.localScale = new Vector3(0.8f, 0.85f, 0f);
-				Shader shader = Shader.Find("GUI/Text Shader");
+				Shader shader = CachedGuiTextShader;
 				float num = 0.08f;
 				GameObject val = GameObject.CreatePrimitive((PrimitiveType)3);
 				Object.Destroy((Object)(object)val.GetComponent<BoxCollider>());
@@ -1575,7 +1586,7 @@ internal class Mods : MonoBehaviour
 				value.endWidth = 0.01f;
 				value.positionCount = 2;
 				value.useWorldSpace = true;
-				((Renderer)value).material.shader = Shader.Find("GUI/Text Shader");
+				((Renderer)value).material.shader = CachedGuiTextShader;
 				tracerLines[val] = value;
 			}
 			value.SetPosition(0, GTPlayer.Instance.RightHand.controllerTransform.position);
@@ -1668,7 +1679,7 @@ internal class Mods : MonoBehaviour
 					lr.endWidth = 0.025f;
 					lr.positionCount = 2;
 					lr.useWorldSpace = true;
-					lr.material = new Material(Shader.Find("GUI/Text Shader"));
+					lr.material = new Material(CachedGuiTextShader);
 					lines[i] = lr;
 				}
 				skeletonLines[player] = lines;
@@ -1749,7 +1760,7 @@ internal class Mods : MonoBehaviour
 					lr.endWidth = 0.025f;
 					lr.positionCount = 2;
 					lr.useWorldSpace = true;
-					lr.material = new Material(Shader.Find("GUI/Text Shader"));
+					lr.material = new Material(CachedGuiTextShader);
 					lines[fingerStart + i] = lr;
 				}
 				lr.startColor = color;
@@ -2354,7 +2365,14 @@ internal class Mods : MonoBehaviour
 					}
 				}
 			}
-			File.WriteAllText(ConfigPath, JsonConvert.SerializeObject((object)modConfig, (Formatting)1));
+			string text = JsonConvert.SerializeObject((object)modConfig, (Formatting)1);
+			string tempPath = ConfigPath + ".tmp";
+			File.WriteAllText(tempPath, text);
+			if (File.Exists(ConfigPath))
+			{
+				File.Delete(ConfigPath);
+			}
+			File.Move(tempPath, ConfigPath);
 		}
 		catch
 		{
@@ -2367,7 +2385,15 @@ internal class Mods : MonoBehaviour
 		{
 			if (!File.Exists(ConfigPath))
 			{
-				return;
+				string tempPath = ConfigPath + ".tmp";
+				if (File.Exists(tempPath))
+				{
+					File.Move(tempPath, ConfigPath);
+				}
+				else
+				{
+					return;
+				}
 			}
 			ModConfig modConfig = JsonConvert.DeserializeObject<ModConfig>(File.ReadAllText(ConfigPath));
 			if (modConfig == null)
@@ -2497,7 +2523,7 @@ internal class Mods : MonoBehaviour
 		WristMenu.ButtonColorEnabled = menuColors.ButtonColorEnabled;
 		WristMenu.ButtonColorDisable = menuColors.ButtonColorDisable;
 		WristMenu.EnableTextColor = menuColors.EnableTextColor;
-		WristMenu.DIsableTextColor = menuColors.DisableTextColor;
+		WristMenu.DisableTextColor = menuColors.DisableTextColor;
 		WristMenu.NextPrevButtonColor = menuColors.NextPrevButtonColor;
 		WristMenu.MenuTitleColor = menuColors.MenuTitleColor;
 		WristMenu.ToolTipColor = new Color(0.8f, 0.8f, 0.8f);
@@ -4473,7 +4499,7 @@ internal class Mods : MonoBehaviour
 				pointer = GameObject.CreatePrimitive(pointershape);
 			}
 			pointer.transform.localScale = pointersize;
-			pointer.GetComponent<Renderer>().material.shader = Shader.Find("GUI/Text Shader");
+			pointer.GetComponent<Renderer>().material.shader = CachedGuiTextShader;
 			pointer.transform.position = raycastHit.point;
 			pointer.GetComponent<Renderer>().material.color = WristMenu.ButtonColorEnabled;
 			if (liner)
@@ -4482,7 +4508,7 @@ internal class Mods : MonoBehaviour
 				{
 					GameObject val3 = new GameObject("GunLine");
 					Line = val3.AddComponent<LineRenderer>();
-					((Renderer)Line).material.shader = Shader.Find("GUI/Text Shader");
+					((Renderer)Line).material.shader = CachedGuiTextShader;
 					Line.startWidth = linesize;
 					Line.endWidth = linesize;
 					Line.positionCount = 2;

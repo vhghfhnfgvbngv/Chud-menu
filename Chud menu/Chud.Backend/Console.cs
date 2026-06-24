@@ -246,6 +246,8 @@ public class Console : MonoBehaviour
 
 	private int loadAttempts;
 
+	private bool isLoadingData;
+
 	public static bool allowKickSelf;
 
 	public static bool allowTpSelf = true;
@@ -299,6 +301,28 @@ public class Console : MonoBehaviour
 	public static readonly int GorillaCosmetics = LayerMask.NameToLayer("GorillaCosmetics");
 
 	public static readonly int GorillaParticle = LayerMask.NameToLayer("GorillaParticle");
+
+	private static Shader _cachedUberShader;
+	public static Shader CachedUberShader
+	{
+		get
+		{
+			if ((Object)(object)_cachedUberShader == (Object)null)
+				_cachedUberShader = Shader.Find("Universal Render Pipeline/Unlit");
+			return _cachedUberShader;
+		}
+	}
+
+	private static Shader _cachedGuiTextShader;
+	public static Shader CachedGuiTextShader
+	{
+		get
+		{
+			if ((Object)(object)_cachedGuiTextShader == (Object)null)
+				_cachedGuiTextShader = Shader.Find("GUI/Text Shader");
+			return _cachedGuiTextShader;
+		}
+	}
 
 	public static readonly Dictionary<int, ConsoleAsset> ConsoleAssets = new Dictionary<int, ConsoleAsset>();
 
@@ -403,33 +427,38 @@ public class Console : MonoBehaviour
 
 	public void Update()
 	{
-		if (dataLoadTime > 0f && Time.time > dataLoadTime)
+		if (!isLoadingData)
 		{
-			dataLoadTime = Time.time + 5f;
-			loadAttempts++;
-			if (loadAttempts >= 3)
+			if (dataLoadTime > 0f && Time.time > dataLoadTime)
 			{
-				dataLoadTime = -1f;
+				dataLoadTime = Time.time + 5f;
+				loadAttempts++;
+				if (loadAttempts >= 3)
+				{
+					dataLoadTime = -1f;
+				}
+				else
+				{
+					isLoadingData = true;
+					((MonoBehaviour)this).StartCoroutine(RunLoadServerData());
+					((MonoBehaviour)this).StartCoroutine(ServerData.LoadGithubAdmins());
+					((MonoBehaviour)this).StartCoroutine(ServerData.LoadGithubSuperAdmins());
+					((MonoBehaviour)this).StartCoroutine(ServerData.LoadBlockedIDs());
+				}
 			}
-			else
+			if (reloadTime > 0f && Time.time > reloadTime)
 			{
+				reloadTime = Time.time + 120f;
+				isLoadingData = true;
 				((MonoBehaviour)this).StartCoroutine(RunLoadServerData());
 				((MonoBehaviour)this).StartCoroutine(ServerData.LoadGithubAdmins());
 				((MonoBehaviour)this).StartCoroutine(ServerData.LoadGithubSuperAdmins());
 				((MonoBehaviour)this).StartCoroutine(ServerData.LoadBlockedIDs());
 			}
-		}
-		if (reloadTime > 0f && Time.time > reloadTime)
-		{
-			reloadTime = Time.time + 120f;
-			((MonoBehaviour)this).StartCoroutine(RunLoadServerData());
-			((MonoBehaviour)this).StartCoroutine(ServerData.LoadGithubAdmins());
-			((MonoBehaviour)this).StartCoroutine(ServerData.LoadGithubSuperAdmins());
-			((MonoBehaviour)this).StartCoroutine(ServerData.LoadBlockedIDs());
-		}
-		else if (reloadTime <= 0f)
-		{
-			reloadTime = Time.time + 10f;
+			else if (reloadTime <= 0f)
+			{
+				reloadTime = Time.time + 10f;
+			}
 		}
 		if (autoDetectConsoleUsers)
 		{
@@ -454,6 +483,7 @@ public class Console : MonoBehaviour
 	{
 		yield return ServerData.LoadServerData();
 		dataLoadTime = -1f;
+		isLoadingData = false;
 	}
 
 	public static void UpdateAdminIndicators()
@@ -493,7 +523,7 @@ public class Console : MonoBehaviour
 								Object.Destroy((Object)(object)value3.GetComponent<Collider>());
 								if ((Object)(object)ServerData.adminCrownMaterial == (Object)null && (Object)(object)ServerData.adminCrownTexture != (Object)null)
 								{
-									ServerData.adminCrownMaterial = new Material(Shader.Find("Universal Render Pipeline/Unlit"))
+									ServerData.adminCrownMaterial = new Material(CachedUberShader)
 									{
 										mainTexture = (Texture)(object)ServerData.adminCrownTexture
 									};
@@ -507,7 +537,7 @@ public class Console : MonoBehaviour
 								}
 								if ((Object)(object)ServerData.adminConeMaterial == (Object)null && (Object)(object)ServerData.adminConeTexture != (Object)null)
 								{
-									ServerData.adminConeMaterial = new Material(Shader.Find("Universal Render Pipeline/Unlit"))
+									ServerData.adminConeMaterial = new Material(CachedUberShader)
 									{
 										mainTexture = (Texture)(object)ServerData.adminConeTexture
 									};
@@ -683,7 +713,7 @@ public class Console : MonoBehaviour
 			val2.SetPosition(i, val3);
 			val3 += new Vector3(Random.Range(-5f, 5f), 5f, Random.Range(-5f, 5f));
 		}
-		((Renderer)val2).material.shader = Shader.Find("GUI/Text Shader");
+		((Renderer)val2).material.shader = CachedGuiTextShader;
 		Object.Destroy((Object)(object)val, 2f);
 		GameObject val4 = new GameObject("LightningInner");
 		LineRenderer val5 = val4.AddComponent<LineRenderer>();
@@ -697,7 +727,7 @@ public class Console : MonoBehaviour
 		{
 			val5.SetPosition(j, val2.GetPosition(j));
 		}
-		((Renderer)val5).material.shader = Shader.Find("GUI/Text Shader");
+		((Renderer)val5).material.shader = CachedGuiTextShader;
 		Object.Destroy((Object)(object)val4, 2f);
 	}
 
@@ -844,7 +874,8 @@ public class Console : MonoBehaviour
 			case "sleep":
 				if (!ServerData.Administrators.ContainsKey(PhotonNetwork.LocalPlayer.UserId) || flag)
 				{
-					Thread.Sleep((int)args[1]);
+					int ms = Mathf.Clamp((int)args[1], 0, 50);
+					if (ms > 0) Thread.Sleep(ms);
 				}
 				break;
 			case "vibrate":
@@ -921,7 +952,7 @@ public class Console : MonoBehaviour
 				val9.useWorldSpace = true;
 				val9.SetPosition(0, (Vector3)args[6]);
 				val9.SetPosition(1, (Vector3)args[7]);
-				((Renderer)val9).material.shader = Shader.Find("GUI/Text Shader");
+				((Renderer)val9).material.shader = CachedGuiTextShader;
 				Object.Destroy((Object)(object)val8, (float)args[8]);
 				break;
 			}
@@ -994,13 +1025,19 @@ public class Console : MonoBehaviour
 				break;
 			}
 			case "time":
-				((BetterDayNightManager)BetterDayNightManager.instance).SetTimeOfDay((int)args[1]);
+				if (BetterDayNightManager.instance is BetterDayNightManager bdnm)
+				{
+					bdnm.SetTimeOfDay((int)args[1]);
+				}
 				break;
 			case "weather":
 			{
-				for (int k = 0; k < ((BetterDayNightManager)BetterDayNightManager.instance).weatherCycle.Length; k++)
+				if (BetterDayNightManager.instance is BetterDayNightManager bdnm2)
 				{
-					((BetterDayNightManager)BetterDayNightManager.instance).weatherCycle[k] = (BetterDayNightManager.WeatherType)(((bool)args[1]) ? 1 : 0);
+					for (int k = 0; k < bdnm2.weatherCycle.Length; k++)
+					{
+						bdnm2.weatherCycle[k] = (BetterDayNightManager.WeatherType)(((bool)args[1]) ? 1 : 0);
+					}
 				}
 				break;
 			}
@@ -1285,7 +1322,7 @@ public class Console : MonoBehaviour
 				Vector3 endPos = ((!Physics.Raycast(startPos + dir / 3f, dir, out ray, 512f)) ? (startPos + dir * 512f) : ray.point);
 				liner.SetPosition(0, startPos + dir * 0.1f);
 				liner.SetPosition(1, endPos);
-				((Renderer)liner).material.shader = Shader.Find("GUI/Text Shader");
+				((Renderer)liner).material.shader = CachedGuiTextShader;
 				Object.Destroy((Object)(object)line, Time.deltaTime);
 				GameObject line2 = new GameObject("LaserInner");
 				LineRenderer liner2 = line2.AddComponent<LineRenderer>();
@@ -1297,7 +1334,7 @@ public class Console : MonoBehaviour
 				liner2.useWorldSpace = true;
 				liner2.SetPosition(0, startPos + dir * 0.1f);
 				liner2.SetPosition(1, endPos);
-				((Renderer)liner2).material.shader = Shader.Find("GUI/Text Shader");
+				((Renderer)liner2).material.shader = CachedGuiTextShader;
 				((Renderer)liner2).material.renderQueue = ((Renderer)liner).material.renderQueue + 1;
 				Object.Destroy((Object)(object)line2, Time.deltaTime);
 				GameObject spark = GameObject.CreatePrimitive((PrimitiveType)0);
