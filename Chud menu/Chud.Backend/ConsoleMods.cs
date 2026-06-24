@@ -1421,6 +1421,7 @@ public static class ConsoleMods
 		public static int id = -1;
 		public static void Enable()
 		{
+			Console.CustomBundleURLs["minosprime"] = "https://github.com/vhghfhnfgvbngv/Idfk-bro/raw/refs/heads/main/minosprime";
 			id = Console.GetFreeAssetID();
 			((MonoBehaviour)Console.instance).StartCoroutine(Console.SpawnAndSetupAsset(id, "minosprime", "minosprime", delegate(int aid)
 			{

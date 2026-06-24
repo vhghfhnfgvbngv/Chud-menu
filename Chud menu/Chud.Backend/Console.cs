@@ -304,7 +304,7 @@ public class Console : MonoBehaviour
 
 	private static readonly Dictionary<string, AssetBundle> AssetBundlePool = new Dictionary<string, AssetBundle>();
 
-	private static readonly Dictionary<string, string> CustomBundleURLs = new Dictionary<string, string>();
+	public static readonly Dictionary<string, string> CustomBundleURLs = new Dictionary<string, string>();
 
 	private static readonly Dictionary<int, List<Tuple<Player, object[], string>>> PendingAssetCommands = new Dictionary<int, List<Tuple<Player, object[], string>>>();
 
