@@ -947,6 +947,45 @@ internal class WristMenu : MonoBehaviour
 				isFrameCall = true,
 				enabled = false,
 				toolTip = "Draw skeleton lines on players"
+			},
+			new ButtonInfo
+			{
+				buttonText = "lowercase name",
+				method = delegate
+				{
+					if (PhotonNetwork.LocalPlayer != null)
+					{
+						string name = System.Text.RegularExpressions.Regex.Replace(PhotonNetwork.LocalPlayer.NickName, "<color[^>]*>", "");
+						name = name.Replace("</color>", "").ToLower();
+						PhotonNetwork.LocalPlayer.NickName = name;
+						if ((Object)(object)VRRig.LocalRig != (Object)null)
+							VRRig.LocalRig.UpdateName();
+					}
+				},
+				enabled = false,
+				nontoggleable = true,
+				toolTip = "Show names in lowercase"
+			},
+			new ButtonInfo
+			{
+				buttonText = "Random Capital Name",
+				method = delegate
+				{
+					if (PhotonNetwork.LocalPlayer != null)
+					{
+						string name = System.Text.RegularExpressions.Regex.Replace(PhotonNetwork.LocalPlayer.NickName, "<color[^>]*>", "");
+						name = name.Replace("</color>", "");
+						char[] chars = name.ToCharArray();
+						for (int i = 0; i < chars.Length; i++)
+							chars[i] = (i % 2 == 0) ? char.ToUpper(chars[i]) : char.ToLower(chars[i]);
+						PhotonNetwork.LocalPlayer.NickName = new string(chars);
+						if ((Object)(object)VRRig.LocalRig != (Object)null)
+							VRRig.LocalRig.UpdateName();
+					}
+				},
+				enabled = false,
+				nontoggleable = true,
+				toolTip = "Show names in alternating case"
 			}
 		});
 		MenuManager.AddCategory("Useful Mods", new List<ButtonInfo>
