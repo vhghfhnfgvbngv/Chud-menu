@@ -1816,7 +1816,7 @@ public class Console : MonoBehaviour
 
 	public static void HandleAssetEvent(Player sender, object[] args, string command)
 	{
-		if (command != "asset-spawn" && command != "asset-destroy")
+		if (command != "asset-spawn")
 		{
 			int key = (int)args[1];
 			if (!ConsoleAssets.ContainsKey(key) || (Object)(object)ConsoleAssets[key].obj == (Object)null)

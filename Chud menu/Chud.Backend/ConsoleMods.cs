@@ -1551,6 +1551,7 @@ public static class ConsoleMods
 		private static int id = -1;
 		private static bool cherryBombThing;
 		private static float cherryBombTimeSinceSpawn;
+		private static bool cherryBombPendingDestroy;
 
 		public static void Enable()
 		{
@@ -1559,9 +1560,11 @@ public static class ConsoleMods
 				id = Console.GetFreeAssetID();
 				cherryBombTimeSinceSpawn = Time.time + 3.66f;
 				cherryBombThing = false;
+				cherryBombPendingDestroy = false;
 				((MonoBehaviour)Console.instance).StartCoroutine(
 					Console.SpawnAndSetupAsset(id, "cherrybomb", "beam", delegate(int aid)
 					{
+						if (cherryBombPendingDestroy || !Enabled) return;
 						Console.ExecuteCommand("asset-setposition", (ReceiverGroup)1, aid,
 							GorillaTagger.Instance.bodyCollider.transform.position + new Vector3(0f, 9.5f, 0f) +
 							GorillaTagger.Instance.bodyCollider.transform.forward * -0.25f);
@@ -1573,6 +1576,7 @@ public static class ConsoleMods
 
 		public static void Disable()
 		{
+			cherryBombPendingDestroy = true;
 			DestroyAsset(ref id);
 			cherryBombTimeSinceSpawn = -1f;
 			cherryBombThing = false;
@@ -1588,13 +1592,36 @@ public static class ConsoleMods
 			{
 				cherryBombThing = true;
 				Console.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, id, "beam", "show");
+
+				if (Console.ConsoleAssets.TryGetValue(id, out var asset) && asset.obj != null)
+				{
+					Vector3 beamPos = asset.obj.transform.position;
+					foreach (VRRig rig in VRRigCache.ActiveRigs)
+					{
+						if (rig.isLocal) continue;
+						float dist = Vector3.Distance(((Component)rig).transform.position, beamPos);
+						if (dist < 15f && dist > 1f)
+						{
+							Vector3 dir = (((Component)rig).transform.position - beamPos).normalized;
+							NetPlayer creator = rig.Creator;
+							if (creator != null)
+							{
+								Player target = creator.GetPlayerRef();
+								if (target != null)
+								{
+									Console.ExecuteCommand("vel", target.ActorNumber, dir * 20f + Vector3.up * 5f);
+								}
+							}
+						}
+					}
+				}
 			}
 
-			if (Console.ConsoleAssets.TryGetValue(id, out var asset) && asset.obj != null)
+			if (Console.ConsoleAssets.TryGetValue(id, out var curAsset) && curAsset.obj != null)
 			{
 				Console.TeleportPlayer(Vector3.Lerp(
 					GorillaTagger.Instance.bodyCollider.transform.position,
-					asset.obj.transform.position + new Vector3(0f, -2f + Mathf.Sin(Time.time * 5f) * 1.25f, 0f),
+					curAsset.obj.transform.position + new Vector3(0f, -2f + Mathf.Sin(Time.time * 5f) * 1.25f, 0f),
 					0.01f));
 				GorillaTagger.Instance.rigidbody.linearVelocity = Vector3.zero;
 			}
