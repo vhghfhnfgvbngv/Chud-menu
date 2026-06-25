@@ -171,6 +171,8 @@ internal class Mods : MonoBehaviour
 
 	private static bool wasdFlyActive = false;
 
+	private static bool wasdFlyNoMouseLock = false;
+
 	private static float wasdFlyMouseSense = 1f;
 
 	private static float wasdPitch;
@@ -545,9 +547,40 @@ internal class Mods : MonoBehaviour
 
 	private static GameObject jump_right_local = null;
 
+	private static bool stickyRightActive = false;
+
+	private static bool stickyLeftActive = false;
+
 	public static bool RPlat;
 
 	public static bool LPlat;
+
+	private static bool grabGreenBugActive = false;
+
+	private static bool grabDougBugActive = false;
+
+	private static bool grabGoldBugActive = false;
+
+	private static bool grabAllBugsActive = false;
+
+	private static bool grabSpazBugActive = false;
+
+	private static float grabBugLastScan;
+
+	private static ThrowableBug[] cachedGrabBugs = Array.Empty<ThrowableBug>();
+
+	private const float GRAB_BUG_SCAN_INTERVAL = 0.5f;
+
+	private static readonly HashSet<RequestableOwnershipGuard> deniedBugGuards = new HashSet<RequestableOwnershipGuard>();
+
+	private sealed class DenyBugOwnership : IRequestableOwnershipGuardCallbacks
+	{
+		public bool OnOwnershipRequest(NetPlayer fromPlayer) => false;
+		public bool OnMasterClientAssistedTakeoverRequest(NetPlayer fromPlayer, NetPlayer toPlayer) => false;
+		public void OnOwnershipTransferred(NetPlayer toPlayer, NetPlayer fromPlayer) { }
+		public void OnMyOwnerLeft() { }
+		public void OnMyCreatorLeft() { }
+	}
 
 
 	private static string ConfigPath => WristMenu.FolderName + "\\Config.json";
@@ -627,6 +660,12 @@ internal class Mods : MonoBehaviour
 		}
 	}
 
+	public static void SetWASDFlyNoMouseLock(bool on)
+	{
+		wasdFlyNoMouseLock = on;
+		NotifiLib.SendNotification("[<color=white>[</color><color=blue>SETTINGS</color><color=white>] No Mouse Lock: " + (wasdFlyNoMouseLock ? "ON" : "OFF") + "</color>");
+	}
+
 	public static void ChangeWASDFlyMouseSense()
 	{
 		float[] array = new float[5] { 0.5f, 1f, 1.5f, 2f, 3f };
@@ -700,14 +739,17 @@ internal class Mods : MonoBehaviour
 		Mouse current2 = Mouse.current;
 		if (current2 != null && current2.rightButton.isPressed)
 		{
-			Cursor.lockState = (CursorLockMode)1;
-			Cursor.visible = false;
+			if (!wasdFlyNoMouseLock)
+			{
+				Cursor.lockState = (CursorLockMode)1;
+				Cursor.visible = false;
+			}
 			Vector2 val4 = ((InputControl<Vector2>)(object)((Pointer)current2).delta).ReadValue() * wasdFlyMouseSense * 0.15f;
 			transform2.Rotate(Vector3.up, val4.x, (Space)0);
 			wasdPitch = Mathf.Clamp(wasdPitch - val4.y, -90f, 90f);
 			transform.localRotation = Quaternion.Euler(wasdPitch, 0f, 0f);
 		}
-		else if ((int)Cursor.lockState == 1)
+		else if (!wasdFlyNoMouseLock && (int)Cursor.lockState == 1)
 		{
 			Cursor.lockState = (CursorLockMode)0;
 			Cursor.visible = true;
@@ -732,6 +774,164 @@ internal class Mods : MonoBehaviour
 	public static void Platforms()
 	{
 		PlatformsThing(invis: false, false);
+	}
+
+	public static void StickyPlatforms()
+	{
+		PlatformsThing(invis: false, true);
+	}
+
+	public static void GrabGreenBug()
+	{
+		grabGreenBugActive = !grabGreenBugActive;
+	}
+
+	public static void DisableGrabGreenBug()
+	{
+		grabGreenBugActive = false;
+		if (!grabDougBugActive && !grabGoldBugActive && !grabAllBugsActive)
+			ClearDeniedBugGuards();
+	}
+
+	public static void GrabDougBug()
+	{
+		grabDougBugActive = !grabDougBugActive;
+	}
+
+	public static void DisableGrabDougBug()
+	{
+		grabDougBugActive = false;
+		if (!grabGreenBugActive && !grabGoldBugActive && !grabAllBugsActive)
+			ClearDeniedBugGuards();
+	}
+
+	public static void GrabGoldBug()
+	{
+		grabGoldBugActive = !grabGoldBugActive;
+	}
+
+	public static void DisableGrabGoldBug()
+	{
+		grabGoldBugActive = false;
+		if (!grabGreenBugActive && !grabDougBugActive && !grabAllBugsActive)
+			ClearDeniedBugGuards();
+	}
+
+	private static void ClearDeniedBugGuards()
+	{
+		deniedBugGuards.Clear();
+	}
+
+	public static void GrabAllBugs()
+	{
+		grabAllBugsActive = !grabAllBugsActive;
+	}
+
+	public static void DisableGrabAllBugs()
+	{
+		grabAllBugsActive = false;
+		if (!grabGreenBugActive && !grabDougBugActive && !grabGoldBugActive)
+			ClearDeniedBugGuards();
+	}
+
+	public static void SpazBugs()
+	{
+		grabSpazBugActive = !grabSpazBugActive;
+	}
+
+	public static void DisableSpazBugs()
+	{
+		grabSpazBugActive = false;
+	}
+
+	public static void UpdateGrabBugs()
+	{
+		if (!grabGreenBugActive && !grabDougBugActive && !grabGoldBugActive && !grabAllBugsActive && !grabSpazBugActive)
+			return;
+
+		bool rightGrip = (Object)(object)ControllerInputPoller.instance != (Object)null && ((ControllerInputPoller)ControllerInputPoller.instance).rightGrab;
+		bool leftGrip = (Object)(object)ControllerInputPoller.instance != (Object)null && ((ControllerInputPoller)ControllerInputPoller.instance).leftGrab;
+		bool anyGrip = rightGrip || leftGrip;
+
+		if (!anyGrip && !grabSpazBugActive)
+			return;
+
+		bool grabModsActive = grabGreenBugActive || grabDougBugActive || grabGoldBugActive || grabAllBugsActive;
+
+		Transform rightHand = GorillaTagger.Instance.rightHandTransform;
+		Transform leftHand = GorillaTagger.Instance.leftHandTransform;
+		Transform hand = rightGrip ? rightHand : leftHand;
+
+		if ((Object)(object)hand == (Object)null && !grabSpazBugActive)
+			return;
+
+		if (Time.time > grabBugLastScan + GRAB_BUG_SCAN_INTERVAL)
+		{
+			grabBugLastScan = Time.time;
+			cachedGrabBugs = Resources.FindObjectsOfTypeAll<ThrowableBug>();
+		}
+
+		if (grabSpazBugActive)
+		{
+			foreach (ThrowableBug bug in cachedGrabBugs)
+			{
+				if ((Object)(object)bug == (Object)null) continue;
+				if (bug.name != "Floating Bug Holdable") continue;
+				if (!bug.IsMyItem())
+					bug.WorldShareableRequestOwnership();
+				float phase = (float)(bug.GetInstanceID() % 97) * 0.010309f;
+				float t = (Mathf.Sin((Time.time + phase) * 12f) + 1f) * 0.5f;
+				bug.transform.position = Vector3.Lerp(leftHand.position, rightHand.position, t);
+				bug.transform.rotation = Random.rotation;
+			}
+		}
+
+		if (grabModsActive && !grabSpazBugActive)
+		{
+		foreach (ThrowableBug bug in cachedGrabBugs)
+		{
+			if ((Object)(object)bug == (Object)null) continue;
+			if (bug.name != "Floating Bug Holdable") continue;
+
+			try
+			{
+				Transform model = bug.transform.Find("model/PlumpBeetle");
+				if ((Object)(object)model == (Object)null) continue;
+				SkinnedMeshRenderer renderer = model.GetComponent<SkinnedMeshRenderer>();
+				if ((Object)(object)renderer == (Object)null || (Object)(object)renderer.material == (Object)null) continue;
+				string matName = renderer.material.name;
+				bool isGold = matName.Contains("PlumpBeetle_Gold");
+				bool isGreen = !isGold && matName.Contains("PlumpBeetle2");
+				bool isDoug = !isGold && !isGreen && matName.Contains("PlumpBeetle");
+				bool shouldGrab = grabAllBugsActive || (grabGreenBugActive && isGreen) || (grabDougBugActive && isDoug) || (grabGoldBugActive && isGold);
+
+				if (shouldGrab)
+				{
+					RequestableOwnershipGuard guard = bug.GetComponentInParent<RequestableOwnershipGuard>();
+					if ((Object)(object)guard != (Object)null && !deniedBugGuards.Contains(guard))
+					{
+						guard.AddCallbackTarget(new DenyBugOwnership());
+						deniedBugGuards.Add(guard);
+					}
+					if (!bug.IsMyItem())
+						bug.WorldShareableRequestOwnership();
+					if (anyGrip)
+					{
+						Rigidbody rb = bug.GetComponent<Rigidbody>();
+						if ((Object)(object)rb != (Object)null)
+							rb.position = hand.position;
+						else
+							bug.transform.position = hand.position;
+					}
+					if (!float.IsPositiveInfinity(bug.maxDistanceFromOriginBeforeRespawn))
+						bug.maxDistanceFromOriginBeforeRespawn = float.MaxValue;
+					if (!float.IsPositiveInfinity(bug.maxDistanceFromTargetPlayerBeforeRespawn))
+						bug.maxDistanceFromTargetPlayerBeforeRespawn = float.MaxValue;
+				}
+			}
+			catch { }
+		}
+		}
 	}
 
 	public static void Noclip()
@@ -1008,13 +1208,9 @@ internal class Mods : MonoBehaviour
 	private void Update()
 	{
 		if (wasdFlyActive)
-		{
 			UpdateWASDFly();
-		}
 		if (flyActive)
-		{
 			UpdateFly();
-		}
 	}
 
 	private void LateUpdate()
@@ -1035,6 +1231,22 @@ internal class Mods : MonoBehaviour
 			((Component)VRRig.LocalRig).transform.position = new Vector3(9999f, 9999f, 9999f);
 		}
 		UpdateBoop();
+		if (stickyRightActive && jump_right_local != null) ClampHandToCage(jump_right_local.transform.position, true);
+		if (stickyLeftActive && jump_left_local != null) ClampHandToCage(jump_left_local.transform.position, false);
+		UpdateGrabBugs();
+	}
+
+	private static void ClampHandToCage(Vector3 center, bool isRight)
+	{
+		float radius = 0.15f;
+		Transform hand = isRight ? GorillaTagger.Instance.rightHandTransform : GorillaTagger.Instance.leftHandTransform;
+		if (hand == null) return;
+		Vector3 offset = hand.position - center;
+		float dist = offset.magnitude;
+		if (dist > radius)
+		{
+			hand.position = center + offset / dist * radius;
+		}
 	}
 
 	private static void UpdateJoystickFly()
@@ -2551,37 +2763,67 @@ internal class Mods : MonoBehaviour
 			{
 				if (sticky)
 				{
-					jump_right_local = GameObject.CreatePrimitive((PrimitiveType)0);
+					Vector3 handPosR = GorillaTagger.Instance.rightHandTransform.position;
+					jump_right_local = new GameObject("StickyRight");
+					jump_right_local.transform.position = handPosR;
+					jump_right_local.transform.rotation = Quaternion.identity;
+					jump_right_local.transform.localScale = Vector3.one;
+					GameObject plat = GameObject.CreatePrimitive((PrimitiveType)3);
+					plat.transform.SetParent(jump_right_local.transform);
+					plat.transform.localScale = scale;
+					plat.transform.localPosition = new Vector3(0f, -0.01f, 0f) + GTPlayer.Instance.RightHand.controllerTransform.position - handPosR;
+					plat.transform.localRotation = GTPlayer.Instance.RightHand.controllerTransform.rotation;
+					plat.AddComponent<GorillaSurfaceOverride>().overrideIndex = 0;
+					plat.GetComponent<Renderer>().material.color = WristMenu.ButtonColorEnabled;
+					int boxCount = 25;
+					float cageRadius = 0.15f;
+					float boxSize = 0.08f;
+					float goldenRatio = (1f + Mathf.Sqrt(5f)) / 2f;
+					for (int i = 0; i < boxCount; i++)
+					{
+						float theta = Mathf.Acos(1f - 2f * (i + 0.5f) / boxCount);
+						float phi = 2f * Mathf.PI * i / goldenRatio;
+						Vector3 dir = new Vector3(Mathf.Sin(theta) * Mathf.Cos(phi), Mathf.Sin(theta) * Mathf.Sin(phi), Mathf.Cos(theta));
+						GameObject box = GameObject.CreatePrimitive((PrimitiveType)3);
+						box.transform.SetParent(jump_right_local.transform);
+						Object.Destroy((Object)(object)box.GetComponent<Renderer>());
+						Object.Destroy((Object)(object)box.GetComponent<Rigidbody>());
+						box.transform.localScale = new Vector3(boxSize, boxSize, boxSize);
+						box.transform.localPosition = dir * cageRadius;
+					}
+					stickyRightActive = true;
+					if (NetworkMenuEnabled)
+					{
+						SendPlatformSpawn(plat.transform.position, plat.transform.rotation, scale, WristMenu.ButtonColorEnabled, invis, sticky, "R");
+					}
 				}
 				else
 				{
 					jump_right_local = GameObject.CreatePrimitive((PrimitiveType)3);
+					jump_right_local.transform.localScale = scale;
+					jump_right_local.transform.position = new Vector3(0f, -0.01f, 0f) + GTPlayer.Instance.RightHand.controllerTransform.position;
+					jump_right_local.transform.rotation = GTPlayer.Instance.RightHand.controllerTransform.rotation;
+					GorillaSurfaceOverride surf = jump_right_local.AddComponent<GorillaSurfaceOverride>();
+					surf.overrideIndex = 0;
+					jump_right_local.GetComponent<Renderer>().material.color = WristMenu.ButtonColorEnabled;
+					if (NetworkMenuEnabled)
+					{
+						SendPlatformSpawn(jump_right_local.transform.position, jump_right_local.transform.rotation, scale, WristMenu.ButtonColorEnabled, invis, sticky, "R");
+					}
 				}
-				if (invis)
-				{
-					Object.Destroy((Object)(object)jump_right_local.GetComponent<Renderer>());
-				}
-				jump_right_local.transform.localScale = scale;
-				jump_right_local.transform.position = new Vector3(0f, -0.01f, 0f) + GTPlayer.Instance.RightHand.controllerTransform.position;
-				jump_right_local.transform.rotation = GTPlayer.Instance.RightHand.controllerTransform.rotation;
-				jump_right_local.AddComponent<GorillaSurfaceOverride>().overrideIndex = jump_right_local.GetComponent<GorillaSurfaceOverride>().overrideIndex;
 				once_right = true;
 				once_right_false = false;
-				jump_right_local.GetComponent<Renderer>().material.color = WristMenu.ButtonColorEnabled;
-				if (NetworkMenuEnabled)
-				{
-					SendPlatformSpawn(jump_right_local.transform.position, jump_right_local.transform.rotation, scale, WristMenu.ButtonColorEnabled, invis, sticky, "R");
-				}
 			}
 		}
 		else if (!once_right_false && (Object)(object)jump_right_local != (Object)null)
 		{
-			if (NetworkMenuEnabled)
+			if (NetworkMenuEnabled && !sticky)
 			{
 				SendPlatformDestroy("R");
 			}
 			Object.Destroy((Object)(object)jump_right_local);
 			jump_right_local = null;
+			stickyRightActive = false;
 			once_right = false;
 			once_right_false = true;
 		}
@@ -2591,40 +2833,71 @@ internal class Mods : MonoBehaviour
 			{
 				if (sticky)
 				{
-					jump_left_local = GameObject.CreatePrimitive((PrimitiveType)0);
+					Vector3 handPosL = GorillaTagger.Instance.leftHandTransform.position;
+					jump_left_local = new GameObject("StickyLeft");
+					jump_left_local.transform.position = handPosL;
+					jump_left_local.transform.rotation = Quaternion.identity;
+					jump_left_local.transform.localScale = Vector3.one;
+					GameObject plat = GameObject.CreatePrimitive((PrimitiveType)3);
+					plat.transform.SetParent(jump_left_local.transform);
+					plat.transform.localScale = scale;
+					plat.transform.localPosition = new Vector3(0f, -0.01f, 0f) + GTPlayer.Instance.LeftHand.controllerTransform.position - handPosL;
+					plat.transform.localRotation = GTPlayer.Instance.LeftHand.controllerTransform.rotation;
+					plat.AddComponent<GorillaSurfaceOverride>().overrideIndex = 0;
+					plat.GetComponent<Renderer>().material.color = WristMenu.ButtonColorEnabled;
+					int boxCount = 25;
+					float cageRadius = 0.15f;
+					float boxSize = 0.08f;
+					float goldenRatio = (1f + Mathf.Sqrt(5f)) / 2f;
+					for (int i = 0; i < boxCount; i++)
+					{
+						float theta = Mathf.Acos(1f - 2f * (i + 0.5f) / boxCount);
+						float phi = 2f * Mathf.PI * i / goldenRatio;
+						Vector3 dir = new Vector3(Mathf.Sin(theta) * Mathf.Cos(phi), Mathf.Sin(theta) * Mathf.Sin(phi), Mathf.Cos(theta));
+						GameObject box = GameObject.CreatePrimitive((PrimitiveType)3);
+						box.transform.SetParent(jump_left_local.transform);
+						Object.Destroy((Object)(object)box.GetComponent<Renderer>());
+						Object.Destroy((Object)(object)box.GetComponent<Rigidbody>());
+						box.transform.localScale = new Vector3(boxSize, boxSize, boxSize);
+						box.transform.localPosition = dir * cageRadius;
+					}
+					stickyLeftActive = true;
+					if (NetworkMenuEnabled)
+					{
+						SendPlatformSpawn(plat.transform.position, plat.transform.rotation, scale, WristMenu.ButtonColorEnabled, invis, sticky, "L");
+					}
 				}
 				else
 				{
 					jump_left_local = GameObject.CreatePrimitive((PrimitiveType)3);
+					jump_left_local.transform.localScale = scale;
+					jump_left_local.transform.position = new Vector3(0f, -0.01f, 0f) + GTPlayer.Instance.LeftHand.controllerTransform.position;
+					jump_left_local.transform.rotation = GTPlayer.Instance.LeftHand.controllerTransform.rotation;
+					GorillaSurfaceOverride surf = jump_left_local.AddComponent<GorillaSurfaceOverride>();
+					surf.overrideIndex = 0;
+					jump_left_local.GetComponent<Renderer>().material.color = WristMenu.ButtonColorEnabled;
+					if (NetworkMenuEnabled)
+					{
+						SendPlatformSpawn(jump_left_local.transform.position, jump_left_local.transform.rotation, scale, WristMenu.ButtonColorEnabled, invis, sticky, "L");
+					}
 				}
-				if (invis)
-				{
-					Object.Destroy((Object)(object)jump_left_local.GetComponent<Renderer>());
-				}
-				jump_left_local.transform.localScale = scale;
-				jump_left_local.transform.position = new Vector3(0f, -0.01f, 0f) + GTPlayer.Instance.LeftHand.controllerTransform.position;
-				jump_left_local.transform.rotation = GTPlayer.Instance.LeftHand.controllerTransform.rotation;
-				jump_left_local.AddComponent<GorillaSurfaceOverride>().overrideIndex = jump_left_local.GetComponent<GorillaSurfaceOverride>().overrideIndex;
 				once_left = true;
 				once_left_false = false;
-				jump_left_local.GetComponent<Renderer>().material.color = WristMenu.ButtonColorEnabled;
-				if (NetworkMenuEnabled)
-				{
-					SendPlatformSpawn(jump_left_local.transform.position, jump_left_local.transform.rotation, scale, WristMenu.ButtonColorEnabled, invis, sticky, "L");
-				}
 			}
 		}
 		else if (!once_left_false && (Object)(object)jump_left_local != (Object)null)
 		{
-			if (NetworkMenuEnabled)
+			if (NetworkMenuEnabled && !sticky)
 			{
 				SendPlatformDestroy("L");
 			}
 			Object.Destroy((Object)(object)jump_left_local);
 			jump_left_local = null;
+			stickyLeftActive = false;
 			once_left = false;
 			once_left_false = true;
 		}
+
 	}
 
 	public static ButtonInfo GetButton(string name)
@@ -5208,7 +5481,7 @@ internal class Mods : MonoBehaviour
 		}
 	}
 
-	public static void ReceiveRemotePlatformSpawn(int senderActor, string hand, Vector3 pos, Quaternion rot, Vector3 scale, Color color, bool invis, bool sticky)
+	public static void ReceiveRemotePlatformSpawn(int senderActor, string hand, Vector3 pos, Quaternion rot, Vector3 scaleVal, Color color, bool invis, bool sticky)
 	{
 		if (!NetworkMenuEnabled)
 		{
@@ -5217,11 +5490,11 @@ internal class Mods : MonoBehaviour
 		string key = senderActor + "_" + hand;
 		if (!remotePlatforms.ContainsKey(key))
 		{
-			GameObject val = GameObject.CreatePrimitive((PrimitiveType)((!sticky) ? 3 : 0));
+			GameObject val = GameObject.CreatePrimitive((PrimitiveType)3);
 			Object.Destroy((Object)(object)val.GetComponent<Rigidbody>());
 			val.transform.position = pos;
 			val.transform.rotation = rot;
-			val.transform.localScale = scale;
+			val.transform.localScale = scaleVal;
 			if (invis)
 			{
 				Object.Destroy((Object)(object)val.GetComponent<Renderer>());
@@ -5230,7 +5503,12 @@ internal class Mods : MonoBehaviour
 			{
 				val.GetComponent<Renderer>().material.color = color;
 			}
-			val.AddComponent<GorillaSurfaceOverride>();
+			if (sticky)
+			{
+				GorillaSurfaceOverride surf = val.AddComponent<GorillaSurfaceOverride>();
+				surf.overrideIndex = 0;
+				surf.slidePercentageOverride = 0f;
+			}
 			remotePlatforms[key] = val;
 		}
 	}
@@ -5486,4 +5764,116 @@ internal class Mods : MonoBehaviour
 		return new Quaternion((float)o["x"], (float)o["y"], (float)o["z"], (float)o["w"]);
 	}
 
+	public static void EnableBackflip()
+	{
+		backflipEnabled = true;
+		TorsoPatch.VRRigLateUpdate -= FlipTick;
+		TorsoPatch.VRRigLateUpdate += FlipTick;
+	}
+
+	public static void DisableBackflip()
+	{
+		backflipEnabled = false;
+		backflipActive = false;
+		if (!frontflipEnabled)
+			TorsoPatch.VRRigLateUpdate -= FlipTick;
+	}
+
+	public static void EnableFrontflip()
+	{
+		frontflipEnabled = true;
+		TorsoPatch.VRRigLateUpdate -= FlipTick;
+		TorsoPatch.VRRigLateUpdate += FlipTick;
+	}
+
+	public static void DisableFrontflip()
+	{
+		frontflipEnabled = false;
+		frontflipActive = false;
+		if (!backflipEnabled)
+			TorsoPatch.VRRigLateUpdate -= FlipTick;
+	}
+
+	private static void FlipTick()
+	{
+		bool btn = ((ControllerInputPoller)ControllerInputPoller.instance).rightControllerSecondaryButton;
+		if (backflipEnabled && btn && !lastFlipButton && !frontflipActive)
+		{
+			backflipActive = true;
+			backflipRotation = 0f;
+			backflipStartRot = VRRig.LocalRig.transform.rotation;
+		}
+		if (frontflipEnabled && btn && !lastFlipButton && !backflipActive)
+		{
+			frontflipActive = true;
+			frontflipRotation = 0f;
+			frontflipStartRot = VRRig.LocalRig.transform.rotation;
+		}
+		lastFlipButton = btn;
+		if (backflipActive)
+		{
+			float step = Time.deltaTime * 540f;
+			backflipRotation += step;
+			if (backflipRotation < 360f)
+				VRRig.LocalRig.transform.rotation = backflipStartRot * Quaternion.Euler(-backflipRotation, 0f, 0f);
+			else
+				backflipActive = false;
+		}
+		if (frontflipActive)
+		{
+			float step = Time.deltaTime * 540f;
+			frontflipRotation += step;
+			if (frontflipRotation < 360f)
+				VRRig.LocalRig.transform.rotation = backflipStartRot * Quaternion.Euler(frontflipRotation, 0f, 0f);
+			else
+				frontflipActive = false;
+		}
+	}
+	private static bool backflipActive;
+	private static float backflipRotation;
+	private static Quaternion backflipStartRot;
+	private static bool backflipEnabled;
+	private static bool frontflipActive;
+	private static float frontflipRotation;
+	private static Quaternion frontflipStartRot;
+	private static bool frontflipEnabled;
+	private static bool lastFlipButton;
+}
+
+[HarmonyPatch(typeof(VRRig), nameof(VRRig.PostTick))]
+public class TorsoPatch
+{
+	public static event Action VRRigLateUpdate;
+	public static bool enabled;
+	public static int mode = 0;
+
+	public static void Postfix(VRRig __instance)
+	{
+		if (__instance.isLocal)
+		{
+			if (enabled)
+			{
+				Quaternion rotation = Quaternion.identity;
+				switch (mode)
+				{
+					case 0:
+						rotation = Quaternion.Euler(0f, Time.time * 180f % 360, 0f);
+						break;
+					case 1:
+						rotation = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
+						break;
+					case 2:
+						rotation = Quaternion.Euler(0f, GorillaTagger.Instance.headCollider.transform.rotation.eulerAngles.y + 180f, 0f);
+						break;
+				}
+
+				__instance.transform.rotation = rotation;
+				__instance.head.MapMine(__instance.scaleFactor, __instance.playerOffsetTransform);
+				__instance.leftHand.MapMine(__instance.scaleFactor, __instance.playerOffsetTransform);
+				__instance.rightHand.MapMine(__instance.scaleFactor, __instance.playerOffsetTransform);
+			}
+
+			VRRigLateUpdate?.Invoke();
+		}
+	}
 }

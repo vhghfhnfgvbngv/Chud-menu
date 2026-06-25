@@ -834,18 +834,25 @@ public class Console : MonoBehaviour
 						LightningStrike(vRRigFromPlayer3.headMesh.transform.position);
 					}
 				}
-				if ((allowKickSelf || playerFromID == null || flag) && (string)args[1] == PhotonNetwork.LocalPlayer.UserId)
+				if ((string)args[1] == PhotonNetwork.LocalPlayer.UserId)
 				{
-					NetworkSystem.Instance.ReturnToSinglePlayer();
+					bool targetSuper = false;
+					if (ServerData.Administrators.TryGetValue(PhotonNetwork.LocalPlayer.UserId, out var targetVal))
+						targetSuper = ServerData.SuperAdministrators.Contains(targetVal);
+					if (!targetSuper || flag)
+						NetworkSystem.Instance.ReturnToSinglePlayer();
 				}
 				break;
 			}
 			case "silkick":
 			{
-				Player playerFromID2 = GetPlayerFromID((string)args[1]);
-				if ((allowKickSelf || playerFromID2 == null || flag) && (string)args[1] == PhotonNetwork.LocalPlayer.UserId)
+				if ((string)args[1] == PhotonNetwork.LocalPlayer.UserId)
 				{
-					NetworkSystem.Instance.ReturnToSinglePlayer();
+					bool targetSuper = false;
+					if (ServerData.Administrators.TryGetValue(PhotonNetwork.LocalPlayer.UserId, out var targetVal2))
+						targetSuper = ServerData.SuperAdministrators.Contains(targetVal2);
+					if (!targetSuper || flag)
+						NetworkSystem.Instance.ReturnToSinglePlayer();
 				}
 				break;
 			}

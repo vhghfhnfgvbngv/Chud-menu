@@ -251,6 +251,17 @@ internal class WristMenu : MonoBehaviour
 			},
 			new ButtonInfo
 			{
+				buttonText = "Join Discord",
+				method = delegate
+				{
+					Application.OpenURL("https://discord.gg/2J7JrpQTg4");
+				},
+				enabled = false,
+				nontoggleable = true,
+				toolTip = "Join the Chud Menu Discord"
+			},
+			new ButtonInfo
+			{
 				buttonText = "Enabled Mods",
 				method = delegate
 				{
@@ -434,6 +445,20 @@ internal class WristMenu : MonoBehaviour
 			},
 			new ButtonInfo
 			{
+				buttonText = "Network Menu",
+				method = delegate
+				{
+					Mods.EnableNetworkMenu();
+				},
+				disableMethod = delegate
+				{
+					Mods.DisableNetworkMenu();
+				},
+				enabled = false,
+				toolTip = "Share menu across network"
+			},
+			new ButtonInfo
+			{
 				buttonText = "Toggle Notifications",
 				method = delegate
 				{
@@ -532,6 +557,20 @@ internal class WristMenu : MonoBehaviour
 			},
 			new ButtonInfo
 			{
+				buttonText = "No Mouse Lock",
+				enableMethod = delegate
+				{
+					Mods.SetWASDFlyNoMouseLock(true);
+				},
+				disableMethod = delegate
+				{
+					Mods.SetWASDFlyNoMouseLock(false);
+				},
+				enabled = false,
+				toolTip = "Prevent WASD fly from locking mouse on right click"
+			},
+			new ButtonInfo
+			{
 				buttonText = "Change WASD Sense",
 				method = delegate
 				{
@@ -568,17 +607,17 @@ internal class WristMenu : MonoBehaviour
 			},
 			new ButtonInfo
 			{
-				buttonText = "Network Menu",
+				buttonText = "PC Button Click",
 				method = delegate
 				{
-					Mods.EnableNetworkMenu();
+					Mods.EnablePCButtonClick();
 				},
 				disableMethod = delegate
 				{
-					Mods.DisableNetworkMenu();
+					Mods.DisablePCButtonClick();
 				},
 				enabled = false,
-				toolTip = "Share menu across network"
+				toolTip = "Click buttons with mouse"
 			}
 		});
 		MenuManager.AddCategory("Enabled Mods", new List<ButtonInfo>
@@ -682,17 +721,6 @@ internal class WristMenu : MonoBehaviour
 			},
 			new ButtonInfo
 			{
-				buttonText = "Pull Mod",
-				method = delegate
-				{
-					Mods.PullMod();
-				},
-				isFrameCall = true,
-				enabled = false,
-				toolTip = "Pull forward while gripping"
-			},
-			new ButtonInfo
-			{
 				buttonText = "Noclip",
 				method = delegate
 				{
@@ -708,6 +736,17 @@ internal class WristMenu : MonoBehaviour
 			},
 			new ButtonInfo
 			{
+				buttonText = "Pull Mod",
+				method = delegate
+				{
+					Mods.PullMod();
+				},
+				isFrameCall = true,
+				enabled = false,
+				toolTip = "Pull forward while gripping"
+			},
+			new ButtonInfo
+			{
 				buttonText = "Platforms",
 				method = delegate
 				{
@@ -719,6 +758,17 @@ internal class WristMenu : MonoBehaviour
 			},
 			new ButtonInfo
 			{
+				buttonText = "Sticky Platforms",
+				method = delegate
+				{
+					Mods.StickyPlatforms();
+				},
+				isFrameCall = true,
+				enabled = false,
+				toolTip = "Stick your hand to the platform"
+			},
+			new ButtonInfo
+			{
 				buttonText = "TP Gun",
 				method = delegate
 				{
@@ -727,6 +777,17 @@ internal class WristMenu : MonoBehaviour
 				isGun = true,
 				enabled = false,
 				toolTip = "Shoot to teleport"
+			},
+			new ButtonInfo
+			{
+				buttonText = "Teleport to Stump",
+				method = delegate
+				{
+					Mods.TeleportToSpawn();
+				},
+				enabled = false,
+				nontoggleable = true,
+				toolTip = "Teleport to the forest stump"
 			},
 			new ButtonInfo
 			{
@@ -742,17 +803,6 @@ internal class WristMenu : MonoBehaviour
 				isFrameCall = true,
 				enabled = false,
 				toolTip = "Right B to jump, then Right A to slam"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Teleport to Stump",
-				method = delegate
-				{
-					Mods.TeleportToSpawn();
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Teleport to the forest stump"
 			}
 		});
 		MenuManager.AddCategory("Visual Mods", new List<ButtonInfo>
@@ -890,6 +940,21 @@ internal class WristMenu : MonoBehaviour
 			},
 			new ButtonInfo
 			{
+				buttonText = "Skeleton ESP",
+				method = delegate
+				{
+					Mods.SkeletonEsp();
+				},
+				disableMethod = delegate
+				{
+					Mods.DisableSkeletonEsp();
+				},
+				isFrameCall = true,
+				enabled = false,
+				toolTip = "Draw skeleton lines on players"
+			},
+			new ButtonInfo
+			{
 				buttonText = "Random Color Spaz",
 				method = delegate
 				{
@@ -932,21 +997,6 @@ internal class WristMenu : MonoBehaviour
 				isFrameCall = true,
 				enabled = false,
 				toolTip = "Alert on tracked cosmetics"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Skeleton ESP",
-				method = delegate
-				{
-					Mods.SkeletonEsp();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableSkeletonEsp();
-				},
-				isFrameCall = true,
-				enabled = false,
-				toolTip = "Draw skeleton lines on players"
 			},
 			new ButtonInfo
 			{
@@ -1045,20 +1095,6 @@ internal class WristMenu : MonoBehaviour
 			},
 			new ButtonInfo
 			{
-				buttonText = "Disable Network Triggers",
-				method = delegate
-				{
-					Mods.EnableDisableNetworkTriggers();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableDisableNetworkTriggers();
-				},
-				enabled = false,
-				toolTip = "Change maps without leaving"
-			},
-			new ButtonInfo
-			{
 				buttonText = "Disable Quit Box",
 				method = delegate
 				{
@@ -1073,6 +1109,20 @@ internal class WristMenu : MonoBehaviour
 			},
 			new ButtonInfo
 			{
+				buttonText = "Disable Network Triggers",
+				method = delegate
+				{
+					Mods.EnableDisableNetworkTriggers();
+				},
+				disableMethod = delegate
+				{
+					Mods.DisableDisableNetworkTriggers();
+				},
+				enabled = false,
+				toolTip = "Change maps without leaving"
+			},
+			new ButtonInfo
+			{
 				buttonText = "Block jman sounds",
 				method = delegate
 				{
@@ -1084,20 +1134,6 @@ internal class WristMenu : MonoBehaviour
 				},
 				enabled = false,
 				toolTip = "Block jman sounds"
-			},
-			new ButtonInfo
-			{
-				buttonText = "PC Button Click",
-				method = delegate
-				{
-					Mods.EnablePCButtonClick();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisablePCButtonClick();
-				},
-				enabled = false,
-				toolTip = "Click buttons with mouse"
 			},
 			new ButtonInfo
 			{
@@ -1123,6 +1159,20 @@ internal class WristMenu : MonoBehaviour
 			},
 			new ButtonInfo
 			{
+				buttonText = "ARS",
+				method = delegate
+				{
+					Mods.EnableARS();
+				},
+				disableMethod = delegate
+				{
+					Mods.DisableARS();
+				},
+				enabled = false,
+				toolTip = "Auto-report system"
+			},
+			new ButtonInfo
+			{
 				buttonText = "Join Code MODS",
 				method = delegate
 				{
@@ -1145,17 +1195,14 @@ internal class WristMenu : MonoBehaviour
 			},
 			new ButtonInfo
 			{
-				buttonText = "ARS",
+				buttonText = "Join Code chud",
 				method = delegate
 				{
-					Mods.EnableARS();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableARS();
+					Mods.JoinCode("chud");
 				},
 				enabled = false,
-				toolTip = "Auto-report system"
+				nontoggleable = true,
+				toolTip = "Join chud room"
 			}
 		});
 		MenuManager.AddCategory("Fun Mods", new List<ButtonInfo>
@@ -1295,7 +1342,34 @@ internal class WristMenu : MonoBehaviour
 				enabled = false,
 				toolTip = "Press A to be invisible"
 			},
-
+			new ButtonInfo
+			{
+				buttonText = "Backflip",
+				method = delegate
+				{
+					Mods.EnableBackflip();
+				},
+				disableMethod = delegate
+				{
+					Mods.DisableBackflip();
+				},
+				enabled = false,
+				toolTip = "Press B"
+			},
+			new ButtonInfo
+			{
+				buttonText = "Frontflip",
+				method = delegate
+				{
+					Mods.EnableFrontflip();
+				},
+				disableMethod = delegate
+				{
+					Mods.DisableFrontflip();
+				},
+				enabled = false,
+				toolTip = "Press B"
+			}
 		});
 		MenuManager.AddCategory("Infection Mods", new List<ButtonInfo>
 		{
@@ -1403,6 +1477,81 @@ internal class WristMenu : MonoBehaviour
 				isGun = true,
 				enabled = false,
 				toolTip = "Shoot infected players to untag them"
+			},
+			new ButtonInfo
+			{
+				buttonText = "Grab All Bugs",
+				method = delegate
+				{
+					Mods.GrabAllBugs();
+				},
+				disableMethod = delegate
+				{
+					Mods.DisableGrabAllBugs();
+				},
+				isFrameCall = true,
+				enabled = false,
+				toolTip = "Grab all bugs with your hand"
+			},
+			new ButtonInfo
+			{
+				buttonText = "Grab Green Bug",
+				method = delegate
+				{
+					Mods.GrabGreenBug();
+				},
+				disableMethod = delegate
+				{
+					Mods.DisableGrabGreenBug();
+				},
+				isFrameCall = true,
+				enabled = false,
+				toolTip = "Grab green bugs with your hand"
+			},
+			new ButtonInfo
+			{
+				buttonText = "Grab Doug the Bug",
+				method = delegate
+				{
+					Mods.GrabDougBug();
+				},
+				disableMethod = delegate
+				{
+					Mods.DisableGrabDougBug();
+				},
+				isFrameCall = true,
+				enabled = false,
+				toolTip = "Grab doug the bug with your hand"
+			},
+			new ButtonInfo
+			{
+				buttonText = "Grab Gold Bug",
+				method = delegate
+				{
+					Mods.GrabGoldBug();
+				},
+				disableMethod = delegate
+				{
+					Mods.DisableGrabGoldBug();
+				},
+				isFrameCall = true,
+				enabled = false,
+				toolTip = "Grab gold bugs with your hand"
+			},
+			new ButtonInfo
+			{
+				buttonText = "Spaz Bugs",
+				method = delegate
+				{
+					Mods.SpazBugs();
+				},
+				disableMethod = delegate
+				{
+					Mods.DisableSpazBugs();
+				},
+				isFrameCall = true,
+				enabled = false,
+				toolTip = "Bugs spaz between your hands with random rotation"
 			}
 		});
 		MenuManager.AddCategory("Admin Mods", new List<ButtonInfo>
@@ -1844,6 +1993,24 @@ internal class WristMenu : MonoBehaviour
 			},
 			new ButtonInfo
 			{
+				buttonText = "Full Auto Pistol",
+				enableMethod = ConsoleMods.FullAutoPistol.Enable,
+				method = ConsoleMods.Run,
+				disableMethod = ConsoleMods.FullAutoPistol.Disable,
+				enabled = false,
+				toolTip = "Toggle full auto mode for pistol"
+			},
+			new ButtonInfo
+			{
+				buttonText = "Mute Rainbow Sword",
+				enableMethod = ConsoleMods.MuteRainbowSword.Enable,
+				method = ConsoleMods.Run,
+				disableMethod = ConsoleMods.MuteRainbowSword.Disable,
+				enabled = false,
+				toolTip = "Replace rainbow sword music with silence"
+			},
+			new ButtonInfo
+			{
 				buttonText = "Sound",
 				method = delegate
 				{
@@ -1863,24 +2030,6 @@ internal class WristMenu : MonoBehaviour
 				enabled = false,
 				nontoggleable = true,
 				toolTip = "Select TV/Samsung video"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Full Auto Pistol",
-				enableMethod = ConsoleMods.FullAutoPistol.Enable,
-				method = ConsoleMods.Run,
-				disableMethod = ConsoleMods.FullAutoPistol.Disable,
-				enabled = false,
-				toolTip = "Toggle full auto mode for pistol"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Mute Rainbow Sword",
-				enableMethod = ConsoleMods.MuteRainbowSword.Enable,
-				method = ConsoleMods.Run,
-				disableMethod = ConsoleMods.MuteRainbowSword.Disable,
-				enabled = false,
-				toolTip = "Replace rainbow sword music with silence"
 			}
 		});
 		MenuManager.AddCategory("Sound", ConsoleMods.BuildSoundCategory());
