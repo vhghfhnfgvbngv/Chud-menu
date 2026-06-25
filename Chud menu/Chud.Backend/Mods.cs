@@ -5815,7 +5815,12 @@ internal class Mods : MonoBehaviour
 			float step = Time.deltaTime * 540f;
 			backflipRotation += step;
 			if (backflipRotation < 360f)
+			{
 				VRRig.LocalRig.transform.rotation = backflipStartRot * Quaternion.Euler(-backflipRotation, 0f, 0f);
+				VRRig.LocalRig.head.MapMine(VRRig.LocalRig.scaleFactor, VRRig.LocalRig.playerOffsetTransform);
+				VRRig.LocalRig.leftHand.MapMine(VRRig.LocalRig.scaleFactor, VRRig.LocalRig.playerOffsetTransform);
+				VRRig.LocalRig.rightHand.MapMine(VRRig.LocalRig.scaleFactor, VRRig.LocalRig.playerOffsetTransform);
+			}
 			else
 				backflipActive = false;
 		}
@@ -5824,7 +5829,12 @@ internal class Mods : MonoBehaviour
 			float step = Time.deltaTime * 540f;
 			frontflipRotation += step;
 			if (frontflipRotation < 360f)
+			{
 				VRRig.LocalRig.transform.rotation = backflipStartRot * Quaternion.Euler(frontflipRotation, 0f, 0f);
+				VRRig.LocalRig.head.MapMine(VRRig.LocalRig.scaleFactor, VRRig.LocalRig.playerOffsetTransform);
+				VRRig.LocalRig.leftHand.MapMine(VRRig.LocalRig.scaleFactor, VRRig.LocalRig.playerOffsetTransform);
+				VRRig.LocalRig.rightHand.MapMine(VRRig.LocalRig.scaleFactor, VRRig.LocalRig.playerOffsetTransform);
+			}
 			else
 				frontflipActive = false;
 		}
