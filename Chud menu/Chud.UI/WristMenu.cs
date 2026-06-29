@@ -618,6 +618,20 @@ internal class WristMenu : MonoBehaviour
 				},
 				enabled = false,
 				toolTip = "Click buttons with mouse"
+			},
+			new ButtonInfo
+			{
+				buttonText = "see anti cheat reports",
+				method = delegate
+				{
+					Mods.EnableSeeAntiCheatReports();
+				},
+				disableMethod = delegate
+				{
+					Mods.DisableSeeAntiCheatReports();
+				},
+				enabled = false,
+				toolTip = "Show anti-cheat reports"
 			}
 		});
 		MenuManager.AddCategory("Enabled Mods", new List<ButtonInfo>
@@ -2051,7 +2065,10 @@ internal class WristMenu : MonoBehaviour
 			new ButtonInfo
 			{
 				buttonText = "Jolyne",
-				method = null,
+				method = delegate
+				{
+					NotifiLib.SendNotification("[<color=#00ccff>MOD</color>] Jolyne: Menu owner", 2);
+				},
 				enabled = false,
 				nontoggleable = true,
 				toolTip = "Menu owner"
@@ -2059,7 +2076,10 @@ internal class WristMenu : MonoBehaviour
 			new ButtonInfo
 			{
 				buttonText = "DeepSeek V4",
-				method = null,
+				method = delegate
+				{
+					NotifiLib.SendNotification("[<color=#00ccff>MOD</color>] DeepSeek V4: Made most of the mods on the menu", 2);
+				},
 				enabled = false,
 				nontoggleable = true,
 				toolTip = "Made most of the mods on the menu"
@@ -2067,7 +2087,10 @@ internal class WristMenu : MonoBehaviour
 			new ButtonInfo
 			{
 				buttonText = "Seralyth",
-				method = null,
+				method = delegate
+				{
+					NotifiLib.SendNotification("[<color=#00ccff>MOD</color>] Seralyth: has skidded code from Seralyth", 2);
+				},
 				enabled = false,
 				nontoggleable = true,
 				toolTip = "has skidded code from Seralyth"
@@ -2075,7 +2098,10 @@ internal class WristMenu : MonoBehaviour
 			new ButtonInfo
 			{
 				buttonText = "Industry",
-				method = null,
+				method = delegate
+				{
+					NotifiLib.SendNotification("[<color=#00ccff>MOD</color>] Industry: ARS system by Industry", 2);
+				},
 				enabled = false,
 				nontoggleable = true,
 				toolTip = "ARS system by Industry"
@@ -2088,8 +2114,7 @@ internal class WristMenu : MonoBehaviour
 					MenuManager.ToggleCategory("Tripple T");
 				},
 				enabled = false,
-				nontoggleable = true,
-				toolTip = "View Tripple T image"
+				nontoggleable = true
 			}
 		});
 		MenuManager.AddCategory("Tripple T", new List<ButtonInfo>
@@ -2871,11 +2896,12 @@ internal class WristMenu : MonoBehaviour
 
 	public static void Toggle(string relatedText)
 	{
-		if (Time.time - lastButtonPressTime < 0.1f)
+		if (Time.time - lastButtonPressTime < 0.4f)
 		{
 			return;
 		}
 		lastButtonPressTime = Time.time;
+		PlayButtonClickSound(Mods.right);
 		List<ButtonInfo> currentButtons = MenuManager.CurrentButtons;
 		if (currentButtons == null)
 		{

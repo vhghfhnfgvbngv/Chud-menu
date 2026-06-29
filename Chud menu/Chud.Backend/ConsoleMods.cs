@@ -1472,8 +1472,12 @@ public static class ConsoleMods
 					DisableSoundButton(previousSoundIndex);
 					selectedSoundIndex = idx;
 					previousSoundIndex = idx;
+					if (Boombox.id >= 0)
+					{
+						Console.ExecuteCommand("asset-setsound", (ReceiverGroup)1, Boombox.id, "Model", GetSoundUrl(selectedSoundIndex));
+					}
 				},
-				method = Run,
+				method = delegate { },
 				disableMethod = delegate { previousSoundIndex = -1; },
 				enabled = (idx == selectedSoundIndex),
 				toolTip = "Select this audio track"
@@ -1506,8 +1510,16 @@ public static class ConsoleMods
 					DisableVideoButton(previousVideoIndex);
 					selectedVideoIndex = idx;
 					previousVideoIndex = idx;
+					if (Samsung.id >= 0)
+					{
+						Console.ExecuteCommand("asset-setvideo", (ReceiverGroup)1, Samsung.id, "VideoPlayer", GetVideoUrl(selectedVideoIndex));
+					}
+					if (TV.id >= 0)
+					{
+						Console.ExecuteCommand("asset-setvideo", (ReceiverGroup)1, TV.id, "VideoPlayer", GetVideoUrl(selectedVideoIndex));
+					}
 				},
-				method = Run,
+				method = delegate { },
 				disableMethod = delegate { previousVideoIndex = -1; },
 				enabled = (idx == selectedVideoIndex),
 				toolTip = "Select this video"

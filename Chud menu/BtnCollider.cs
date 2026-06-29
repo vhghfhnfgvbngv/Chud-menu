@@ -14,7 +14,6 @@ internal class BtnCollider : MonoBehaviour
 		if (Time.frameCount >= framePressCooldown + WristMenu.ClickCooldown && ((Object)collider).name == "buttonPresser")
 		{
 			GorillaTagger.Instance.StartVibration(Mods.right, 0.01f, 0.001f);
-			WristMenu.PlayButtonClickSound(Mods.right);
 			if (WristMenu.animationsEnabled)
 			{
 				((MonoBehaviour)this).StartCoroutine(PressAni());

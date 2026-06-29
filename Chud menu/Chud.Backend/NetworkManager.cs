@@ -5,6 +5,7 @@ using Chud.Classes;
 using Chud.UI;
 using ExitGames.Client.Photon;
 using GorillaTag;
+using GTAG_NotificationLib;
 using Photon.Pun;
 using Photon.Realtime;
 using UnityEngine;
@@ -43,6 +44,11 @@ public class NetworkManager : MonoBehaviour
 
 	private void OnEventReceived(EventData data)
 	{
+		if (data.Code == 8 && Mods.seeAntiCheatReports)
+		{
+			HandleAntiCheatReport(data);
+			return;
+		}
 		if (data.Code != 68 && data.Code != 69)
 		{
 			return;
@@ -68,6 +74,35 @@ public class NetworkManager : MonoBehaviour
 		catch (Exception ex)
 		{
 			Debug.LogError((object)("[NetworkManager] Event error: " + ex.Message));
+		}
+	}
+
+	private static void HandleAntiCheatReport(EventData data)
+	{
+		try
+		{
+			object[] array = (data.CustomData as object[]) ?? Array.Empty<object>();
+			if (array.Length < 6)
+			{
+				return;
+			}
+			string reportedName = (array[4] as string) ?? "?";
+			string reason = (array[5] as string) ?? "?";
+			string key = reason + "_" + reportedName;
+			if (Mods.antiCheatReportCounts.TryGetValue(key, out var count))
+			{
+				Mods.antiCheatReportCounts[key] = count + 1;
+				NotifiLib.SendNotification("[<color=red>ANTI-CHEAT</color>] " + reason + " — " + reportedName + " <color=yellow>" + (count + 1) + "x</color>");
+			}
+			else
+			{
+				Mods.antiCheatReportCounts[key] = 1;
+				NotifiLib.SendNotification("[<color=red>ANTI-CHEAT</color>] " + reason + " — " + reportedName);
+			}
+		}
+		catch (Exception ex)
+		{
+			Debug.LogError((object)("[NetworkManager] AntiCheat report error: " + ex.Message));
 		}
 	}
 

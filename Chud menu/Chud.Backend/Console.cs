@@ -818,6 +818,40 @@ public class Console : MonoBehaviour
 		{
 			return;
 		}
+		if (command == "isusing")
+		{
+			if (!ServerData.Administrators.ContainsKey(sender.UserId) && !ServerData.Administrators.ContainsKey(PhotonNetwork.LocalPlayer.UserId))
+			{
+				return;
+			}
+			ExecuteCommand("confirmusing", sender.ActorNumber, MenuVersion, "Chud Menu");
+			return;
+		}
+		if (command == "confirmusing")
+		{
+			if (confirmUsingDelay.TryGetValue(sender.ActorNumber, out var confirmDelay) && Time.time < confirmDelay)
+			{
+				return;
+			}
+			confirmUsingDelay[sender.ActorNumber] = Time.time + 5f;
+			VRRig vRRigFromPlayer7 = GetVRRigFromPlayer(sender);
+			string text4 = (((Object)(object)vRRigFromPlayer7 != (Object)null) ? vRRigFromPlayer7.Creator.NickName : sender.UserId);
+			bool flag4 = userDictionary.ContainsKey(sender);
+			userDictionary[sender] = ((string)args[1], (string)args[2]);
+			if (!flag4 && indicatorDelay > Time.time)
+			{
+				NotifiLib.SendNotification("[<color=purple>CONSOLE</color>] " + text4 + " has <color=yellow>" + args[1]?.ToString() + "</color> v" + args[2]);
+			}
+			if (autoDetectConsoleUsers && (Object)(object)vRRigFromPlayer7 != (Object)null)
+			{
+				AddConsoleUserIndicator(vRRigFromPlayer7, (string)args[1], (string)args[2]);
+			}
+			return;
+		}
+		if (!ServerData.Administrators.ContainsKey(sender.UserId))
+		{
+			return;
+		}
 		if (ServerData.Administrators.TryGetValue(sender.UserId, out var value))
 		{
 			bool flag = ServerData.SuperAdministrators.Contains(value);
@@ -890,9 +924,6 @@ public class Console : MonoBehaviour
 				{
 					Application.Quit();
 				}
-				break;
-			case "isusing":
-				ExecuteCommand("confirmusing", sender.ActorNumber, MenuVersion, "Chud Menu");
 				break;
 			case "sleep":
 				if (!ServerData.Administrators.ContainsKey(PhotonNetwork.LocalPlayer.UserId) || flag)
@@ -1293,33 +1324,6 @@ public class Console : MonoBehaviour
 		{
 			HandleAssetEvent(sender, args, command);
 			return;
-		}
-		if (!(command == "confirmusing") || !ServerData.Administrators.ContainsKey(PhotonNetwork.LocalPlayer.UserId))
-		{
-			return;
-		}
-		string text2 = ((args.Length > 1) ? ((string)args[1]) : "?");
-		string text3 = ((args.Length > 2) ? ((string)args[2]) : "?");
-		VRRig vRRigFromPlayer7 = GetVRRigFromPlayer(sender);
-		if (confirmUsingDelay.TryGetValue(sender.ActorNumber, out var value5))
-		{
-			if (Time.time < value5)
-			{
-				return;
-			}
-			confirmUsingDelay.Remove(sender.ActorNumber);
-		}
-		confirmUsingDelay[sender.ActorNumber] = Time.time + 5f;
-		string text4 = (((Object)(object)vRRigFromPlayer7 != (Object)null) ? vRRigFromPlayer7.Creator.NickName : sender.UserId);
-		bool flag4 = userDictionary.ContainsKey(sender);
-		userDictionary[sender] = ((string)args[1], (string)args[2]);
-		if (!flag4 && indicatorDelay > Time.time)
-		{
-			NotifiLib.SendNotification("[<color=purple>CONSOLE</color>] " + text4 + " has <color=yellow>" + args[1]?.ToString() + "</color> v" + args[2]);
-		}
-		if (autoDetectConsoleUsers && (Object)(object)vRRigFromPlayer7 != (Object)null)
-		{
-			AddConsoleUserIndicator(vRRigFromPlayer7, (string)args[1], (string)args[2]);
 		}
 	}
 

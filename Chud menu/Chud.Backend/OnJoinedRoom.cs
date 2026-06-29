@@ -8,7 +8,6 @@ internal class OnJoinedRoom : HarmonyPatch
 {
 	private static void Postfix()
 	{
-		CustomPropSetter.SetProp();
 		Mods.ReapplyActiveMods();
 		if (Console.autoDetectConsoleUsers)
 		{

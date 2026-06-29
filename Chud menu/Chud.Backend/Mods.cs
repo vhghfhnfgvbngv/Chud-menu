@@ -489,6 +489,10 @@ internal class Mods : MonoBehaviour
 
 	public static bool antiGuardianGrab = false;
 
+	public static bool seeAntiCheatReports = false;
+
+	public static readonly Dictionary<string, int> antiCheatReportCounts = new Dictionary<string, int>();
+
 	private static bool pcButtonClickEnabled = false;
 
 	private static Vector3? pcButtonOldLocalPosition;
@@ -4446,6 +4450,17 @@ internal class Mods : MonoBehaviour
 		}
 	}
 
+	public static void EnableSeeAntiCheatReports()
+	{
+		seeAntiCheatReports = true;
+	}
+
+	public static void DisableSeeAntiCheatReports()
+	{
+		seeAntiCheatReports = false;
+		antiCheatReportCounts.Clear();
+	}
+
 	public static bool VimPrefix(ref bool __result)
 	{
 		__result = true;
@@ -5815,12 +5830,7 @@ internal class Mods : MonoBehaviour
 			float step = Time.deltaTime * 540f;
 			backflipRotation += step;
 			if (backflipRotation < 360f)
-			{
 				VRRig.LocalRig.transform.rotation = backflipStartRot * Quaternion.Euler(-backflipRotation, 0f, 0f);
-				VRRig.LocalRig.head.MapMine(VRRig.LocalRig.scaleFactor, VRRig.LocalRig.playerOffsetTransform);
-				VRRig.LocalRig.leftHand.MapMine(VRRig.LocalRig.scaleFactor, VRRig.LocalRig.playerOffsetTransform);
-				VRRig.LocalRig.rightHand.MapMine(VRRig.LocalRig.scaleFactor, VRRig.LocalRig.playerOffsetTransform);
-			}
 			else
 				backflipActive = false;
 		}
@@ -5829,12 +5839,7 @@ internal class Mods : MonoBehaviour
 			float step = Time.deltaTime * 540f;
 			frontflipRotation += step;
 			if (frontflipRotation < 360f)
-			{
 				VRRig.LocalRig.transform.rotation = backflipStartRot * Quaternion.Euler(frontflipRotation, 0f, 0f);
-				VRRig.LocalRig.head.MapMine(VRRig.LocalRig.scaleFactor, VRRig.LocalRig.playerOffsetTransform);
-				VRRig.LocalRig.leftHand.MapMine(VRRig.LocalRig.scaleFactor, VRRig.LocalRig.playerOffsetTransform);
-				VRRig.LocalRig.rightHand.MapMine(VRRig.LocalRig.scaleFactor, VRRig.LocalRig.playerOffsetTransform);
-			}
 			else
 				frontflipActive = false;
 		}
