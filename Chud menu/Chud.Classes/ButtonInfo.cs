@@ -21,4 +21,6 @@ public class ButtonInfo
 	public bool isFrameCall = false;
 
 	public bool isGun = false;
+
+	public bool isLockOn = false;
 }

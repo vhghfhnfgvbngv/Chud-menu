@@ -238,1898 +238,202 @@ internal class WristMenu : MonoBehaviour
 	{
 		MenuManager.AddCategory("Main", new List<ButtonInfo>
 		{
-			new ButtonInfo
-			{
-				buttonText = "Settings",
-				method = delegate
-				{
-					MenuManager.ToggleCategory("Settings");
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Go to Settings"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Join Discord",
-				method = delegate
-				{
-					Application.OpenURL("https://discord.gg/2J7JrpQTg4");
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Join the Chud Menu Discord"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Enabled Mods",
-				method = delegate
-				{
-					MenuManager.ToggleCategory("Enabled Mods");
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "View enabled mods"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Movement Mods",
-				method = delegate
-				{
-					MenuManager.ToggleCategory("Movement Mods");
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Go to Movement Mods"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Visual Mods",
-				method = delegate
-				{
-					MenuManager.ToggleCategory("Visual Mods");
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Go to Visual Mods"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Fun Mods",
-				method = delegate
-				{
-					MenuManager.ToggleCategory("Fun Mods");
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Go to Fun Mods"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Useful Mods",
-				method = delegate
-				{
-					MenuManager.ToggleCategory("Useful Mods");
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Go to Useful Mods"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Rig Mods",
-				method = delegate
-				{
-					MenuManager.ToggleCategory("Rig Mods");
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Go to Rig Mods"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Infection Mods",
-				method = delegate
-				{
-					MenuManager.ToggleCategory("Infection Mods");
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Go to Infection Mods"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Master Mods",
-				method = delegate
-				{
-					MenuManager.ToggleCategory("Master Mods");
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Go to Master Mods"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Credits",
-				method = delegate
-				{
-					MenuManager.ToggleCategory("Credits");
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Go to Credits"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Soundboard",
-				method = delegate
-				{
-					MenuManager.ToggleCategory("Soundboard");
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Play sounds through your mic"
-			}
+			Nav("Settings", "Settings"),
+			BtnAction("Join Discord", () => Application.OpenURL("https://discord.gg/2J7JrpQTg4"), "Join the Chud Menu Discord"),
+			Nav("Enabled Mods", "Enabled Mods"),
+			Nav("Movement Mods", "Movement Mods"),
+			Nav("Visual Mods", "Visual Mods"),
+			Nav("Fun Mods", "Fun Mods"),
+			Nav("Useful Mods", "Useful Mods"),
+			Nav("Rig Mods", "Rig Mods"),
+			Nav("Infection Mods", "Infection Mods"),
+			Nav("Master Mods", "Master Mods"),
+			Nav("Credits", "Credits"),
+			Nav("Soundboard", "Soundboard")
 		});
 		MenuManager.AddCategory("Settings", new List<ButtonInfo>
 		{
-			new ButtonInfo
-			{
-				buttonText = "Exit Settings",
-				method = delegate
-				{
-					MenuManager.ToggleCategory("Settings");
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Go to Main"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Change Menu Color",
-				method = delegate
-				{
-					Mods.CycleMenuColor();
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Cycle menu color scheme"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Menu Animations",
-				method = delegate
-				{
-					animationsEnabled = true;
-					Mods.AutoSave();
-				},
-				disableMethod = delegate
-				{
-					animationsEnabled = false;
-					Mods.AutoSave();
-				},
-				enabled = true,
-				toolTip = "Toggle menu open/close and button press animations"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Rounded Menu",
-				method = delegate
-				{
-					roundedObjects = true;
-					DestroyMenu();
-					instance.Draw();
-				},
-				disableMethod = delegate
-				{
-					roundedObjects = false;
-					DestroyMenu();
-					instance.Draw();
-				},
-				enabled = false,
-				toolTip = "Round the menu corners"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Right Hand",
-				method = delegate
-				{
-					Mods.EnableRightHand();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableRightHand();
-				},
-				enabled = false,
-				toolTip = "Move menu to right hand"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Network Menu",
-				method = delegate
-				{
-					Mods.EnableNetworkMenu();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableNetworkMenu();
-				},
-				enabled = false,
-				toolTip = "Share menu across network"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Toggle Notifications",
-				method = delegate
-				{
-					Mods.ToggleNotifications();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableNotifications();
-				},
-				enabled = true,
-				toolTip = "Show/hide notifications"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Clear Notifications",
-				method = delegate
-				{
-					Mods.ClearNotifications();
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Remove all on-screen notifications"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Notification Time",
-				method = delegate
-				{
-					Mods.CycleNotificationTime();
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Cycle how long notifications stay"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Show FPS",
-				method = delegate
-				{
-					showFPS = true;
-				},
-				disableMethod = delegate
-				{
-					showFPS = false;
-				},
-				enabled = true,
-				toolTip = "Show FPS counter"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Show Session Time",
-				method = delegate
-				{
-					showSessionTime = true;
-				},
-				disableMethod = delegate
-				{
-					showSessionTime = false;
-				},
-				enabled = true,
-				toolTip = "Show session duration"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Change Button Click Sound",
-				method = delegate
-				{
-					buttonSoundIndex = (buttonSoundIndex + 1) % 2;
-					NotifiLib.SendNotification("[<color=green>CHUD</color>] Button sound: " + ((buttonSoundIndex == 0) ? "Normal" : "Custom"), 2);
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Cycle button click sound"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Change Speed Amount",
-				method = delegate
-				{
-					Mods.ChangeSpeedBoostAmount();
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Cycle speed boost multiplier"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Change Fly Speed",
-				method = delegate
-				{
-					Mods.ChangeFlySpeed();
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Cycle fly speed (max 20)"
-			},
-			new ButtonInfo
-			{
-				buttonText = "No Mouse Lock",
-				enableMethod = delegate
-				{
-					Mods.SetWASDFlyNoMouseLock(true);
-				},
-				disableMethod = delegate
-				{
-					Mods.SetWASDFlyNoMouseLock(false);
-				},
-				enabled = false,
-				toolTip = "Prevent WASD fly from locking mouse on right click"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Change WASD Sense",
-				method = delegate
-				{
-					Mods.ChangeWASDFlyMouseSense();
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Cycle WASD fly sensitivity"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Change Pull Power",
-				method = delegate
-				{
-					Mods.ChangePullModPower();
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Cycle pull mod strength"
-			},
-			new ButtonInfo
-			{
-				buttonText = "PC Guns",
-				method = delegate
-				{
-					Mods.EnablePCGuns();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisablePCGuns();
-				},
-				enabled = false,
-				toolTip = "Use guns with mouse"
-			},
-			new ButtonInfo
-			{
-				buttonText = "PC Button Click",
-				method = delegate
-				{
-					Mods.EnablePCButtonClick();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisablePCButtonClick();
-				},
-				enabled = false,
-				toolTip = "Click buttons with mouse"
-			},
-			new ButtonInfo
-			{
-				buttonText = "see anti cheat reports",
-				method = delegate
-				{
-					Mods.EnableSeeAntiCheatReports();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableSeeAntiCheatReports();
-				},
-				enabled = false,
-				toolTip = "Show anti-cheat reports"
-			}
+			Nav("Exit Settings", "Settings"),
+			BtnAction("Change Menu Color", Mods.CycleMenuColor, "Cycle menu color scheme"),
+			BtnToggle("Menu Animations", () => { animationsEnabled = true; Mods.AutoSave(); }, () => { animationsEnabled = false; Mods.AutoSave(); }, true, "Toggle menu open/close and button press animations"),
+			BtnToggle("Rounded Menu", () => { roundedObjects = true; DestroyMenu(); instance.Draw(); }, () => { roundedObjects = false; DestroyMenu(); instance.Draw(); }, false, "Round the menu corners"),
+			BtnToggle("Right Hand", Mods.EnableRightHand, Mods.DisableRightHand, false, "Move menu to right hand"),
+			BtnToggle("Network Menu", Mods.EnableNetworkMenu, Mods.DisableNetworkMenu, false, "Share menu across network"),
+			BtnToggle("Toggle Notifications", Mods.ToggleNotifications, Mods.DisableNotifications, true, "Show/hide notifications"),
+			BtnAction("Clear Notifications", Mods.ClearNotifications, "Remove all on-screen notifications"),
+			BtnAction("Notification Time", Mods.CycleNotificationTime, "Cycle how long notifications stay"),
+			BtnToggle("Show FPS", () => showFPS = true, () => showFPS = false, true, "Show FPS counter"),
+			BtnToggle("Show Session Time", () => showSessionTime = true, () => showSessionTime = false, true, "Show session duration"),
+			BtnAction("Change Button Click Sound", () => { buttonSoundIndex = (buttonSoundIndex + 1) % 2; NotifiLib.SendNotification("[<color=green>CHUD</color>] Button sound: " + ((buttonSoundIndex == 0) ? "Normal" : "Custom"), 2); }, "Cycle button click sound"),
+			BtnAction("Change Speed Amount", () => Mods.ChangeSpeedBoostAmount(), "Cycle speed boost multiplier"),
+			BtnAction("Change Fly Speed", () => Mods.ChangeFlySpeed(), "Cycle fly speed (max 20)"),
+			new ButtonInfo { buttonText = "No Mouse Lock", enableMethod = () => Mods.SetWASDFlyNoMouseLock(true), disableMethod = () => Mods.SetWASDFlyNoMouseLock(false), enabled = false, toolTip = "Prevent WASD fly from locking mouse on right click" },
+			BtnAction("Change WASD Sense", Mods.ChangeWASDFlyMouseSense, "Cycle WASD fly sensitivity"),
+			BtnAction("Change Pull Power", () => Mods.ChangePullModPower(), "Cycle pull mod strength"),
+			BtnToggle("PC Guns", Mods.EnablePCGuns, Mods.DisablePCGuns, false, "Use guns with mouse"),
+			BtnToggle("PC Button Click", Mods.EnablePCButtonClick, Mods.DisablePCButtonClick, false, "Click buttons with mouse"),
+			BtnToggle("see anti cheat reports", Mods.EnableSeeAntiCheatReports, Mods.DisableSeeAntiCheatReports, false, "Show anti-cheat reports")
 		});
 		MenuManager.AddCategory("Enabled Mods", new List<ButtonInfo>
 		{
-			new ButtonInfo
-			{
-				buttonText = "Exit Enabled Mods",
-				method = delegate
-				{
-					MenuManager.ToggleCategory("Enabled Mods");
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Go to Main"
-			}
+			Nav("Exit Enabled Mods", "Enabled Mods")
 		});
 		MenuManager.AddCategory("Movement Mods", new List<ButtonInfo>
 		{
-			new ButtonInfo
-			{
-				buttonText = "Exit Movement Mods",
-				method = delegate
-				{
-					MenuManager.ToggleCategory("Movement Mods");
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Go to Main"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Fly",
-				method = delegate
-				{
-					Mods.EnableFly();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableFly();
-				},
-				enabled = false,
-				toolTip = "Hold B"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Joystick Fly",
-				method = delegate
-				{
-					Mods.JoystickFly();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableJoystickFly();
-				},
-				enabled = false,
-				toolTip = "Fly with joystick"
-			},
-			new ButtonInfo
-			{
-				buttonText = "WASD Fly",
-				method = delegate
-				{
-					Mods.EnableWASDFly();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableWASDFly();
-				},
-				enabled = false,
-				toolTip = "Fly with WASD keys"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Speed Boost",
-				method = delegate
-				{
-					Mods.SpeedBoost();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableSpeedBoost();
-				},
-				isFrameCall = true,
-				enabled = false,
-				toolTip = "Faster movement"
-			},
-			new ButtonInfo
-			{
-				buttonText = "No Gravity",
-				method = delegate
-				{
-					Mods.NoGravity();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableNoGravity();
-				},
-				isFrameCall = true,
-				enabled = false,
-				toolTip = "Disable gravity"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Noclip",
-				method = delegate
-				{
-					Mods.Noclip();
-				},
-				disableMethod = delegate
-				{
-					Mods.NoclipOff();
-				},
-				isFrameCall = true,
-				enabled = false,
-				toolTip = "Hold B to noclip"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Pull Mod",
-				method = delegate
-				{
-					Mods.PullMod();
-				},
-				isFrameCall = true,
-				enabled = false,
-				toolTip = "Pull forward while gripping"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Platforms",
-				method = delegate
-				{
-					Mods.Platforms();
-				},
-				isFrameCall = true,
-				enabled = false,
-				toolTip = "Place platforms"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Sticky Platforms",
-				method = delegate
-				{
-					Mods.StickyPlatforms();
-				},
-				isFrameCall = true,
-				enabled = false,
-				toolTip = "Stick your hand to the platform"
-			},
-			new ButtonInfo
-			{
-				buttonText = "TP Gun",
-				method = delegate
-				{
-					Mods.TPGun();
-				},
-				isGun = true,
-				enabled = false,
-				toolTip = "Shoot to teleport"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Teleport to Stump",
-				method = delegate
-				{
-					Mods.TeleportToSpawn();
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Teleport to the forest stump"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Minos Prime",
-				method = delegate
-				{
-					Mods.MinosPrime();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableMinosPrime();
-				},
-				isFrameCall = true,
-				enabled = false,
-				toolTip = "Right B to jump, then Right A to slam"
-			}
+			Nav("Exit Movement Mods", "Movement Mods"),
+			BtnToggle("Fly", Mods.EnableFly, Mods.DisableFly, false, "Hold B"),
+			BtnToggle("Joystick Fly", Mods.JoystickFly, Mods.DisableJoystickFly, false, "Fly with joystick"),
+			BtnToggle("WASD Fly", Mods.EnableWASDFly, Mods.DisableWASDFly, false, "Fly with WASD keys"),
+			BtnFrameToggle("Speed Boost", Mods.SpeedBoost, Mods.DisableSpeedBoost, "Hold grip to run fast"),
+			BtnFrameToggle("No Gravity", Mods.NoGravity, Mods.DisableNoGravity, "Disable gravity"),
+			BtnFrameToggle("Noclip", Mods.EnableNoclip, Mods.DisableNoclip, "Walk through walls"),
+			BtnFrameAction("Pull Mod", Mods.PullMod, "Pull forward while gripping"),
+			BtnFrameAction("Platforms", Mods.Platforms, "Place platforms"),
+			BtnFrameAction("Sticky Platforms", Mods.StickyPlatforms, "Stick your hand to the platform"),
+			BtnGun("TP Gun", Mods.TPGun, Mods.CleanupGun, "Shoot to teleport"),
+			BtnAction("Teleport to Stump", Mods.TeleportToSpawn, "Teleport to the forest stump"),
+			BtnFrameToggle("Minos Prime", Mods.MinosPrime, Mods.DisableMinosPrime, "Right B to jump, then Right A to slam")
 		});
 		MenuManager.AddCategory("Visual Mods", new List<ButtonInfo>
 		{
-			new ButtonInfo
-			{
-				buttonText = "Exit Visual Mods",
-				method = delegate
-				{
-					MenuManager.ToggleCategory("Visual Mods");
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Go to Main"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Name Tags",
-				method = delegate
-				{
-					Mods.NameTags();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableNameTags();
-				},
-				isFrameCall = true,
-				enabled = false,
-				toolTip = "Show names above heads"
-			},
-			new ButtonInfo
-			{
-				buttonText = "ID Name Tags",
-				method = delegate
-				{
-					Mods.IDTags();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableIDTags();
-				},
-				isFrameCall = true,
-				enabled = false,
-				toolTip = "Show IDs above heads"
-			},
-			new ButtonInfo
-			{
-				buttonText = "FPS Name Tags",
-				method = delegate
-				{
-					Mods.FPSTags();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableFPSTags();
-				},
-				isFrameCall = true,
-				enabled = false,
-				toolTip = "Show FPS above heads"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Platform Name Tags",
-				method = delegate
-				{
-					Mods.PlatformTags();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisablePlatformTags();
-				},
-				isFrameCall = true,
-				enabled = false,
-				toolTip = "Show platform above heads"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Cosmetic Name Tags",
-				method = delegate
-				{
-					Mods.CosmeticNameTags();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableCosmeticNameTags();
-				},
-				isFrameCall = true,
-				enabled = false,
-				toolTip = "Show cosmetics above heads"
-			},
-			new ButtonInfo
-			{
-				buttonText = "ARS Nametags",
-				method = delegate
-				{
-					Mods.EnableARSNameTags();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableARSNameTags();
-				},
-				isFrameCall = true,
-				enabled = false,
-				toolTip = "Show ARS players"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Tracers",
-				method = delegate
-				{
-					Mods.Tracers();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableTracers();
-				},
-				isFrameCall = true,
-				enabled = false,
-				toolTip = "Lines towards everyone"
-			},
-			new ButtonInfo
-			{
-				buttonText = "2D Box ESP",
-				method = delegate
-				{
-					Mods.BoxEspRender();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableBoxEsp();
-				},
-				isFrameCall = true,
-				enabled = false,
-				toolTip = "Boxes around players"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Skeleton ESP",
-				method = delegate
-				{
-					Mods.SkeletonEsp();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableSkeletonEsp();
-				},
-				isFrameCall = true,
-				enabled = false,
-				toolTip = "Draw skeleton lines on players"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Random Color Spaz",
-				method = delegate
-				{
-					Mods.RandomColorSpaz();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableRandomColorSpaz();
-				},
-				isFrameCall = true,
-				enabled = false,
-				toolTip = "Cycle through colors rapidly"
-			},
-			new ButtonInfo
-			{
-				buttonText = "3rd Person",
-				method = delegate
-				{
-					Mods.EnableThirdPerson();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableThirdPerson();
-				},
-				isFrameCall = true,
-				enabled = false,
-				toolTip = "Third person view"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Cosmetic Notifier",
-				method = delegate
-				{
-					Mods.CosmeticNotifier();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableCosmeticNotifier();
-				},
-				isFrameCall = true,
-				enabled = false,
-				toolTip = "Alert on tracked cosmetics"
-			},
-			new ButtonInfo
-			{
-				buttonText = "lowercase name",
-				method = delegate
-				{
-					if (PhotonNetwork.LocalPlayer != null)
-					{
-						string name = System.Text.RegularExpressions.Regex.Replace(PhotonNetwork.LocalPlayer.NickName, "<color[^>]*>", "");
-						name = name.Replace("</color>", "").ToLower();
-						PhotonNetwork.LocalPlayer.NickName = name;
-						if ((Object)(object)VRRig.LocalRig != (Object)null)
-							VRRig.LocalRig.UpdateName();
-					}
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Show names in lowercase"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Random Capital Name",
-				method = delegate
-				{
-					if (PhotonNetwork.LocalPlayer != null)
-					{
-						string name = System.Text.RegularExpressions.Regex.Replace(PhotonNetwork.LocalPlayer.NickName, "<color[^>]*>", "");
-						name = name.Replace("</color>", "");
-						char[] chars = name.ToCharArray();
-						for (int i = 0; i < chars.Length; i++)
-							chars[i] = (i % 2 == 0) ? char.ToUpper(chars[i]) : char.ToLower(chars[i]);
-						PhotonNetwork.LocalPlayer.NickName = new string(chars);
-						if ((Object)(object)VRRig.LocalRig != (Object)null)
-							VRRig.LocalRig.UpdateName();
-					}
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Show names in alternating case"
-			}
+			Nav("Exit Visual Mods", "Visual Mods"),
+			BtnFrameToggle("Name Tags", Mods.NameTags, Mods.DisableNameTags, "Show names above heads"),
+			BtnFrameToggle("ID Name Tags", Mods.IDTags, Mods.DisableIDTags, "Show IDs above heads"),
+			BtnFrameToggle("FPS Name Tags", Mods.FPSTags, Mods.DisableFPSTags, "Show FPS above heads"),
+			BtnFrameToggle("Platform Name Tags", Mods.PlatformTags, Mods.DisablePlatformTags, "Show platform above heads"),
+			BtnFrameToggle("Cosmetic Name Tags", Mods.CosmeticNameTags, Mods.DisableCosmeticNameTags, "Show cosmetics above heads"),
+			BtnFrameToggle("ARS Nametags", Mods.EnableARSNameTags, Mods.DisableARSNameTags, "Show ARS players"),
+			BtnFrameToggle("Tracers", Mods.Tracers, Mods.DisableTracers, "Lines towards everyone"),
+			BtnFrameToggle("2D Box ESP", Mods.BoxEspRender, Mods.DisableBoxEsp, "Boxes around players"),
+			BtnFrameToggle("Skeleton ESP", Mods.SkeletonEsp, Mods.DisableSkeletonEsp, "Draw skeleton lines on players"),
+			BtnFrameToggle("Random Color Spaz", Mods.RandomColorSpaz, Mods.DisableRandomColorSpaz, "Cycle through colors rapidly"),
+			BtnFrameToggle("3rd Person", Mods.EnableThirdPerson, Mods.DisableThirdPerson, "Third person view"),
+			BtnFrameToggle("Cosmetic Notifier", Mods.CosmeticNotifier, Mods.DisableCosmeticNotifier, "Alert on tracked cosmetics"),
+			BtnAction("lowercase name", () => { if (PhotonNetwork.LocalPlayer != null) { string n = System.Text.RegularExpressions.Regex.Replace(PhotonNetwork.LocalPlayer.NickName, "<color[^>]*>", ""); n = n.Replace("</color>", "").ToLower(); PhotonNetwork.LocalPlayer.NickName = n; if ((Object)(object)VRRig.LocalRig != null) VRRig.LocalRig.UpdateName(); } }, "Show names in lowercase"),
+			BtnAction("Random Capital Name", () => { if (PhotonNetwork.LocalPlayer != null) { string n = System.Text.RegularExpressions.Regex.Replace(PhotonNetwork.LocalPlayer.NickName, "<color[^>]*>", ""); n = n.Replace("</color>", ""); char[] c = n.ToCharArray(); for (int i = 0; i < c.Length; i++) c[i] = (i % 2 == 0) ? char.ToUpper(c[i]) : char.ToLower(c[i]); PhotonNetwork.LocalPlayer.NickName = new string(c); if ((Object)(object)VRRig.LocalRig != null) VRRig.LocalRig.UpdateName(); } }, "Show names in alternating case")
 		});
 		MenuManager.AddCategory("Useful Mods", new List<ButtonInfo>
 		{
-			new ButtonInfo
-			{
-				buttonText = "Exit Useful Mods",
-				method = delegate
-				{
-					MenuManager.ToggleCategory("Useful Mods");
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Go to Main"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Anti Name Ban",
-				method = delegate
-				{
-					Mods.AntiNameBan();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableAntiNameBan();
-				},
-				enabled = true,
-				toolTip = "Prevent name bans"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Anti AFK",
-				method = delegate
-				{
-					Mods.AntiAFK();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableAntiAFK();
-				},
-				enabled = false,
-				toolTip = "Prevent AFK kick"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Anti Guardian Grab",
-				method = delegate
-				{
-					Mods.AntiGuardianGrab();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableAntiGuardianGrab();
-				},
-				enabled = false,
-				toolTip = "Block guardian grab"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Disable Quit Box",
-				method = delegate
-				{
-					Mods.EnableDisableQuitBox();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableDisableQuitBox();
-				},
-				enabled = false,
-				toolTip = "Disable quit box"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Disable Network Triggers",
-				method = delegate
-				{
-					Mods.EnableDisableNetworkTriggers();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableDisableNetworkTriggers();
-				},
-				enabled = false,
-				toolTip = "Change maps without leaving"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Block jman sounds",
-				method = delegate
-				{
-					Mods.BlockJmanSounds();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableBlockJmanSounds();
-				},
-				enabled = false,
-				toolTip = "Block jman sounds"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Mute Gun",
-				method = delegate
-				{
-					Mods.MuteGun();
-				},
-				isGun = true,
-				enabled = false,
-				toolTip = "Shoot to mute/unmute"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Get ID Self",
-				method = delegate
-				{
-					Mods.GetIDSelf();
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Copy your ID"
-			},
-			new ButtonInfo
-			{
-				buttonText = "ARS",
-				method = delegate
-				{
-					Mods.EnableARS();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableARS();
-				},
-				enabled = false,
-				toolTip = "Auto-report system"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Join Code MODS",
-				method = delegate
-				{
-					Mods.JoinCode("MODS");
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Join MODS room"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Join Code MOD",
-				method = delegate
-				{
-					Mods.JoinCode("MOD");
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Join MOD room"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Join Code chud",
-				method = delegate
-				{
-					Mods.JoinCode("chud");
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Join chud room"
-			}
+			Nav("Exit Useful Mods", "Useful Mods"),
+			BtnToggle("Anti Name Ban", Mods.AntiNameBan, Mods.DisableAntiNameBan, true, "Prevent name bans"),
+			BtnToggle("Anti AFK", Mods.AntiAFK, Mods.DisableAntiAFK, false, "Prevent AFK kick"),
+			BtnToggle("Anti Guardian Grab", Mods.AntiGuardianGrab, Mods.DisableAntiGuardianGrab, false, "Block guardian grab"),
+			BtnToggle("Disable Quit Box", Mods.EnableDisableQuitBox, Mods.DisableDisableQuitBox, false, "Disable quit box"),
+			BtnToggle("Disable Network Triggers", Mods.EnableDisableNetworkTriggers, Mods.DisableDisableNetworkTriggers, false, "Change maps without leaving"),
+			BtnToggle("Block jman sounds", Mods.BlockJmanSounds, Mods.DisableBlockJmanSounds, false, "Block jman sounds"),
+			BtnGun("Mute Gun", Mods.MuteGun, Mods.CleanupGun, "Shoot to mute/unmute"),
+			BtnAction("Get ID Self", Mods.GetIDSelf, "Copy your ID"),
+			BtnToggle("ARS", Mods.EnableARS, Mods.DisableARS, false, "Auto-report system"),
+			BtnAction("Join Code MODS", () => Mods.JoinCode("MODS"), "Join MODS room"),
+			BtnAction("Join Code MOD", () => Mods.JoinCode("MOD"), "Join MOD room"),
+			BtnAction("Join Code chud", () => Mods.JoinCode("chud"), "Join chud room")
 		});
 		MenuManager.AddCategory("Fun Mods", new List<ButtonInfo>
 		{
-			new ButtonInfo
-			{
-				buttonText = "Exit Fun Mods",
-				method = delegate
-				{
-					MenuManager.ToggleCategory("Fun Mods");
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Go to Main"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Unlock VIM/Subscription",
-				method = delegate
-				{
-					Mods.UnlockVim();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableUnlockVim();
-				},
-				enabled = false,
-				toolTip = "Unlock VIM features"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Unlock All Cosmetics",
-				method = delegate
-				{
-					Mods.UnlockAllCosmetics();
-					UnlockAllCosmeticsPatch.enabled = true;
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Unlocks all cosmetics and lets you see others' Cosmetx cosmetics"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Bitcrunch Mic",
-				method = delegate
-				{
-					Mods.BitcrunchMic();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableBitcrunchMic();
-				},
-				enabled = false,
-				toolTip = "Makes ur mic sound bad"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Boop",
-				method = delegate
-				{
-					Mods.Boop();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableBoop();
-				},
-				isFrameCall = true,
-				enabled = false,
-				toolTip = "Play's a noise when booping someone"
-			},
-			new ButtonInfo
-			{
-				buttonText = "GetPlayerID Gun",
-				method = delegate
-				{
-					Mods.GetPlayerIDGun();
-				},
-				isGun = true,
-				enabled = false,
-				toolTip = "Shoot to copy ID"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Paintbrawl Aimbot",
-				enableMethod = delegate
-				{
-					GetLaunchPatch.enabled = true;
-				},
-				disableMethod = delegate
-				{
-					GetLaunchPatch.enabled = false;
-				},
-				enabled = false,
-				toolTip = "Redirects your slingshot to the closest player"
-			}
+			Nav("Exit Fun Mods", "Fun Mods"),
+			BtnToggle("Unlock VIM/Subscription", Mods.UnlockVim, Mods.DisableUnlockVim, false, "Unlock VIM features"),
+			BtnAction("Unlock All Cosmetics", () => { Mods.UnlockAllCosmetics(); UnlockAllCosmeticsPatch.enabled = true; }, "Unlocks all cosmetics and lets you see others' Cosmetx cosmetics"),
+			BtnToggle("Bitcrunch Mic", Mods.BitcrunchMic, Mods.DisableBitcrunchMic, false, "Makes ur mic sound bad"),
+			BtnFrameToggle("Boop", Mods.Boop, Mods.DisableBoop, "Play's a noise when booping someone"),
+			BtnGun("GetPlayerID Gun", Mods.GetPlayerIDGun, Mods.CleanupGun, "Shoot to copy ID"),
+			new ButtonInfo { buttonText = "Paintbrawl Aimbot", enableMethod = () => GetLaunchPatch.enabled = true, disableMethod = () => GetLaunchPatch.enabled = false, enabled = false, toolTip = "Redirects your slingshot to the closest player" }
 		});
 		MenuManager.AddCategory("Rig Mods", new List<ButtonInfo>
 		{
-			new ButtonInfo
-			{
-				buttonText = "Exit Rig Mods",
-				method = delegate
-				{
-					MenuManager.ToggleCategory("Rig Mods");
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Go to Main"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Ghost Monke",
-				method = delegate
-				{
-					Mods.GhostMonke();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableGhostMonke();
-				},
-				isFrameCall = true,
-				enabled = false,
-				toolTip = "Press B to freeze your rig"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Invis Monke",
-				method = delegate
-				{
-					Mods.InvisMonke();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableInvisMonke();
-				},
-				isFrameCall = true,
-				enabled = false,
-				toolTip = "Press A to be invisible"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Backflip",
-				method = delegate
-				{
-					Mods.EnableBackflip();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableBackflip();
-				},
-				enabled = false,
-				toolTip = "Press B"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Frontflip",
-				method = delegate
-				{
-					Mods.EnableFrontflip();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableFrontflip();
-				},
-				enabled = false,
-				toolTip = "Press B"
-			}
+			Nav("Exit Rig Mods", "Rig Mods"),
+			BtnFrameToggle("Ghost Monke", Mods.GhostMonke, Mods.DisableGhostMonke, "Press B to freeze your rig"),
+			BtnFrameToggle("Invis Monke", Mods.InvisMonke, Mods.DisableInvisMonke, "Press A to be invisible"),
+			BtnToggle("Backflip", Mods.EnableBackflip, Mods.DisableBackflip, false, "Press B"),
+			BtnToggle("Frontflip", Mods.EnableFrontflip, Mods.DisableFrontflip, false, "Press B")
 		});
 		MenuManager.AddCategory("Infection Mods", new List<ButtonInfo>
 		{
-			new ButtonInfo
-			{
-				buttonText = "Exit Infection Mods",
-				method = delegate
-				{
-					MenuManager.ToggleCategory("Infection Mods");
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Go to Main"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Tag Gun",
-				method = delegate
-				{
-					Mods.TagGun();
-				},
-				isGun = true,
-				enabled = false,
-				toolTip = "Its tag gun"
-			}
+			Nav("Exit Infection Mods", "Infection Mods"),
+			BtnLockOnGun("Tag Gun", Mods.TagGun, Mods.CleanupGun, "Its tag gun")
 		});
 		MenuManager.AddCategory("Master Mods", new List<ButtonInfo>
 		{
-			new ButtonInfo
-			{
-				buttonText = "Exit Master Mods",
-				method = delegate
-				{
-					MenuManager.ToggleCategory("Master Mods");
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Go to Main"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Not master client",
-				method = null,
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Your current master client status"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Tag While Not Tagged",
-				method = delegate
-				{
-					Mods.TagWhileNotTagged();
-				},
-				isFrameCall = true,
-				enabled = false,
-				toolTip = "tag while not infected"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Untag Self",
-				method = delegate
-				{
-					Mods.UntagSelf();
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Remove yourself from infected list"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Spaz Self",
-				method = delegate
-				{
-					Mods.SpazSelf();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableSpazSelf();
-				},
-				enabled = false,
-				toolTip = "Toggle self it/infected every 10 frames"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Spaz All",
-				method = delegate
-				{
-					Mods.SpazAll();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableSpazAll();
-				},
-				enabled = false,
-				toolTip = "Toggle all players it/infected every 10 frames"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Untag Gun",
-				method = delegate
-				{
-					Mods.UntagGun();
-				},
-				isGun = true,
-				enabled = false,
-				toolTip = "Shoot infected players to untag them"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Grab All Bugs",
-				method = delegate
-				{
-					Mods.GrabAllBugs();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableGrabAllBugs();
-				},
-				isFrameCall = true,
-				enabled = false,
-				toolTip = "Grab all bugs with your hand"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Grab Green Bug",
-				method = delegate
-				{
-					Mods.GrabGreenBug();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableGrabGreenBug();
-				},
-				isFrameCall = true,
-				enabled = false,
-				toolTip = "Grab green bugs with your hand"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Grab Doug the Bug",
-				method = delegate
-				{
-					Mods.GrabDougBug();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableGrabDougBug();
-				},
-				isFrameCall = true,
-				enabled = false,
-				toolTip = "Grab doug the bug with your hand"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Grab Gold Bug",
-				method = delegate
-				{
-					Mods.GrabGoldBug();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableGrabGoldBug();
-				},
-				isFrameCall = true,
-				enabled = false,
-				toolTip = "Grab gold bugs with your hand"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Spaz Bugs",
-				method = delegate
-				{
-					Mods.SpazBugs();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableSpazBugs();
-				},
-				isFrameCall = true,
-				enabled = false,
-				toolTip = "Bugs spaz between your hands with random rotation"
-			}
+			Nav("Exit Master Mods", "Master Mods"),
+			new ButtonInfo { buttonText = "Not master client", method = null, enabled = false, nontoggleable = true, toolTip = "Your current master client status" },
+			BtnFrameAction("Tag While Not Tagged", Mods.TagWhileNotTagged, "tag while not infected"),
+			BtnAction("Untag Self", Mods.UntagSelf, "Remove yourself from infected list"),
+			BtnToggle("Spaz Self", Mods.SpazSelf, Mods.DisableSpazSelf, false, "Toggle self it/infected every 10 frames"),
+			BtnToggle("Spaz All", Mods.SpazAll, Mods.DisableSpazAll, false, "Toggle all players it/infected every 10 frames"),
+			BtnGun("Untag Gun", Mods.UntagGun, Mods.CleanupGun, "Shoot infected players to untag them"),
+			BtnFrameToggle("Grab All Bugs", Mods.GrabAllBugs, Mods.DisableGrabAllBugs, "Grab all bugs with your hand"),
+			BtnFrameToggle("Grab Green Bug", Mods.GrabGreenBug, Mods.DisableGrabGreenBug, "Grab green bugs with your hand"),
+			BtnFrameToggle("Grab Doug the Bug", Mods.GrabDougBug, Mods.DisableGrabDougBug, "Grab doug the bug with your hand"),
+			BtnFrameToggle("Grab Gold Bug", Mods.GrabGoldBug, Mods.DisableGrabGoldBug, "Grab gold bugs with your hand"),
+			BtnFrameToggle("Spaz Bugs", Mods.SpazBugs, Mods.DisableSpazBugs, "Bugs spaz between your hands with random rotation")
 		});
 		MenuManager.AddCategory("Admin Mods", new List<ButtonInfo>
 		{
-			new ButtonInfo
-			{
-				buttonText = "Exit Admin Mods",
-				method = delegate
-				{
-					MenuManager.ToggleCategory("Admin Mods");
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Go to Main"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Kick Gun",
-				method = delegate
-				{
-					Mods.KickGun();
-				},
-				disableMethod = delegate
-				{
-					Mods.CleanupGun();
-				},
-				isGun = true,
-				enabled = false,
-				toolTip = "Shoot a player to kick them"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Silent Kick Gun",
-				method = delegate
-				{
-					Mods.SilentKickGun();
-				},
-				disableMethod = delegate
-				{
-					Mods.CleanupGun();
-				},
-				isGun = true,
-				enabled = false,
-				toolTip = "Shoot a player to silently kick them"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Fling Gun",
-				method = delegate
-				{
-					Mods.FlingGun();
-				},
-				disableMethod = delegate
-				{
-					Mods.CleanupGun();
-				},
-				isGun = true,
-				enabled = false,
-				toolTip = "Shoot a player to fling them"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Vibrate Gun",
-				method = delegate
-				{
-					Mods.VibrateGun();
-				},
-				disableMethod = delegate
-				{
-					Mods.CleanupGun();
-				},
-				isGun = true,
-				enabled = false,
-				toolTip = "Shoot a player to vibrate their controllers"
-			},
-			new ButtonInfo
-			{
-				buttonText = "TP All Gun",
-				method = delegate
-				{
-					Mods.TPAllGun();
-				},
-				disableMethod = delegate
-				{
-					Mods.CleanupGun();
-				},
-				isGun = true,
-				enabled = false,
-				toolTip = "Shoot to TP everyone to that spot"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Lightning Gun",
-				method = delegate
-				{
-					Mods.LightningGun();
-				},
-				disableMethod = delegate
-				{
-					Mods.CleanupGun();
-				},
-				isGun = true,
-				enabled = false,
-				toolTip = "Shoot to strike lightning"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Jail Gun",
-				method = delegate
-				{
-					Mods.JailGun();
-				},
-				disableMethod = delegate
-				{
-					Mods.JailGunOff();
-				},
-				isGun = true,
-				enabled = false,
-				toolTip = "Trap players in a jail cell"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Admin Grab",
-				enableMethod = ConsoleMods.AdminGrab.Enable,
-				method = ConsoleMods.Run,
-				disableMethod = ConsoleMods.AdminGrab.Disable,
-				enabled = false,
-				toolTip = "Grab players with your hand"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Laser",
-				enableMethod = ConsoleMods.Laser.Enable,
-				method = ConsoleMods.Run,
-				disableMethod = ConsoleMods.Laser.Disable,
-				enabled = false,
-				toolTip = "Toggle lasers from your hands"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Kick All",
-				method = ConsoleMods.KickAll,
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Kick everyone from lobby"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Karambit",
-				enableMethod = ConsoleMods.Karambit.Enable,
-				method = ConsoleMods.Run,
-				disableMethod = ConsoleMods.Karambit.Disable,
-				enabled = false,
-				toolTip = "This is Karambit"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Knife",
-				enableMethod = ConsoleMods.Knife.Enable,
-				method = ConsoleMods.Run,
-				disableMethod = ConsoleMods.Knife.Disable,
-				enabled = false,
-				toolTip = "This is Knife"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Rblx Carpet",
-				enableMethod = ConsoleMods.RblxCarpet.Enable,
-				method = ConsoleMods.Run,
-				disableMethod = ConsoleMods.RblxCarpet.Disable,
-				enabled = false,
-				toolTip = "This is Rblx Carpet"
-			},
-			new ButtonInfo
-			{
-				buttonText = "MC Sword",
-				enableMethod = ConsoleMods.McSword.Enable,
-				method = ConsoleMods.Run,
-				disableMethod = ConsoleMods.McSword.Disable,
-				enabled = false,
-				toolTip = "This is MC Sword"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Ban Hammer",
-				enableMethod = ConsoleMods.BanHammer.Enable,
-				method = ConsoleMods.Run,
-				disableMethod = ConsoleMods.BanHammer.Disable,
-				enabled = false,
-				toolTip = "This is Ban Hammer"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Roblox Sword",
-				enableMethod = ConsoleMods.RobloxSword.Enable,
-				method = ConsoleMods.Run,
-				disableMethod = ConsoleMods.RobloxSword.Disable,
-				enabled = false,
-				toolTip = "This is Roblox Sword"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Rainbow Sword",
-				enableMethod = ConsoleMods.RainbowSword.Enable,
-				method = ConsoleMods.Run,
-				disableMethod = ConsoleMods.RainbowSword.Disable,
-				enabled = false,
-				toolTip = "This is Rainbow Sword"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Pistol",
-				enableMethod = ConsoleMods.Pistol.Enable,
-				method = ConsoleMods.Run,
-				disableMethod = ConsoleMods.Pistol.Disable,
-				enabled = false,
-				toolTip = "This is Pistol"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Physics Gun",
-				enableMethod = ConsoleMods.PhysicsGun.Enable,
-				method = ConsoleMods.Run,
-				disableMethod = ConsoleMods.PhysicsGun.Disable,
-				enabled = false,
-				toolTip = "This is Physics Gun"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Noli Star",
-				enableMethod = ConsoleMods.NoliStar.Enable,
-				method = ConsoleMods.Run,
-				disableMethod = ConsoleMods.NoliStar.Disable,
-				enabled = false,
-				toolTip = "This is Noli Star"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Bag",
-				enableMethod = ConsoleMods.Bag.Enable,
-				method = ConsoleMods.Run,
-				disableMethod = ConsoleMods.Bag.Disable,
-				enabled = false,
-				toolTip = "This is Bag"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Kormakur",
-				enableMethod = ConsoleMods.Kormakur.Enable,
-				method = ConsoleMods.Run,
-				disableMethod = ConsoleMods.Kormakur.Disable,
-				enabled = false,
-				toolTip = "This is Kormakur"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Coin",
-				enableMethod = ConsoleMods.Coin.Enable,
-				method = ConsoleMods.Run,
-				disableMethod = ConsoleMods.Coin.Disable,
-				enabled = false,
-				toolTip = "This is Coin"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Minos Prime Plush",
-				enableMethod = ConsoleMods.MinosPrime.Enable,
-				method = ConsoleMods.Run,
-				disableMethod = ConsoleMods.MinosPrime.Disable,
-				enabled = false,
-				toolTip = "This is Minos Prime Plush"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Boombox",
-				enableMethod = ConsoleMods.Boombox.Enable,
-				method = ConsoleMods.Run,
-				disableMethod = ConsoleMods.Boombox.Disable,
-				enabled = false,
-				toolTip = "This is Boombox"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Samsung",
-				enableMethod = ConsoleMods.Samsung.Enable,
-				method = ConsoleMods.Run,
-				disableMethod = ConsoleMods.Samsung.Disable,
-				enabled = false,
-				toolTip = "This is Samsung"
-			},
-			new ButtonInfo
-			{
-				buttonText = "TV",
-				enableMethod = ConsoleMods.TV.Enable,
-				method = ConsoleMods.Run,
-				disableMethod = ConsoleMods.TV.Disable,
-				enabled = false,
-				toolTip = "This is TV"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Travis",
-				enableMethod = ConsoleMods.Travis.Enable,
-				method = ConsoleMods.Run,
-				disableMethod = ConsoleMods.Travis.Disable,
-				enabled = false,
-				toolTip = "This is Travis"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Travis (Beach)",
-				enableMethod = ConsoleMods.TravisBeach.Enable,
-				method = ConsoleMods.Run,
-				disableMethod = ConsoleMods.TravisBeach.Disable,
-				enabled = false,
-				toolTip = "This is Travis (Beach)"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Travis (Critters)",
-				enableMethod = ConsoleMods.TravisCritters.Enable,
-				method = ConsoleMods.Run,
-				disableMethod = ConsoleMods.TravisCritters.Disable,
-				enabled = false,
-				toolTip = "This is Travis (Critters)"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Travis (City)",
-				enableMethod = ConsoleMods.TravisCity.Enable,
-				method = ConsoleMods.Run,
-				disableMethod = ConsoleMods.TravisCity.Disable,
-				enabled = false,
-				toolTip = "This is Travis (City)"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Shreksophone",
-				enableMethod = ConsoleMods.Shreksophone.Enable,
-				method = ConsoleMods.Run,
-				disableMethod = ConsoleMods.Shreksophone.Disable,
-				enabled = false,
-				toolTip = "This is Shreksophone"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Carti",
-				enableMethod = ConsoleMods.Carti.Enable,
-				method = ConsoleMods.Run,
-				disableMethod = ConsoleMods.Carti.Disable,
-				enabled = false,
-				toolTip = "This is Carti"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Cherry Bomb",
-				enableMethod = ConsoleMods.CherryBomb.Enable,
-				method = ConsoleMods.Run,
-				disableMethod = ConsoleMods.CherryBomb.Disable,
-				enabled = false,
-				toolTip = "This is Cherry Bomb"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Destroy All Assets",
-				method = ConsoleMods.DestroyAllAssets,
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Remove all spawned assets"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Console Settings",
-				method = delegate
-				{
-					MenuManager.ToggleCategory("Console Settings");
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Console settings (laser color, protection, etc)"
-			}
+			Nav("Exit Admin Mods", "Admin Mods"),
+			BtnGun("Kick Gun", Mods.KickGun, Mods.CleanupGun, "Shoot a player to kick them"),
+			BtnGun("Silent Kick Gun", Mods.SilentKickGun, Mods.CleanupGun, "Shoot a player to silently kick them"),
+			BtnGun("Fling Gun", Mods.FlingGun, Mods.CleanupGun, "Shoot a player to fling them"),
+			BtnGun("Vibrate Gun", Mods.VibrateGun, Mods.CleanupGun, "Shoot a player to vibrate their controllers"),
+			BtnGun("TP All Gun", Mods.TPAllGun, Mods.CleanupGun, "Shoot to TP everyone to that spot"),
+			BtnGun("Lightning Gun", Mods.LightningGun, Mods.CleanupGun, "Shoot to strike lightning"),
+			BtnGun("Jail Gun", Mods.JailGun, Mods.JailGunOff, "Trap players in a jail cell"),
+			BtnConsoleToggle("Admin Grab", ConsoleMods.AdminGrab.Enable, ConsoleMods.AdminGrab.Disable, false, "Grab players with your hand"),
+			BtnConsoleToggle("Laser", ConsoleMods.Laser.Enable, ConsoleMods.Laser.Disable, false, "Toggle lasers from your hands"),
+			BtnAction("Kick All", ConsoleMods.KickAll, "Kick everyone from lobby"),
+			BtnConsoleToggle("Karambit", ConsoleMods.Karambit.Enable, ConsoleMods.Karambit.Disable, false, "This is Karambit"),
+			BtnConsoleToggle("Knife", ConsoleMods.Knife.Enable, ConsoleMods.Knife.Disable, false, "This is Knife"),
+			BtnConsoleToggle("Rblx Carpet", ConsoleMods.RblxCarpet.Enable, ConsoleMods.RblxCarpet.Disable, false, "This is Rblx Carpet"),
+			BtnConsoleToggle("MC Sword", ConsoleMods.McSword.Enable, ConsoleMods.McSword.Disable, false, "This is MC Sword"),
+			BtnConsoleToggle("Ban Hammer", ConsoleMods.BanHammer.Enable, ConsoleMods.BanHammer.Disable, false, "This is Ban Hammer"),
+			BtnConsoleToggle("Roblox Sword", ConsoleMods.RobloxSword.Enable, ConsoleMods.RobloxSword.Disable, false, "This is Roblox Sword"),
+			BtnConsoleToggle("Rainbow Sword", ConsoleMods.RainbowSword.Enable, ConsoleMods.RainbowSword.Disable, false, "This is Rainbow Sword"),
+			BtnConsoleToggle("Pistol", ConsoleMods.Pistol.Enable, ConsoleMods.Pistol.Disable, false, "This is Pistol"),
+			BtnConsoleToggle("Physics Gun", ConsoleMods.PhysicsGun.Enable, ConsoleMods.PhysicsGun.Disable, false, "This is Physics Gun"),
+			BtnConsoleToggle("Noli Star", ConsoleMods.NoliStar.Enable, ConsoleMods.NoliStar.Disable, false, "This is Noli Star"),
+			BtnConsoleToggle("Bag", ConsoleMods.Bag.Enable, ConsoleMods.Bag.Disable, false, "This is Bag"),
+			BtnConsoleToggle("Kormakur", ConsoleMods.Kormakur.Enable, ConsoleMods.Kormakur.Disable, false, "This is Kormakur"),
+			BtnConsoleToggle("Coin", ConsoleMods.Coin.Enable, ConsoleMods.Coin.Disable, false, "This is Coin"),
+			BtnConsoleToggle("Minos Prime Plush", ConsoleMods.MinosPrime.Enable, ConsoleMods.MinosPrime.Disable, false, "This is Minos Prime Plush"),
+			BtnConsoleToggle("Boombox", ConsoleMods.Boombox.Enable, ConsoleMods.Boombox.Disable, false, "This is Boombox"),
+			BtnConsoleToggle("Samsung", ConsoleMods.Samsung.Enable, ConsoleMods.Samsung.Disable, false, "This is Samsung"),
+			BtnConsoleToggle("TV", ConsoleMods.TV.Enable, ConsoleMods.TV.Disable, false, "This is TV"),
+			BtnConsoleToggle("Travis", ConsoleMods.Travis.Enable, ConsoleMods.Travis.Disable, false, "This is Travis"),
+			BtnConsoleToggle("Travis (Beach)", ConsoleMods.TravisBeach.Enable, ConsoleMods.TravisBeach.Disable, false, "This is Travis (Beach)"),
+			BtnConsoleToggle("Travis (Critters)", ConsoleMods.TravisCritters.Enable, ConsoleMods.TravisCritters.Disable, false, "This is Travis (Critters)"),
+			BtnConsoleToggle("Travis (City)", ConsoleMods.TravisCity.Enable, ConsoleMods.TravisCity.Disable, false, "This is Travis (City)"),
+			BtnConsoleToggle("Shreksophone", ConsoleMods.Shreksophone.Enable, ConsoleMods.Shreksophone.Disable, false, "This is Shreksophone"),
+			BtnConsoleToggle("Carti", ConsoleMods.Carti.Enable, ConsoleMods.Carti.Disable, false, "This is Carti"),
+			BtnConsoleToggle("Cherry Bomb", ConsoleMods.CherryBomb.Enable, ConsoleMods.CherryBomb.Disable, false, "This is Cherry Bomb"),
+			BtnAction("Destroy All Assets", ConsoleMods.DestroyAllAssets, "Remove all spawned assets"),
+			Nav("Console Settings", "Console Settings")
 		});
 		MenuManager.AddCategory("Console Settings", new List<ButtonInfo>
 		{
-			new ButtonInfo
-			{
-				buttonText = "Exit Console Settings",
-				method = delegate
-				{
-					MenuManager.ToggleCategory("Console Settings");
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Back to Admin Mods"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Allow Kick Self",
-				enableMethod = ConsoleMods.AllowKickSelf.Enable,
-				method = ConsoleMods.Run,
-				disableMethod = ConsoleMods.AllowKickSelf.Disable,
-				enabled = false,
-				toolTip = "Allow other admins to kick/tp/fling you"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Allow Teleport Self",
-				enableMethod = ConsoleMods.AllowTpSelf.Enable,
-				method = ConsoleMods.Run,
-				disableMethod = ConsoleMods.AllowTpSelf.Disable,
-				enabled = true,
-				toolTip = "Allow other admins to teleport you"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Detect Console Users",
-				enableMethod = ConsoleMods.DetectConsoleUsers.Enable,
-				method = ConsoleMods.Run,
-				disableMethod = ConsoleMods.DetectConsoleUsers.Disable,
-				enabled = false,
-				toolTip = "Auto detect who has console"
-			},
-			new ButtonInfo
-			{
-				buttonText = "No Admin Indicator",
-				enableMethod = ConsoleMods.NoAdminIndicator.Enable,
-				method = ConsoleMods.Run,
-				disableMethod = ConsoleMods.NoAdminIndicator.Disable,
-				enabled = false,
-				toolTip = "Hide your admin crown"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Change Laser Color",
-				method = ConsoleMods.Laser.CycleColor,
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Change laser color"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Full Auto Pistol",
-				enableMethod = ConsoleMods.FullAutoPistol.Enable,
-				method = ConsoleMods.Run,
-				disableMethod = ConsoleMods.FullAutoPistol.Disable,
-				enabled = false,
-				toolTip = "Toggle full auto mode for pistol"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Mute Rainbow Sword",
-				enableMethod = ConsoleMods.MuteRainbowSword.Enable,
-				method = ConsoleMods.Run,
-				disableMethod = ConsoleMods.MuteRainbowSword.Disable,
-				enabled = false,
-				toolTip = "Replace rainbow sword music with silence"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Sound",
-				method = delegate
-				{
-					MenuManager.ToggleCategory("Sound");
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Select boombox audio track"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Video",
-				method = delegate
-				{
-					MenuManager.ToggleCategory("Video");
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Select TV/Samsung video"
-			}
+			Nav("Exit Console Settings", "Console Settings"),
+			BtnConsoleToggle("Allow Kick Self", ConsoleMods.AllowKickSelf.Enable, ConsoleMods.AllowKickSelf.Disable, false, "Allow other admins to kick/tp/fling you"),
+			BtnConsoleToggle("Allow Teleport Self", ConsoleMods.AllowTpSelf.Enable, ConsoleMods.AllowTpSelf.Disable, true, "Allow other admins to teleport you"),
+			BtnConsoleToggle("Detect Console Users", ConsoleMods.DetectConsoleUsers.Enable, ConsoleMods.DetectConsoleUsers.Disable, false, "Auto detect who has console"),
+			BtnConsoleToggle("No Admin Indicator", ConsoleMods.NoAdminIndicator.Enable, ConsoleMods.NoAdminIndicator.Disable, false, "Hide your admin crown"),
+			BtnAction("Change Laser Color", ConsoleMods.Laser.CycleColor, "Change laser color"),
+			BtnConsoleToggle("Full Auto Pistol", ConsoleMods.FullAutoPistol.Enable, ConsoleMods.FullAutoPistol.Disable, false, "Toggle full auto mode for pistol"),
+			BtnConsoleToggle("Mute Rainbow Sword", ConsoleMods.MuteRainbowSword.Enable, ConsoleMods.MuteRainbowSword.Disable, false, "Replace rainbow sword music with silence"),
+			Nav("Sound", "Sound"),
+			Nav("Video", "Video")
 		});
 		MenuManager.AddCategory("Sound", ConsoleMods.BuildSoundCategory());
 		MenuManager.AddCategory("Video", ConsoleMods.BuildVideoCategory());
 		MenuManager.AddCategory("Soundboard", Mods.BuildSoundboardCategory());
 		MenuManager.AddCategory("Credits", new List<ButtonInfo>
 		{
-			new ButtonInfo
-			{
-				buttonText = "Exit Credits",
-				method = delegate
-				{
-					MenuManager.ToggleCategory("Credits");
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Go to Main"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Jolyne",
-				method = delegate
-				{
-					NotifiLib.SendNotification("[<color=#00ccff>MOD</color>] Jolyne: Menu owner", 2);
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Menu owner"
-			},
-			new ButtonInfo
-			{
-				buttonText = "DeepSeek V4",
-				method = delegate
-				{
-					NotifiLib.SendNotification("[<color=#00ccff>MOD</color>] DeepSeek V4: Made most of the mods on the menu", 2);
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Made most of the mods on the menu"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Seralyth",
-				method = delegate
-				{
-					NotifiLib.SendNotification("[<color=#00ccff>MOD</color>] Seralyth: has skidded code from Seralyth", 2);
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "has skidded code from Seralyth"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Industry",
-				method = delegate
-				{
-					NotifiLib.SendNotification("[<color=#00ccff>MOD</color>] Industry: ARS system by Industry", 2);
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "ARS system by Industry"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Tripple T",
-				method = delegate
-				{
-					MenuManager.ToggleCategory("Tripple T");
-				},
-				enabled = false,
-				nontoggleable = true
-			}
+			Nav("Exit Credits", "Credits"),
+			BtnAction("Jolyne", () => NotifiLib.SendNotification("[<color=#00ccff>MOD</color>] Jolyne: Menu owner", 2), "Menu owner"),
+			BtnAction("DeepSeek V4", () => NotifiLib.SendNotification("[<color=#00ccff>MOD</color>] DeepSeek V4: Made most of the mods on the menu", 2), "Made most of the mods on the menu"),
+			BtnAction("Seralyth", () => NotifiLib.SendNotification("[<color=#00ccff>MOD</color>] Seralyth: has skidded code from Seralyth", 2), "has skidded code from Seralyth"),
+			BtnAction("Industry", () => NotifiLib.SendNotification("[<color=#00ccff>MOD</color>] Industry: ARS system by Industry", 2), "ARS system by Industry"),
+			Nav("Tripple T", "Tripple T")
 		});
 		MenuManager.AddCategory("Tripple T", new List<ButtonInfo>
 		{
-			new ButtonInfo
-			{
-				buttonText = "Exit Tripple T",
-				method = delegate
-				{
-					MenuManager.ToggleCategory("Credits");
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Go back to Credits"
-			}
+			BtnAction("Exit Tripple T", () => MenuManager.ToggleCategory("Credits"), "Go back to Credits")
 		});
 	}
 
@@ -3045,4 +1349,92 @@ internal class WristMenu : MonoBehaviour
 			}
 		}
 	}
+
+	private static ButtonInfo Nav(string text, string category) => new()
+	{
+		buttonText = text,
+		method = () => MenuManager.ToggleCategory(category),
+		enabled = false,
+		nontoggleable = true,
+		toolTip = $"Go to {category}"
+	};
+
+	private static ButtonInfo BtnAction(string text, Action action, string tip) => new()
+	{
+		buttonText = text,
+		method = action,
+		enabled = false,
+		nontoggleable = true,
+		toolTip = tip
+	};
+
+	private static ButtonInfo BtnAction(string text, Action action, string tip, bool isGun, bool isFrameCall) => new()
+	{
+		buttonText = text,
+		method = action,
+		enabled = false,
+		nontoggleable = true,
+		toolTip = tip,
+		isGun = isGun,
+		isFrameCall = isFrameCall
+	};
+
+	private static ButtonInfo BtnToggle(string text, Action enable, Action disable, bool startEnabled, string tip) => new()
+	{
+		buttonText = text,
+		method = enable,
+		disableMethod = disable,
+		enabled = startEnabled,
+		toolTip = tip
+	};
+
+	private static ButtonInfo BtnFrameToggle(string text, Action enable, Action disable, string tip) => new()
+	{
+		buttonText = text,
+		method = enable,
+		disableMethod = disable,
+		isFrameCall = true,
+		enabled = false,
+		toolTip = tip
+	};
+
+	private static ButtonInfo BtnFrameAction(string text, Action action, string tip) => new()
+	{
+		buttonText = text,
+		method = action,
+		isFrameCall = true,
+		enabled = false,
+		toolTip = tip
+	};
+
+	private static ButtonInfo BtnGun(string text, Action action, Action cleanup, string tip) => new()
+	{
+		buttonText = text,
+		method = action,
+		disableMethod = cleanup,
+		isGun = true,
+		enabled = false,
+		toolTip = tip
+	};
+
+	private static ButtonInfo BtnLockOnGun(string text, Action action, Action cleanup, string tip) => new()
+	{
+		buttonText = text,
+		method = action,
+		disableMethod = cleanup,
+		isGun = true,
+		isLockOn = true,
+		enabled = false,
+		toolTip = tip
+	};
+
+	private static ButtonInfo BtnConsoleToggle(string text, Action enable, Action disable, bool startEnabled, string tip) => new()
+	{
+		buttonText = text,
+		enableMethod = enable,
+		method = ConsoleMods.Run,
+		disableMethod = disable,
+		enabled = startEnabled,
+		toolTip = tip
+	};
 }

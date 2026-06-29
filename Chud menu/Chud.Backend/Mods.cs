@@ -245,7 +245,7 @@ internal class Mods : MonoBehaviour
 
 	private static AudioSource minosLocalSource = null;
 
-	private const string MinosSoundDir = "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Gorilla Tag\\Chud menu\\";
+	private static string MinosSoundDir => Path.Combine(Environment.CurrentDirectory, WristMenu.FolderName) + "\\";
 
 	private const string MinosCrushUrl = "https://raw.githubusercontent.com/vhghfhnfgvbngv/plmokni/main/CRUSH%20!.mp3";
 
@@ -292,7 +292,8 @@ internal class Mods : MonoBehaviour
 		{ "LBARJ.", "COMMUNITY RIBBON" },
 		{ "LBASS.", "PARTY ILLUSTRATOR BADGE" },
 		{ "LMAJA.", "GT MONKE PLUSH" },
-		{ "LMAYT.", "LAVA MONKE DOUGHBOI" }
+		{ "LMAYT.", "LAVA MONKE DOUGHBOI" },
+		{ "LMBAO.", "Gorillacon golden phone" }
 	};
 
 	private static readonly Dictionary<VRRig, GameObject> cosmeticNameTagObjects = new Dictionary<VRRig, GameObject>();
@@ -339,14 +340,6 @@ internal class Mods : MonoBehaviour
 
 	private static bool lastCoinSecondary;
 
-
-	private static bool assetPositionerEnabled = false;
-	private static int positioningAssetId = -1;
-	private static Vector3 grabOffsetPos;
-	private static Quaternion grabOffsetRot;
-	private static float lastScaleTime = 0f;
-
-
 	private static float pauseSfxBH;
 	private static float slashDelayBH;
 	private static bool lastVelTooHighBH;
@@ -359,85 +352,18 @@ internal class Mods : MonoBehaviour
 	private static float physGunPositionDelay;
 	private static GameObject physGunCrosshair;
 	private static bool physGunLastGrip;
-	private static int noliStarId = -1;
-	private static int noliMusicId = -1;
-	private static float noliUpdateDelay;
-	private static float noliRespawnTime;
-	private static bool noliHoldingTrigger;
-	private static Vector3 noliThrowDirection;
-	private static Vector3 noliNetworkedPos;
-	private static Quaternion noliNetworkedRot;
-	private static int noliStarState; // 0=Default, 1=Throwing, 2=Respawning
-	private static bool noliStarEnabled;
-
-	private static bool detectApplied = false;
-
-	private static bool fullAutoApplied = false;
-
-	private static bool muteRainbowSwordApplied = false;
-
-	private static int karambitId = -1;
-
-	private static int knifeId = -1;
-
-	private static int rblxCarpetId = -1;
-
-	private static int mcSwordId = -1;
 
 	private static int banHammerId = -1;
 
 	private static int pistolId = -1;
 
-	private static int boomboxId = -1;
-
-	private static int robloxSwordId = -1;
-
 	private static int rainbowSwordId = -1;
-
-	private static int samsungId = -1;
-
-	private static int videoPlayerId = -1;
 
 	private static int physicsGunId = -1;
 
-	private static int shreksophoneId = -1;
-
-	private static int cartiId = -1;
-
-	private static int travisId = -1;
-
-	private static int travisBeachId = -1;
-
-	private static int travisCrittersId = -1;
-
-	private static int travisCityId = -1;
-
-	private static int kormakurId = -1;
-
-	private static int bagId = -1;
-
 	private static int coinId = -1;
 
-	private static GameObject worldChudPlushy;
-
-	private static bool worldChudPlushyLoading;
-
-	private static int minosId;
-
 	private static int jailId = -1;
-
-	private static VRRig grabbedPlayer = null;
-
-	private static bool grabUsingRight = true;
-
-	private static bool adminGrabActive = false;
-
-
-	private static bool noAdminApplied = false;
-
-	private static bool allowKickApplied = false;
-
-	private static bool allowTpApplied = true;
 
 	private static int laserColorIndex = 0;
 
@@ -451,22 +377,18 @@ internal class Mods : MonoBehaviour
 		new Color(0.4f, 0.4f, 0.4f)
 	};
 
-	private static readonly string[] laserColorNames = new string[6] { "Blue", "Red", "Purple", "Pink", "Yellow", "Gray" };
 
-	private static int tvId = -1;
 
 	private static Vector3 launchPlayerGunReturnPos;
 
 	private static int launchPlayerGunFramesLeft = 0;
 
-	private static int tagGunFramesUntilTag;
-
 	private static Harmony vimHarmony;
-
-	private static bool tagGunTriggerWasDown = false;
 
 	private static float lastUntagNotif = 0f;
 
+	private static int tagGunFramesUntilTag;
+	private static bool tagGunTriggerWasDown = false;
 	private static VRRig tagGunLockedTarget = null;
 
 	private static float lastUntagSelfTime;
@@ -1514,12 +1436,12 @@ internal class Mods : MonoBehaviour
 
 	private static IEnumerator LoadMinosSounds()
 	{
-		if (!Directory.Exists("C:\\Program Files (x86)\\Steam\\steamapps\\common\\Gorilla Tag\\Chud menu\\"))
+		if (!Directory.Exists(MinosSoundDir))
 		{
-			Directory.CreateDirectory("C:\\Program Files (x86)\\Steam\\steamapps\\common\\Gorilla Tag\\Chud menu\\");
+			Directory.CreateDirectory(MinosSoundDir);
 		}
-		string crushPath = "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Gorilla Tag\\Chud menu\\CRUSH !.mp3";
-		string slamPath = "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Gorilla Tag\\Chud menu\\slam sound.mp3";
+		string crushPath = MinosSoundDir + "CRUSH !.mp3";
+		string slamPath = MinosSoundDir + "slam sound.mp3";
 		if (!File.Exists(crushPath))
 		{
 			UnityWebRequest req = UnityWebRequest.Get("https://raw.githubusercontent.com/vhghfhnfgvbngv/plmokni/main/CRUSH%20!.mp3");
@@ -2921,57 +2843,42 @@ internal class Mods : MonoBehaviour
 
 	public static void KickGun()
 	{
-		MakeGun(Color.red, new Vector3(0.15f, 0.15f, 0.15f), 0.025f, (PrimitiveType)0, GTPlayer.Instance.RightHand.controllerTransform, liner: true, delegate
+		MakeRightHandGun(delegate
 		{
-			VRRig componentInParent = ((Component)raycastHit.collider).GetComponentInParent<VRRig>();
-			if ((Object)(object)componentInParent != (Object)null && componentInParent.Creator != null)
-			{
-				Console.ExecuteCommand("kick", (ReceiverGroup)1, componentInParent.Creator.UserId);
-			}
-		}, delegate
-		{
+			VRRig rig = GetGunTargetPlayer();
+			if (rig != null) Console.ExecuteCommand("kick", (ReceiverGroup)1, rig.Creator.UserId);
 		});
 	}
 
 	public static void SilentKickGun()
 	{
-		MakeGun(new Color(0.5f, 0f, 0f), new Vector3(0.15f, 0.15f, 0.15f), 0.025f, (PrimitiveType)0, GTPlayer.Instance.RightHand.controllerTransform, liner: true, delegate
+		MakeRightHandGun(delegate
 		{
-			VRRig componentInParent = ((Component)raycastHit.collider).GetComponentInParent<VRRig>();
-			if ((Object)(object)componentInParent != (Object)null && componentInParent.Creator != null)
-			{
-				Console.ExecuteCommand("silkick", (ReceiverGroup)1, componentInParent.Creator.UserId);
-			}
-		}, delegate
-		{
+			VRRig rig = GetGunTargetPlayer();
+			if (rig != null) Console.ExecuteCommand("silkick", (ReceiverGroup)1, rig.Creator.UserId);
 		});
 	}
 
 	public static void TPGun()
 	{
-		MakeGun(Color.cyan, new Vector3(0.15f, 0.15f, 0.15f), 0.025f, (PrimitiveType)0, GTPlayer.Instance.RightHand.controllerTransform, liner: true, delegate
+		MakeRightHandGun(delegate
 		{
 			Console.TeleportPlayer(pointer.transform.position);
-		}, delegate
-		{
 		});
 	}
 
 	public static void FlingGun()
 	{
-		MakeGun(Color.yellow, new Vector3(0.15f, 0.15f, 0.15f), 0.025f, (PrimitiveType)0, GTPlayer.Instance.RightHand.controllerTransform, liner: true, delegate
+		MakeRightHandGun(delegate
 		{
-			VRRig componentInParent = ((Component)raycastHit.collider).GetComponentInParent<VRRig>();
-			if ((Object)(object)componentInParent != (Object)null && componentInParent.Creator != null)
+			VRRig rig = GetGunTargetPlayer();
+			if (rig != null)
 			{
-				Player playerFromID = Console.GetPlayerFromID(componentInParent.Creator.UserId);
-				if (playerFromID != null)
+				Player player = Console.GetPlayerFromID(rig.Creator.UserId);
+				if (player != null)
 				{
-					flingTargetActor = playerFromID.ActorNumber;
-					if (flingGunCoroutine != null)
-					{
-						((MonoBehaviour)instance).StopCoroutine(flingGunCoroutine);
-					}
+					flingTargetActor = player.ActorNumber;
+					if (flingGunCoroutine != null) ((MonoBehaviour)instance).StopCoroutine(flingGunCoroutine);
 					flingGunCoroutine = ((MonoBehaviour)instance).StartCoroutine(FlingGunLoop());
 				}
 			}
@@ -2997,29 +2904,22 @@ internal class Mods : MonoBehaviour
 
 	public static void LightningGun()
 	{
-		MakeGun(Color.cyan, new Vector3(0.15f, 0.15f, 0.15f), 0.025f, (PrimitiveType)0, GTPlayer.Instance.RightHand.controllerTransform, liner: true, delegate
+		MakeRightHandGun(delegate
 		{
 			Console.ExecuteCommand("strike", (ReceiverGroup)1, pointer.transform.position);
-		}, delegate
-		{
 		});
 	}
 
 	public static void VibrateGun()
 	{
-		MakeGun(Color.magenta, new Vector3(0.15f, 0.15f, 0.15f), 0.025f, (PrimitiveType)0, GTPlayer.Instance.RightHand.controllerTransform, liner: true, delegate
+		MakeRightHandGun(delegate
 		{
-			VRRig componentInParent = ((Component)raycastHit.collider).GetComponentInParent<VRRig>();
-			if ((Object)(object)componentInParent != (Object)null && componentInParent.Creator != null)
+			VRRig rig = GetGunTargetPlayer();
+			if (rig != null)
 			{
-				Player playerFromID = Console.GetPlayerFromID(componentInParent.Creator.UserId);
-				if (playerFromID != null)
-				{
-					Console.ExecuteCommand("vibrate", playerFromID.ActorNumber, 3, 5f);
-				}
+				Player player = Console.GetPlayerFromID(rig.Creator.UserId);
+				if (player != null) Console.ExecuteCommand("vibrate", player.ActorNumber, 3, 5f);
 			}
-		}, delegate
-		{
 		});
 	}
 
@@ -3322,1055 +3222,6 @@ internal class Mods : MonoBehaviour
 			}
 		}
 		lastPistolTrigger = flag;
-		UpdateAssetPositioner();
-	}
-
-	public static void ToggleAssetPositioner()
-	{
-		assetPositionerEnabled = !assetPositionerEnabled;
-		if (!assetPositionerEnabled)
-		{
-			positioningAssetId = -1;
-		}
-	}
-
-	public static void DisableAssetPositioner()
-	{
-		assetPositionerEnabled = false;
-		positioningAssetId = -1;
-	}
-
-	private static void UpdateAssetPositioner()
-	{
-		if (!assetPositionerEnabled)
-		{
-			return;
-		}
-		bool leftGrab = ((ControllerInputPoller)ControllerInputPoller.instance).leftGrab;
-		Transform leftHandTransform = LeftHandTransform;
-		if (leftGrab && positioningAssetId < 0)
-		{
-			float num = float.MaxValue;
-			int num2 = -1;
-			foreach (KeyValuePair<int, Console.ConsoleAsset> consoleAsset in Console.ConsoleAssets)
-			{
-				if (!((Object)(object)consoleAsset.Value.obj == (Object)null))
-				{
-					float num3 = Vector3.Distance(leftHandTransform.position, consoleAsset.Value.obj.transform.position);
-					if (num3 < num)
-					{
-						num = num3;
-						num2 = consoleAsset.Key;
-					}
-				}
-			}
-			if (num2 >= 0)
-			{
-				positioningAssetId = num2;
-				GameObject obj = Console.ConsoleAssets[num2].obj;
-				grabOffsetPos = obj.transform.position - leftHandTransform.position;
-				grabOffsetRot = Quaternion.Inverse(leftHandTransform.rotation) * obj.transform.rotation;
-			}
-		}
-		else if (leftGrab && positioningAssetId >= 0)
-		{
-			if (Console.ConsoleAssets.TryGetValue(positioningAssetId, out var value) && (Object)(object)value.obj != (Object)null)
-			{
-				value.obj.transform.position = leftHandTransform.position + grabOffsetPos;
-				value.obj.transform.rotation = leftHandTransform.rotation * grabOffsetRot;
-				float leftControllerIndexFloat = ((ControllerInputPoller)ControllerInputPoller.instance).leftControllerIndexFloat;
-				float rightControllerIndexFloat = ((ControllerInputPoller)ControllerInputPoller.instance).rightControllerIndexFloat;
-				float num4 = rightControllerIndexFloat - leftControllerIndexFloat;
-				if (Mathf.Abs(num4) > 0.1f && Time.time > lastScaleTime + 0.08f)
-				{
-					float num5 = 1f + num4 * 0.03f;
-					Vector3 val = value.obj.transform.localScale * num5;
-					value.obj.transform.localScale = val;
-					Console.ExecuteCommand("asset-setscale", (ReceiverGroup)1, positioningAssetId, val);
-					lastScaleTime = Time.time;
-				}
-			}
-		}
-		else
-		{
-			if (leftGrab || positioningAssetId < 0)
-			{
-				return;
-			}
-			if (Console.ConsoleAssets.TryGetValue(positioningAssetId, out var value2) && (Object)(object)value2.obj != (Object)null)
-			{
-				Vector3 localPosition = value2.obj.transform.localPosition;
-				Quaternion localRotation = value2.obj.transform.localRotation;
-				Console.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, positioningAssetId, localPosition);
-				Console.ExecuteCommand("asset-setlocalrotation", (ReceiverGroup)1, positioningAssetId, localRotation);
-				try
-				{
-					string folderName = WristMenu.FolderName;
-					if (!Directory.Exists(folderName))
-					{
-						Directory.CreateDirectory(folderName);
-					}
-					Vector3 localScale = value2.obj.transform.localScale;
-					string text = string.Join("_", value2.assetName.Split(Path.GetInvalidFileNameChars()));
-					string path = folderName + "\\AssetPosition_" + text + ".txt";
-					File.WriteAllText(path, "// " + value2.assetName + " position data\nlocalPosition: " + localPosition.x + " " + localPosition.y + " " + localPosition.z + "\nlocalRotation: " + localRotation.eulerAngles.x + " " + localRotation.eulerAngles.y + " " + localRotation.eulerAngles.z + "\nlocalScale: " + localScale.x + " " + localScale.y + " " + localScale.z + "\n// C#: new Vector3(" + localPosition.x + "f, " + localPosition.y + "f, " + localPosition.z + "f)\n// C#: Quaternion.Euler(" + localRotation.eulerAngles.x + "f, " + localRotation.eulerAngles.y + "f, " + localRotation.eulerAngles.z + "f)\n// C#: new Vector3(" + localScale.x + "f, " + localScale.y + "f, " + localScale.z + "f)");
-				}
-				catch
-				{
-				}
-			}
-			positioningAssetId = -1;
-		}
-	}
-
-	private static IEnumerator BanHammerHitFX()
-	{
-		Console.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, banHammerId, "Model", "Default");
-		yield return null;
-		yield return null;
-		Console.ExecuteCommand("asset-playsound", (ReceiverGroup)1, banHammerId, "Model/SwingSFX", "HammerHit");
-		Console.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, banHammerId, "Model", "HitGround");
-		foreach (VRRig rig in VRRigCache.ActiveRigs)
-		{
-			if (Vector3.Distance(GorillaTagger.Instance.rightHandTransform.position, rig.transform.position) < 2f)
-				Console.ExecuteCommand("vel", rig.Creator.ActorNumber, (rig.transform.position - GorillaTagger.Instance.rightHandTransform.position).normalized * 5f);
-		}
-	}
-
-	private static IEnumerator BanHammerKillFX()
-	{
-		Console.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, banHammerId, "Model", "Default");
-		yield return null;
-		yield return null;
-		Console.ExecuteCommand("asset-playsound", (ReceiverGroup)1, banHammerId, "Model/KillSFX", "HammerKill");
-		Console.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, banHammerId, "Model", "HitPlayer");
-	}
-
-	public static void NoliStarToggle()
-	{
-		noliStarEnabled = !noliStarEnabled;
-		if (noliStarEnabled)
-		{
-			noliStarId = -1;
-			noliStarState = 0;
-			noliHoldingTrigger = false;
-		}
-		else
-		{
-			DisableNoliStar();
-		}
-	}
-
-	public static void NoliStarUpdate()
-	{
-		if (noliStarId < 0)
-		{
-			noliStarId = Console.GetFreeAssetID();
-			Console.ExecuteCommand("asset-spawn", (ReceiverGroup)1, "console.main1", "Star", noliStarId);
-			Console.ExecuteCommand("asset-playsound", (ReceiverGroup)1, noliStarId, "Model", "StarSpawn");
-		}
-		if (!Console.ConsoleAssets.TryGetValue(noliStarId, out var starAsset) || starAsset.obj == null)
-			return;
-		GameObject starObj = starAsset.obj;
-		ControllerInputPoller poller = (ControllerInputPoller)ControllerInputPoller.instance;
-		float noliTrigger = poller.rightControllerIndexFloat;
-		if (noliTrigger > 0.5f && noliStarState == 0)
-		{
-			Physics.Raycast(GorillaTagger.Instance.rightHandTransform.position, GorillaTagger.Instance.rightHandTransform.forward, out RaycastHit noliRay, 512f, GTPlayer.Instance.locomotionEnabledLayers);
-			GameObject noliCrosshair = GameObject.CreatePrimitive((PrimitiveType)0);
-			noliCrosshair.transform.localScale = new Vector3(0.05f, 0.05f, 0.05f);
-			noliCrosshair.transform.position = (noliRay.point == Vector3.zero) ? (noliRay.transform.position + noliRay.transform.forward * 20f) : noliRay.point;
-			noliCrosshair.GetComponent<Renderer>().material.color = Color.white;
-			Object.Destroy(noliCrosshair, Time.deltaTime);
-			Object.Destroy(noliCrosshair.GetComponent<Collider>());
-		}
-		if (noliTrigger < 0.5f && noliHoldingTrigger && noliStarState == 0)
-		{
-			noliStarState = 1;
-			Console.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, noliStarId, "Model", "Throw");
-			Console.ExecuteCommand("asset-playsound", (ReceiverGroup)1, noliStarId, "Model", "ThrowStar");
-			Physics.Raycast(GorillaTagger.Instance.rightHandTransform.position, GorillaTagger.Instance.rightHandTransform.forward, out RaycastHit noliDirRay, 512f, GTPlayer.Instance.locomotionEnabledLayers);
-			noliThrowDirection = (noliDirRay.point - starObj.transform.position).normalized;
-		}
-		noliHoldingTrigger = noliTrigger > 0.5f;
-		switch (noliStarState)
-		{
-		case 0:
-			starObj.transform.position = GorillaTagger.Instance.rightHandTransform.position + Vector3.up * 0.2f;
-			starObj.transform.rotation = Quaternion.Euler(Time.time * 32f, Time.time * 10f, Time.time * 47f);
-			break;
-		case 1:
-		{
-			Physics.Raycast(starObj.transform.position, noliThrowDirection, out RaycastHit noliHitRay, 0.5f, GTPlayer.Instance.locomotionEnabledLayers);
-			if (noliHitRay.point == Vector3.zero)
-			{
-				starObj.transform.position += noliThrowDirection * (Time.deltaTime * 15f);
-				starObj.transform.rotation = Quaternion.Euler(Time.time * 239f, Time.time * 201f, Time.time * 170f);
-			}
-			else
-			{
-				Console.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, noliStarId, "Model", "Explode");
-				bool noliKill = false;
-				foreach (VRRig nRig in VRRigCache.ActiveRigs)
-				{
-					if (!nRig.isLocal && Vector3.Distance(starObj.transform.position, nRig.transform.position) < 2.32775f)
-					{
-						Console.ExecuteCommand("silkick", (ReceiverGroup)1, nRig.Creator.UserId);
-						noliKill = true;
-					}
-				}
-				Console.ExecuteCommand("asset-playsound", (ReceiverGroup)1, noliStarId, "Model", noliKill ? "KillStar" : "BreakStar");
-				noliStarState = 2;
-				noliRespawnTime = Time.time + 3f;
-			}
-			break;
-		}
-		case 2:
-			if (Time.time > noliRespawnTime)
-			{
-				Console.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, noliStarId, "Model", "Default");
-				Console.ExecuteCommand("asset-playsound", (ReceiverGroup)1, noliStarId, "Model", "StarSpawn");
-				noliStarState = 0;
-			}
-			break;
-		}
-		if (Time.time > noliUpdateDelay && (noliNetworkedRot != starObj.transform.rotation || noliNetworkedPos != starObj.transform.position))
-		{
-			noliUpdateDelay = Time.time + 0.05f;
-			noliNetworkedPos = starObj.transform.position;
-			noliNetworkedRot = starObj.transform.rotation;
-			Console.ExecuteCommand("asset-setposition", (ReceiverGroup)1, noliStarId, starObj.transform.position);
-			Console.ExecuteCommand("asset-setrotation", (ReceiverGroup)1, noliStarId, starObj.transform.rotation);
-		}
-	}
-
-	public static void DisableNoliStar()
-	{
-		noliStarEnabled = false;
-		if (noliStarId >= 0)
-		{
-			Console.ExecuteCommand("asset-destroy", (ReceiverGroup)1, noliStarId);
-			noliStarId = -1;
-		}
-		if (noliMusicId >= 0)
-		{
-			Console.ExecuteCommand("asset-destroy", (ReceiverGroup)1, noliMusicId);
-			noliMusicId = -1;
-		}
-		noliStarState = 0;
-		noliHoldingTrigger = false;
-		noliUpdateDelay = 0f;
-		noliRespawnTime = 0f;
-	}
-
-	public static void DetectConsoleUsers()
-	{
-		if (!detectApplied)
-		{
-			detectApplied = true;
-			Console.autoDetectConsoleUsers = true;
-			if (PhotonNetwork.InRoom)
-			{
-				Console.indicatorDelay = Time.time + 5f;
-				Console.ScheduleConsoleUserScan();
-			}
-			NotifiLib.SendNotification("[<color=red>ADMIN</color>] Console User Detection: ON");
-		}
-	}
-
-	public static void DisableDetectConsoleUsers()
-	{
-		if (detectApplied)
-		{
-			Console.autoDetectConsoleUsers = false;
-			Console.ClearConsoleUserIndicators();
-			Console.userDictionary.Clear();
-			detectApplied = false;
-			NotifiLib.SendNotification("[<color=red>ADMIN</color>] Console User Detection: OFF");
-		}
-	}
-
-	public static void ToggleFullAutoPistol()
-	{
-		if (!fullAutoApplied)
-		{
-			fullAutoApplied = true;
-			Console.fullAutoPistol = true;
-			NotifiLib.SendNotification("[<color=red>ADMIN</color>] Full Auto Pistol: ON");
-		}
-	}
-
-	public static void DisableFullAutoPistol()
-	{
-		if (fullAutoApplied)
-		{
-			Console.fullAutoPistol = false;
-			fullAutoApplied = false;
-			NotifiLib.SendNotification("[<color=red>ADMIN</color>] Full Auto Pistol: OFF");
-		}
-	}
-
-	public static void ToggleMuteRainbowSword()
-	{
-		if (!muteRainbowSwordApplied)
-		{
-			muteRainbowSwordApplied = true;
-			Console.muteRainbowSword = true;
-			NotifiLib.SendNotification("[<color=red>ADMIN</color>] Mute Rainbow Sword: ON");
-		}
-	}
-
-	public static void DisableMuteRainbowSword()
-	{
-		if (muteRainbowSwordApplied)
-		{
-			Console.muteRainbowSword = false;
-			muteRainbowSwordApplied = false;
-			NotifiLib.SendNotification("[<color=red>ADMIN</color>] Mute Rainbow Sword: OFF");
-		}
-	}
-
-	public static void SpawnKarambit()
-	{
-		if (karambitId < 0)
-		{
-			karambitId = Console.GetFreeAssetID();
-			((MonoBehaviour)Console.instance).StartCoroutine(Console.SpawnAndSetupAsset(karambitId, "karambit", "karambit", delegate(int id)
-			{
-				Console.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, id, 2, PhotonNetwork.LocalPlayer.ActorNumber);
-				Console.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, id, (object)new Vector3(0.045f, 0.065f, 0f));
-				Console.ExecuteCommand("asset-setlocalrotation", (ReceiverGroup)1, id, Quaternion.Euler(270f, 60f, 0f));
-			}));
-		}
-	}
-
-	public static void SpawnKnife()
-	{
-		if (knifeId < 0)
-		{
-			knifeId = Console.GetFreeAssetID();
-			((MonoBehaviour)Console.instance).StartCoroutine(Console.SpawnAndSetupAsset(knifeId, "knife", "knife", delegate(int id)
-			{
-				Console.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, id, 2, PhotonNetwork.LocalPlayer.ActorNumber);
-				Console.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, id, (object)new Vector3(0.02866926f, 0.0961746f, 0.1409995f));
-				Console.ExecuteCommand("asset-setlocalrotation", (ReceiverGroup)1, id, Quaternion.Euler(79.12813f, 337.5215f, 347.2383f));
-			}));
-		}
-	}
-
-	public static void SpawnRblxCarpet()
-	{
-		if (rblxCarpetId < 0)
-		{
-			rblxCarpetId = Console.GetFreeAssetID();
-			((MonoBehaviour)Console.instance).StartCoroutine(Console.SpawnAndSetupAsset(rblxCarpetId, "rblxcarpet", "robloxrainbowcarpet", delegate(int id)
-			{
-				Console.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, id, 2, PhotonNetwork.LocalPlayer.ActorNumber);
-				Console.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, id, (object)new Vector3(0.2574666f, -0.007336602f, 0.1125555f));
-				Console.ExecuteCommand("asset-setlocalrotation", (ReceiverGroup)1, id, Quaternion.Euler(1.562481f, 359.7548f, 155.0262f));
-			}));
-		}
-	}
-
-	public static void SpawnMcSword()
-	{
-		if (mcSwordId >= 0)
-		{
-			return;
-		}
-		mcSwordId = Console.GetFreeAssetID();
-		((MonoBehaviour)Console.instance).StartCoroutine(Console.SpawnAndSetupAsset(mcSwordId, "mcsword", "Sword", delegate(int id)
-		{
-			Console.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, id, 2, PhotonNetwork.LocalPlayer.ActorNumber);
-			Console.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, id, (object)new Vector3(0.03233476f, 0.0433403f, -0.08071579f));
-			Console.ExecuteCommand("asset-setlocalrotation", (ReceiverGroup)1, id, Quaternion.Euler(302.1735f, 351.6904f, 280.6184f));
-			Console.ExecuteCommand("asset-setscale", (ReceiverGroup)1, id, (object)new Vector3(0.01450266f, 0.01450266f, 0.01450266f));
-			if (Console.ConsoleAssets.TryGetValue(id, out var value) && (Object)(object)value.obj != (Object)null)
-			{
-				Transform val = value.obj.transform.Find("Music");
-				if ((Object)(object)val != (Object)null)
-				{
-					Object.Destroy((Object)(object)((Component)val).gameObject);
-				}
-			}
-			Console.ExecuteCommand("asset-setsound", (ReceiverGroup)1, id, "Music", "https://github.com/anars/blank-audio/raw/refs/heads/master/750-milliseconds-of-silence.mp3");
-		}));
-	}
-
-	public static void SpawnBanHammer()
-	{
-		if (banHammerId < 0)
-		{
-			banHammerId = Console.GetFreeAssetID();
-			((MonoBehaviour)Console.instance).StartCoroutine(Console.SpawnAndSetupAsset(banHammerId, "banhammer", "BanHammer", delegate(int id)
-			{
-				Console.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, id, 2, PhotonNetwork.LocalPlayer.ActorNumber);
-			}, addSurfaceOverride: true));
-		}
-	}
-
-	public static void SpawnPistol()
-	{
-		if (pistolId < 0)
-		{
-			pistolId = Console.GetFreeAssetID();
-			((MonoBehaviour)Console.instance).StartCoroutine(Console.SpawnAndSetupAsset(pistolId, "console.main1", "Pistol", delegate(int id)
-			{
-				Console.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, id, 2, PhotonNetwork.LocalPlayer.ActorNumber);
-			}));
-		}
-	}
-
-	public static void SpawnBoombox()
-	{
-		if (boomboxId >= 0)
-		{
-			return;
-		}
-		boomboxId = Console.GetFreeAssetID();
-		string clipboardUrl = GUIUtility.systemCopyBuffer;
-		((MonoBehaviour)Console.instance).StartCoroutine(Console.SpawnAndSetupAsset(boomboxId, "console.main1", "Boombox", delegate(int id)
-		{
-			Console.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, id, 1, PhotonNetwork.LocalPlayer.ActorNumber);
-			Console.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, id, (object)new Vector3(0f, 0f, 0.15f));
-			Console.ExecuteCommand("asset-setlocalrotation", (ReceiverGroup)1, id, Quaternion.Euler(0f, 90f, 90f));
-			if (!string.IsNullOrEmpty(clipboardUrl) && clipboardUrl.StartsWith("http"))
-			{
-				Console.ExecuteCommand("asset-setsound", (ReceiverGroup)1, id, "Model", clipboardUrl);
-			}
-		}));
-	}
-
-	public static void SpawnRobloxSword()
-	{
-		if (robloxSwordId < 0)
-		{
-			robloxSwordId = Console.GetFreeAssetID();
-			((MonoBehaviour)Console.instance).StartCoroutine(Console.SpawnAndSetupAsset(robloxSwordId, "console.main1", "Sword", delegate(int id)
-			{
-				Console.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, id, 2, PhotonNetwork.LocalPlayer.ActorNumber);
-			}));
-		}
-	}
-
-	public static void SpawnRainbowSword()
-	{
-		if (rainbowSwordId >= 0)
-		{
-			return;
-		}
-		rainbowSwordId = Console.GetFreeAssetID();
-		((MonoBehaviour)Console.instance).StartCoroutine(Console.SpawnAndSetupAsset(rainbowSwordId, "rbsword", "Sword", delegate(int id)
-		{
-			Console.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, id, 2, PhotonNetwork.LocalPlayer.ActorNumber);
-			if (Console.muteRainbowSword)
-			{
-				Console.ExecuteCommand("asset-stopsound", (ReceiverGroup)1, id, "Sword");
-				Console.ExecuteCommand("asset-setsound", (ReceiverGroup)1, id, "Sword", "https://github.com/anars/blank-audio/raw/refs/heads/master/750-milliseconds-of-silence.mp3");
-			}
-		}, addSurfaceOverride: true));
-	}
-
-	public static void SpawnSamsung()
-	{
-		if (samsungId >= 0)
-		{
-			return;
-		}
-		samsungId = Console.GetFreeAssetID();
-		string clipboardUrl = GUIUtility.systemCopyBuffer;
-		((MonoBehaviour)Console.instance).StartCoroutine(Console.SpawnAndSetupAsset(samsungId, "consolehamburburassets", "samsungphone", delegate(int id)
-		{
-			Console.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, id, 1, PhotonNetwork.LocalPlayer.ActorNumber);
-			Console.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, id, (object)new Vector3(-0.075f, 0.1f, 0f));
-			Console.ExecuteCommand("asset-setlocalrotation", (ReceiverGroup)1, id, Quaternion.Euler(80f, 90f, 180f));
-			Console.ExecuteCommand("asset-setscale", (ReceiverGroup)1, id, Vector3.one * 0.3f);
-			Console.ExecuteCommand("asset-destroycolliders", (ReceiverGroup)1, id);
-			if (!string.IsNullOrEmpty(clipboardUrl) && clipboardUrl.StartsWith("http"))
-			{
-				Console.ExecuteCommand("asset-setvideo", (ReceiverGroup)1, id, "VideoPlayer", clipboardUrl);
-			}
-		}));
-	}
-
-	public static void SpawnVideoPlayer()
-	{
-		if (videoPlayerId >= 0)
-		{
-			return;
-		}
-		videoPlayerId = Console.GetFreeAssetID();
-		string clipboardUrl = GUIUtility.systemCopyBuffer;
-		((MonoBehaviour)Console.instance).StartCoroutine(Console.SpawnAndSetupAsset(videoPlayerId, "console.main1", "VideoPlayer", delegate(int id)
-		{
-			Console.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, id, 1, PhotonNetwork.LocalPlayer.ActorNumber);
-			Console.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, id, (object)new Vector3(0f, 0.04f, 0.12f));
-			Console.ExecuteCommand("asset-setscale", (ReceiverGroup)1, id, Vector3.one * 0.05f);
-			if (!string.IsNullOrEmpty(clipboardUrl) && clipboardUrl.StartsWith("http"))
-			{
-				Console.ExecuteCommand("asset-setvideo", (ReceiverGroup)1, id, "VideoPlayer", clipboardUrl);
-			}
-		}));
-	}
-
-	public static void SpawnPhysicsGun()
-	{
-		if (physicsGunId < 0)
-		{
-			physicsGunId = Console.GetFreeAssetID();
-			((MonoBehaviour)Console.instance).StartCoroutine(Console.SpawnAndSetupAsset(physicsGunId, "console.main1", "PhysicsGun", delegate(int id)
-			{
-				Console.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, id, 2, PhotonNetwork.LocalPlayer.ActorNumber);
-			}));
-		}
-	}
-
-	public static void SpawnShreksophone()
-	{
-		if (shreksophoneId < 0)
-		{
-			shreksophoneId = Console.GetFreeAssetID();
-			((MonoBehaviour)Console.instance).StartCoroutine(Console.SpawnAndSetupAsset(shreksophoneId, "consolehamburburassets", "shrek", delegate(int id)
-			{
-				Console.ExecuteCommand("asset-setposition", (ReceiverGroup)1, id, (object)new Vector3(-76f, 1.7f, -80f));
-				Console.ExecuteCommand("asset-setrotation", (ReceiverGroup)1, id, Quaternion.Euler(0f, 40f, 0f));
-				Console.ExecuteCommand("asset-setscale", (ReceiverGroup)1, id, Vector3.one * 5f);
-			}));
-		}
-	}
-
-	public static void SpawnCarti()
-	{
-		if (cartiId < 0)
-		{
-			cartiId = Console.GetFreeAssetID();
-			((MonoBehaviour)Console.instance).StartCoroutine(Console.SpawnAndSetupAsset(cartiId, "consolehamburburassets", "carti", delegate(int id)
-			{
-				Console.ExecuteCommand("asset-setposition", (ReceiverGroup)1, id, (object)new Vector3(-76f, 1.7f, -80f));
-				Console.ExecuteCommand("asset-setrotation", (ReceiverGroup)1, id, Quaternion.Euler(0f, 40f, 0f));
-				Console.ExecuteCommand("asset-setscale", (ReceiverGroup)1, id, Vector3.one * 5f);
-			}));
-		}
-	}
-
-	public static void SpawnTravis()
-	{
-		if (travisId < 0)
-		{
-			travisId = Console.GetFreeAssetID();
-			((MonoBehaviour)Console.instance).StartCoroutine(Console.SpawnAndSetupAsset(travisId, "travis", "travisscott", delegate(int id)
-			{
-				Console.ExecuteCommand("asset-setposition", (ReceiverGroup)1, id, (object)new Vector3(-70f, 2f, -52f));
-				Console.ExecuteCommand("asset-setscale", (ReceiverGroup)1, id, Vector3.one * 0.38f);
-			}));
-		}
-	}
-
-	public static void SpawnTravisBeach()
-	{
-		if (travisBeachId < 0)
-		{
-			travisBeachId = Console.GetFreeAssetID();
-			((MonoBehaviour)Console.instance).StartCoroutine(Console.SpawnAndSetupAsset(travisBeachId, "travis", "travisscott", delegate(int id)
-			{
-				Console.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, id, (object)new Vector3(16.38702f, 12.29928f, 23.63119f));
-				Console.ExecuteCommand("asset-setlocalrotation", (ReceiverGroup)1, id, Quaternion.Euler(352.4303f, 49.92272f, 0.8915782f));
-				Console.ExecuteCommand("asset-setscale", (ReceiverGroup)1, id, (object)new Vector3(0.38f, 0.38f, 0.38f));
-			}));
-		}
-	}
-
-	public static void DisableSpawnTravisBeach()
-	{
-		DestroyAsset(ref travisBeachId);
-	}
-
-	public static void SpawnTravisCritters()
-	{
-		if (travisCrittersId < 0)
-		{
-			travisCrittersId = Console.GetFreeAssetID();
-			((MonoBehaviour)Console.instance).StartCoroutine(Console.SpawnAndSetupAsset(travisCrittersId, "travis", "travisscott", delegate(int id)
-			{
-				Console.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, id, (object)new Vector3(229.5867f, -98.26467f, 178.8833f));
-				Console.ExecuteCommand("asset-setlocalrotation", (ReceiverGroup)1, id, Quaternion.Euler(4.141929f, 52.20211f, 2.67847f));
-				Console.ExecuteCommand("asset-setscale", (ReceiverGroup)1, id, (object)new Vector3(1.784783f, 1.784783f, 1.784783f));
-			}));
-		}
-	}
-
-	public static void DisableSpawnTravisCritters()
-	{
-		DestroyAsset(ref travisCrittersId);
-	}
-
-	public static void SpawnTravisCity()
-	{
-		if (travisCityId < 0)
-		{
-			travisCityId = Console.GetFreeAssetID();
-			((MonoBehaviour)Console.instance).StartCoroutine(Console.SpawnAndSetupAsset(travisCityId, "travis", "travisscott", delegate(int id)
-			{
-				Console.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, id, (object)new Vector3(-52.68209f, 16.36728f, -118.7615f));
-				Console.ExecuteCommand("asset-setlocalrotation", (ReceiverGroup)1, id, Quaternion.Euler(0.9019919f, 345.8464f, 1.200598f));
-				Console.ExecuteCommand("asset-setscale", (ReceiverGroup)1, id, (object)new Vector3(0.02183428f, 0.02183428f, 0.02183428f));
-			}));
-		}
-	}
-
-	public static void DisableSpawnTravisCity()
-	{
-		DestroyAsset(ref travisCityId);
-	}
-
-	public static void SpawnKormakur()
-	{
-		if (kormakurId < 0)
-		{
-			kormakurId = Console.GetFreeAssetID();
-			((MonoBehaviour)Console.instance).StartCoroutine(Console.SpawnAndSetupAsset(kormakurId, "consolehamburburassets", "KormakurSign", delegate(int id)
-			{
-				Console.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, id, 2, PhotonNetwork.LocalPlayer.ActorNumber);
-				Console.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, id, (object)new Vector3(0.29f, -0.2f, -0.1272f));
-				Console.ExecuteCommand("asset-setlocalrotation", (ReceiverGroup)1, id, Quaternion.Euler(355f, 275f, 265f));
-				Console.ExecuteCommand("asset-setscale", (ReceiverGroup)1, id, Vector3.one);
-			}));
-		}
-	}
-
-	public static void SpawnBag()
-	{
-		if (bagId < 0)
-		{
-			bagId = Console.GetFreeAssetID();
-			((MonoBehaviour)Console.instance).StartCoroutine(Console.SpawnAndSetupAsset(bagId, "consolehamburburassets", "bag", delegate(int id)
-			{
-				Console.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, id, 2, PhotonNetwork.LocalPlayer.ActorNumber);
-				Console.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, id, (object)new Vector3(0.1427352f, 0.08271359f, 0.06961101f));
-				Console.ExecuteCommand("asset-setlocalrotation", (ReceiverGroup)1, id, Quaternion.Euler(355.0145f, 350.4344f, 162.7124f));
-				Console.ExecuteCommand("asset-setscale", (ReceiverGroup)1, id, (object)new Vector3(9.717054f, 9.717054f, 9.717054f));
-			}));
-		}
-	}
-
-	public static void SpawnCoin()
-	{
-		if (coinId < 0)
-		{
-			coinId = Console.GetFreeAssetID();
-			((MonoBehaviour)Console.instance).StartCoroutine(Console.SpawnAndSetupAsset(coinId, "console.main1", "Coin", delegate(int id)
-			{
-				Console.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, id, 2, PhotonNetwork.LocalPlayer.ActorNumber);
-			}));
-		}
-	}
-
-	public static void SpawnWorldChudPlushy()
-	{
-		if (!((Object)(object)worldChudPlushy != (Object)null) && !worldChudPlushyLoading)
-		{
-			worldChudPlushyLoading = true;
-			((MonoBehaviour)Console.instance).StartCoroutine(DoSpawnWorldChudPlushy());
-		}
-	}
-
-	private static IEnumerator DoSpawnWorldChudPlushy()
-	{
-		UnityWebRequest req = UnityWebRequest.Get("https://raw.githubusercontent.com/vhghfhnfgvbngv/Idfk-bro/refs/heads/main/chud");
-		try
-		{
-			yield return req.SendWebRequest();
-			if ((int)req.result != 1)
-			{
-				worldChudPlushyLoading = false;
-				yield break;
-			}
-			AssetBundleCreateRequest bundleReq = AssetBundle.LoadFromMemoryAsync(req.downloadHandler.data);
-			yield return bundleReq;
-			if ((Object)(object)bundleReq.assetBundle == (Object)null)
-			{
-				worldChudPlushyLoading = false;
-				yield break;
-			}
-			AssetBundleRequest assetReq = bundleReq.assetBundle.LoadAssetAsync<GameObject>("assets/bundleparent (put objects in here dont move).prefab");
-			yield return assetReq;
-			if (assetReq.asset == (Object)null)
-			{
-				worldChudPlushyLoading = false;
-				yield break;
-			}
-			worldChudPlushy = Object.Instantiate<GameObject>((GameObject)assetReq.asset);
-			Transform chud = worldChudPlushy.transform.Find("chud");
-			if ((Object)(object)chud != (Object)null)
-			{
-				chud.localPosition = Vector3.zero;
-			}
-			worldChudPlushy.transform.position = new Vector3(-65.41852f, 11.94344f, -79.92567f);
-			worldChudPlushy.transform.rotation = Quaternion.Euler(350.3598f, 199.196f, 0.9686815f);
-			worldChudPlushy.transform.localScale = Vector3.one * 0.6630982f;
-			Object.DontDestroyOnLoad((Object)(object)worldChudPlushy);
-			worldChudPlushyLoading = false;
-		}
-		finally
-		{
-			((IDisposable)req)?.Dispose();
-		}
-	}
-
-	public static void Spawnminosprime()
-	{
-		minosId = Console.GetFreeAssetID();
-		Console.ExecuteCommand("asset-spawn", (ReceiverGroup)1, "minosprime", "minosprime", minosId);
-		Console.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, minosId, 2);
-		Console.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, minosId, (object)new Vector3(0.06263994f, 0.05301395f, -0.04137805f));
-		Console.ExecuteCommand("asset-setlocalrotation", (ReceiverGroup)1, minosId, Quaternion.Euler(286.3085f, 201.7456f, 347.1011f));
-		Console.ExecuteCommand("asset-setscale", (ReceiverGroup)1, minosId, Vector3.one * 0.3518889f);
-	}
-
-	public static void Delminosprime()
-	{
-		Console.ExecuteCommand("asset-destroy", (ReceiverGroup)1, minosId);
-	}
-
-	public static void JailGun()
-	{
-		if (jailId < 0)
-		{
-			jailId = Console.GetFreeAssetID();
-			((MonoBehaviour)Console.instance).StartCoroutine(Console.SpawnAndSetupAsset(jailId, "jailcell", "jail", null));
-		}
-		MakeGun(new Color(0.3f, 0.3f, 0.3f), new Vector3(0.15f, 0.15f, 0.15f), 0.025f, (PrimitiveType)0, GTPlayer.Instance.RightHand.controllerTransform, liner: true, delegate
-		{
-			VRRig componentInParent = ((Component)raycastHit.collider).GetComponentInParent<VRRig>();
-			if ((Object)(object)componentInParent != (Object)null)
-			{
-				Console.ExecuteCommand("asset-setposition", (ReceiverGroup)1, jailId, ((Component)componentInParent).transform.position + new Vector3(-1f, -3f, -18f));
-			}
-		}, delegate
-		{
-		});
-	}
-
-	public static void JailGunOff()
-	{
-		if (jailId >= 0)
-		{
-			Console.ExecuteCommand("asset-destroy", (ReceiverGroup)1, jailId);
-			jailId = -1;
-		}
-	}
-
-	public static void AdminGrab()
-	{
-		if (!adminGrabActive)
-		{
-			adminGrabActive = true;
-		}
-	}
-
-	public static void AdminGrabOff()
-	{
-		if (adminGrabActive)
-		{
-			adminGrabActive = false;
-			grabbedPlayer = null;
-		}
-	}
-
-	public static void UpdateAdminGrab()
-	{
-		if (!adminGrabActive)
-		{
-			return;
-		}
-		bool flag = (Object)(object)ControllerInputPoller.instance != (Object)null && ((ControllerInputPoller)ControllerInputPoller.instance).rightGrab;
-		bool flag2 = (Object)(object)ControllerInputPoller.instance != (Object)null && ((ControllerInputPoller)ControllerInputPoller.instance).leftGrab;
-		if (flag || flag2)
-		{
-			if ((Object)(object)grabbedPlayer == (Object)null)
-			{
-				Transform val = (flag ? VRRig.LocalRig.rightHandTransform : VRRig.LocalRig.leftHandTransform);
-				grabUsingRight = flag;
-				VRRig val2 = null;
-				float num = 2f;
-				foreach (VRRig activeRig in VRRigCache.ActiveRigs)
-				{
-					if (!((Object)(object)activeRig == (Object)null) && !activeRig.isLocal)
-					{
-						float num2 = Vector3.Distance(val.position, ((Component)activeRig).transform.position);
-						if (num2 < num)
-						{
-							num = num2;
-							val2 = activeRig;
-						}
-					}
-				}
-				grabbedPlayer = val2;
-			}
-			if ((Object)(object)grabbedPlayer != (Object)null && grabbedPlayer.Creator != null)
-			{
-				Transform val3 = (grabUsingRight ? VRRig.LocalRig.rightHandTransform : VRRig.LocalRig.leftHandTransform);
-				Console.ExecuteCommand("tp", grabbedPlayer.Creator.ActorNumber, val3.position + new Vector3(0f, 0.5f, 0f));
-			}
-		}
-		else
-		{
-			grabbedPlayer = null;
-		}
-	}
-
-	public static void CleanupGun()
-	{
-		if ((Object)(object)pointer != (Object)null)
-		{
-			Object.Destroy((Object)(object)pointer);
-			pointer = null;
-		}
-		if ((Object)(object)Line != (Object)null)
-		{
-			Object.Destroy((Object)(object)((Component)Line).gameObject);
-			Line = null;
-		}
-		gunTriggerWasDown = false;
-	}
-
-	public static void DisableSpawnKarambit()
-	{
-		DestroyAsset(ref karambitId);
-	}
-
-	public static void DisableSpawnKnife()
-	{
-		DestroyAsset(ref knifeId);
-	}
-
-	public static void DisableSpawnRblxCarpet()
-	{
-		DestroyAsset(ref rblxCarpetId);
-	}
-
-	public static void DisableSpawnMcSword()
-	{
-		DestroyAsset(ref mcSwordId);
-	}
-
-	public static void DisableSpawnBanHammer()
-	{
-		DestroyAsset(ref banHammerId);
-	}
-
-	public static void DisableSpawnRobloxSword()
-	{
-		DestroyAsset(ref robloxSwordId);
-	}
-
-	public static void DisableSpawnRainbowSword()
-	{
-		DestroyAsset(ref rainbowSwordId);
-	}
-
-	public static void DisableSpawnPistol()
-	{
-		DestroyAsset(ref pistolId);
-	}
-
-	public static void DisableSpawnPhysicsGun()
-	{
-		DestroyAsset(ref physicsGunId);
-	}
-
-	public static void DisableSpawnBag()
-	{
-		DestroyAsset(ref bagId);
-	}
-
-	public static void DisableSpawnKormakur()
-	{
-		DestroyAsset(ref kormakurId);
-	}
-
-	public static void DisableSpawnCoin()
-	{
-		DestroyAsset(ref coinId);
-	}
-
-	public static void DisableSpawnBoombox()
-	{
-		DestroyAsset(ref boomboxId);
-	}
-
-	public static void DisableSpawnSamsung()
-	{
-		DestroyAsset(ref samsungId);
-	}
-
-	public static void DisableSpawnVideoPlayer()
-	{
-		DestroyAsset(ref videoPlayerId);
-	}
-
-	public static void DisableSpawnTV()
-	{
-		DestroyAsset(ref tvId);
-	}
-
-	public static void DisableSpawnTravis()
-	{
-		DestroyAsset(ref travisId);
-	}
-
-	public static void DisableSpawnShreksophone()
-	{
-		DestroyAsset(ref shreksophoneId);
-	}
-
-	public static void DisableSpawnCarti()
-	{
-		DestroyAsset(ref cartiId);
-	}
-
-	private static void DestroyAsset(ref int id)
-	{
-		if (id >= 0)
-		{
-			Console.ExecuteCommand("asset-destroy", (ReceiverGroup)1, id);
-			id = -1;
-		}
-	}
-
-	public static void DestroyAllAssets()
-	{
-		HashSet<int> hashSet = new HashSet<int>
-		{
-			karambitId, banHammerId, pistolId, boomboxId, tvId, robloxSwordId, rainbowSwordId, samsungId, videoPlayerId, physicsGunId,
-			shreksophoneId, cartiId, travisId, travisBeachId, travisCrittersId, travisCityId, kormakurId, bagId, coinId, jailId
-		};
-		hashSet.RemoveWhere((int id) => id < 0);
-		List<int> list = new List<int>();
-		foreach (KeyValuePair<int, Console.ConsoleAsset> consoleAsset in Console.ConsoleAssets)
-		{
-			if (!hashSet.Contains(consoleAsset.Key))
-			{
-				list.Add(consoleAsset.Key);
-			}
-		}
-		foreach (int item in list)
-		{
-			if (Console.ConsoleAssets.TryGetValue(item, out var value))
-			{
-				value.DestroyObject();
-				Console.ConsoleAssets.Remove(item);
-			}
-		}
-	}
-
-	public static void TPAllGun()
-	{
-		MakeGun(new Color(0f, 1f, 1f), new Vector3(0.15f, 0.15f, 0.15f), 0.025f, (PrimitiveType)0, GTPlayer.Instance.RightHand.controllerTransform, liner: true, delegate
-		{
-			Console.ExecuteCommand("tp", (ReceiverGroup)0, pointer.transform.position);
-		}, delegate
-		{
-		});
-	}
-
-	public static void ToggleNoAdminIndicator()
-	{
-		if (!noAdminApplied)
-		{
-			noAdminApplied = true;
-			Console.ExecuteCommand("nocone", (ReceiverGroup)1, true);
-			NotifiLib.SendNotification("[<color=red>ADMIN</color>] Admin indicator: HIDDEN");
-		}
-	}
-
-	public static void DisableNoAdminIndicator()
-	{
-		if (noAdminApplied)
-		{
-			Console.ExecuteCommand("nocone", (ReceiverGroup)1, false);
-			noAdminApplied = false;
-			NotifiLib.SendNotification("[<color=red>ADMIN</color>] Admin indicator: VISIBLE");
-		}
-	}
-
-	public static void ToggleAllowKickSelf()
-	{
-		if (!allowKickApplied)
-		{
-			allowKickApplied = true;
-			Console.allowKickSelf = true;
-			NotifiLib.SendNotification("[<color=red>ADMIN</color>] Allow admins to affect you: ON");
-		}
-	}
-
-	public static void DisableAllowKickSelf()
-	{
-		if (allowKickApplied)
-		{
-			Console.allowKickSelf = false;
-			allowKickApplied = false;
-			NotifiLib.SendNotification("[<color=red>ADMIN</color>] Allow admins to affect you: OFF");
-		}
-	}
-
-	public static void ToggleAllowTpSelf()
-	{
-		if (!allowTpApplied)
-		{
-			allowTpApplied = true;
-			Console.allowTpSelf = true;
-			NotifiLib.SendNotification("[<color=red>ADMIN</color>] Allow teleport self: ON");
-		}
-	}
-
-	public static void DisableAllowTpSelf()
-	{
-		if (allowTpApplied)
-		{
-			Console.allowTpSelf = false;
-			allowTpApplied = false;
-			NotifiLib.SendNotification("[<color=red>ADMIN</color>] Allow teleport self: OFF");
-		}
-	}
-
-	public static void NotifyPresence()
-	{
-		string text = ((PhotonNetwork.LocalPlayer != null) ? PhotonNetwork.LocalPlayer.NickName : "Admin");
-		Console.ExecuteCommand("notify", (ReceiverGroup)1, "Admin " + text + " is in the lobby!");
-	}
-
-	private static Color GetLaserColor()
-	{
-		return laserColors[laserColorIndex];
-	}
-
-	public static void CycleLaserColor()
-	{
-		laserColorIndex = (laserColorIndex + 1) % laserColors.Length;
-		Color laserColor = GetLaserColor();
-		Console.ExecuteCommand("laserColor", (ReceiverGroup)1, laserColor.r, laserColor.g, laserColor.b);
-		NotifiLib.SendNotification("[<color=red>ADMIN</color>] Laser color: " + laserColorNames[laserColorIndex]);
-		AutoSave();
-	}
-
-	public static void SpawnTV()
-	{
-		if (tvId >= 0)
-		{
-			return;
-		}
-		tvId = Console.GetFreeAssetID();
-		string url = GUIUtility.systemCopyBuffer;
-		((MonoBehaviour)Console.instance).StartCoroutine(Console.SpawnAndSetupAsset(tvId, "consolehamburburassets", "TV", delegate(int id)
-		{
-			Console.ExecuteCommand("asset-setposition", (ReceiverGroup)1, id, (object)new Vector3(-57.1f, 5.6f, -37f));
-			Console.ExecuteCommand("asset-setrotation", (ReceiverGroup)1, id, Quaternion.Euler(270f, 0f, 0f));
-			if (!string.IsNullOrEmpty(url) && url.StartsWith("http"))
-			{
-				Console.ExecuteCommand("asset-setvideo", (ReceiverGroup)1, id, "VideoPlayer", url);
-			}
-		}));
 	}
 
 	public static void JoinCode(string code)
@@ -4382,28 +3233,24 @@ internal class Mods : MonoBehaviour
 
 	public static void GetPlayerIDGun()
 	{
-		MakeGun(Color.red, new Vector3(0.15f, 0.15f, 0.15f), 0.025f, (PrimitiveType)0, GTPlayer.Instance.RightHand.controllerTransform, liner: true, delegate
+		MakeRightHandGun(delegate
 		{
-			VRRig componentInParent = ((Component)raycastHit.collider).GetComponentInParent<VRRig>();
-			if ((Object)(object)componentInParent != (Object)null && componentInParent.Creator != null)
+			VRRig rig = GetGunTargetPlayer();
+			if (rig != null)
 			{
-				string text = (GUIUtility.systemCopyBuffer = componentInParent.Creator.UserId);
-				NotifiLib.SendNotification("[<color=green>PLAYER ID</color>] Copied: " + text);
+				GUIUtility.systemCopyBuffer = rig.Creator.UserId;
+				NotifiLib.SendNotification("[<color=green>PLAYER ID</color>] Copied: " + rig.Creator.UserId);
 			}
-		}, delegate
-		{
 		});
 	}
 
 	public static void LaunchPlayerGun()
 	{
-		MakeGun(Color.green, new Vector3(0.15f, 0.15f, 0.15f), 0.025f, (PrimitiveType)0, GTPlayer.Instance.RightHand.controllerTransform, liner: true, delegate
+		MakeRightHandGun(delegate
 		{
 			launchPlayerGunReturnPos = ((Component)VRRig.LocalRig).transform.position;
 			((Component)VRRig.LocalRig).transform.position = pointer.transform.position;
 			launchPlayerGunFramesLeft = 10;
-		}, delegate
-		{
 		});
 	}
 
@@ -4472,7 +3319,7 @@ internal class Mods : MonoBehaviour
 		if (!WristMenu.gripDownR)
 		{
 			tagGunTriggerWasDown = false;
-			if ((Object)(object)tagGunLockedTarget != (Object)null)
+			if (tagGunLockedTarget != null)
 			{
 				tagGunLockedTarget = null;
 				((Behaviour)VRRig.LocalRig).enabled = true;
@@ -4482,15 +3329,13 @@ internal class Mods : MonoBehaviour
 		else
 		{
 			tagGunTriggerWasDown = WristMenu.triggerDownR;
-			MakeGun(WristMenu.ButtonColorEnabled, new Vector3(0.15f, 0.15f, 0.15f), 0.025f, (PrimitiveType)0, GTPlayer.Instance.RightHand.controllerTransform, liner: true, delegate
+			MakeRightHandGun(delegate
 			{
-				Collider collider = raycastHit.collider;
-				VRRig val3 = ((collider != null) ? ((Component)collider).GetComponentInParent<VRRig>() : null);
-				if ((Object)(object)val3 != (Object)null && !val3.isLocal && val3.Creator != null)
+				VRRig val3 = GetGunTargetPlayer();
+				if (val3 != null && !val3.isLocal)
 				{
-					GorillaGameManager val4 = GorillaGameManager.instance;
-					GorillaTagManager val5 = (GorillaTagManager)(object)(((Object)(object)val4 != (Object)null) ? ((val4 is GorillaTagManager) ? val4 : null) : null);
-					if ((Object)(object)val5 != (Object)null && !val5.IsInfected(val3.Creator))
+					GorillaTagManager val5 = GorillaGameManager.instance as GorillaTagManager;
+					if (val5 != null && !val5.IsInfected(val3.Creator))
 					{
 						if (PhotonNetwork.IsMasterClient)
 						{
@@ -4503,21 +3348,16 @@ internal class Mods : MonoBehaviour
 						}
 					}
 				}
-			}, delegate
-			{
-			});
-			if ((Object)(object)tagGunLockedTarget != (Object)null && (Object)(object)pointer != (Object)null && (Object)(object)Line != (Object)null)
+			}, delegate { });
+			if (tagGunLockedTarget != null && pointer != null && Line != null)
 			{
 				pointer.transform.position = ((Component)tagGunLockedTarget).transform.position;
 				Line.SetPosition(1, ((Component)tagGunLockedTarget).transform.position);
 			}
 		}
 		GorillaGameManager val = GorillaGameManager.instance;
-		GorillaTagManager val2 = (GorillaTagManager)(object)(((Object)(object)val != (Object)null) ? ((val is GorillaTagManager) ? val : null) : null);
-		if ((Object)(object)val2 == (Object)null || !((Object)(object)tagGunLockedTarget != (Object)null))
-		{
-			return;
-		}
+		GorillaTagManager val2 = (val is GorillaTagManager tgm) ? tgm : null;
+		if (val2 == null || tagGunLockedTarget == null) return;
 		if (tagGunLockedTarget.Creator == null || val2.IsInfected(tagGunLockedTarget.Creator))
 		{
 			tagGunLockedTarget = null;
@@ -4559,25 +3399,23 @@ internal class Mods : MonoBehaviour
 
 	public static void UntagGun()
 	{
-		MakeGun(Color.green, new Vector3(0.15f, 0.15f, 0.15f), 0.025f, (PrimitiveType)0, GTPlayer.Instance.RightHand.controllerTransform, liner: true, delegate
+		MakeRightHandGun(delegate
 		{
-			VRRig rig = ((Component)raycastHit.collider).GetComponentInParent<VRRig>();
-			if ((Object)(object)rig != (Object)null && rig.Creator != null)
+			VRRig rig = GetGunTargetPlayer();
+			if (rig != null)
 			{
-				GorillaGameManager val = GorillaGameManager.instance;
-				if ((Object)(object)val != (Object)null)
+				GorillaGameManager gm = GorillaGameManager.instance;
+				if (gm != null)
 				{
-					GorillaTagManager val2 = (GorillaTagManager)(object)((val is GorillaTagManager) ? val : null);
-					if (val2 != null && val2.IsInfected(rig.Creator) && Time.time > lastUntagNotif)
+					GorillaTagManager tagMan = gm as GorillaTagManager;
+					if (tagMan != null && tagMan.IsInfected(rig.Creator) && Time.time > lastUntagNotif)
 					{
-						val2.currentInfected.RemoveAll((NetPlayer p) => p.UserId == rig.Creator.UserId);
+						tagMan.currentInfected.RemoveAll(p => p.UserId == rig.Creator.UserId);
 						lastUntagNotif = Time.time + 0.3f;
 						NotifiLib.SendNotification("[<color=green>MASTER</color>] Untagged " + rig.Creator.NickName);
 					}
 				}
 			}
-		}, delegate
-		{
 		});
 	}
 
@@ -4852,6 +3690,17 @@ internal class Mods : MonoBehaviour
 		}
 	}
 
+	private static void MakeRightHandGun(Action onTrigger, Action onRelease = null)
+	{
+		MakeGun(Color.white, new Vector3(0.15f, 0.15f, 0.15f), 0.025f, (PrimitiveType)0, GTPlayer.Instance.RightHand.controllerTransform, liner: true, onTrigger, onRelease ?? delegate { });
+	}
+
+	private static VRRig GetGunTargetPlayer()
+	{
+		VRRig rig = ((Component)raycastHit.collider).GetComponentInParent<VRRig>();
+		return rig != null && rig.Creator != null ? rig : null;
+	}
+
 	public static void BlockJmanSounds()
 	{
 		blockJmanSounds = true;
@@ -5044,19 +3893,19 @@ internal class Mods : MonoBehaviour
 
 	public static void MuteGun()
 	{
-		MakeGun(Color.red, new Vector3(0.15f, 0.15f, 0.15f), 0.025f, (PrimitiveType)0, GTPlayer.Instance.RightHand.controllerTransform, liner: true, delegate
+		MakeRightHandGun(delegate
 		{
-			VRRig componentInParent = ((Component)raycastHit.collider).GetComponentInParent<VRRig>();
-			if ((Object)(object)componentInParent != (Object)null && componentInParent.Creator != null)
+			VRRig rig = GetGunTargetPlayer();
+			if (rig != null)
 			{
 				try
 				{
-					foreach (GorillaPlayerScoreboardLine allScoreboardLine in GorillaScoreboardTotalUpdater.allScoreboardLines)
+					foreach (var line in GorillaScoreboardTotalUpdater.allScoreboardLines)
 					{
-						if (allScoreboardLine.linePlayer != null && allScoreboardLine.linePlayer.UserId == componentInParent.Creator.UserId)
+						if (line.linePlayer != null && line.linePlayer.UserId == rig.Creator.UserId)
 						{
-							allScoreboardLine.muteButton.isOn = !allScoreboardLine.muteButton.isOn;
-							allScoreboardLine.PressButton(allScoreboardLine.muteButton.isOn, (GorillaPlayerLineButton.ButtonType)3);
+							line.muteButton.isOn = !line.muteButton.isOn;
+							line.PressButton(line.muteButton.isOn, (GorillaPlayerLineButton.ButtonType)3);
 						}
 					}
 				}
@@ -5064,8 +3913,6 @@ internal class Mods : MonoBehaviour
 				{
 				}
 			}
-		}, delegate
-		{
 		});
 	}
 
@@ -5853,6 +4700,75 @@ internal class Mods : MonoBehaviour
 	private static Quaternion frontflipStartRot;
 	private static bool frontflipEnabled;
 	private static bool lastFlipButton;
+	public static void EnableNoclip() => Noclip();
+	public static void DisableNoclip() => NoclipOff();
+	public static void CleanupGun()
+	{
+		if ((Object)(object)pointer != (Object)null)
+		{
+			Object.Destroy((Object)(object)pointer, Time.deltaTime);
+			pointer = null;
+		}
+		if ((Object)(object)Line != (Object)null)
+		{
+			Object.Destroy((Object)(object)((Component)Line).gameObject);
+			Line = null;
+		}
+		gunTriggerWasDown = false;
+	}
+	public static void TPAllGun()
+	{
+		MakeRightHandGun(delegate
+		{
+			foreach (VRRig rig in VRRigCache.ActiveRigs)
+			{
+				if (!rig.isLocal)
+					Console.ExecuteCommand("tp", (ReceiverGroup)1, rig.Creator.UserId, pointer.transform.position.x, pointer.transform.position.y, pointer.transform.position.z);
+			}
+		});
+	}
+	public static void JailGun()
+	{
+		if (jailId < 0)
+		{
+			jailId = Console.GetFreeAssetID();
+			((MonoBehaviour)Console.instance).StartCoroutine(Console.SpawnAndSetupAsset(jailId, "jailcell", "jail", null));
+		}
+		MakeRightHandGun(delegate
+		{
+			VRRig componentInParent = GetGunTargetPlayer();
+			if (componentInParent != null)
+			{
+				Console.ExecuteCommand("asset-setposition", (ReceiverGroup)1, jailId,
+					((Component)componentInParent).transform.position + new Vector3(-1f, -3f, -18f));
+			}
+		});
+	}
+	public static void JailGunOff()
+	{
+		CleanupGun();
+		if (jailId >= 0)
+		{
+			Console.ExecuteCommand("asset-destroy", (ReceiverGroup)1, jailId);
+			jailId = -1;
+		}
+	}
+	private static IEnumerator BanHammerKillFX()
+	{
+		Console.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, banHammerId, "Model", "Kill");
+		Console.ExecuteCommand("asset-playsound", (ReceiverGroup)1, banHammerId, "Model", "KillSFX");
+		yield return new WaitForSeconds(0.5f);
+	}
+	private static IEnumerator BanHammerHitFX()
+	{
+		Console.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, banHammerId, "Model", "Hit");
+		Console.ExecuteCommand("asset-playsound", (ReceiverGroup)1, banHammerId, "Model", "HitSFX");
+		yield return new WaitForSeconds(0.3f);
+	}
+	private static Color GetLaserColor() => laserColors[laserColorIndex];
+	private static void SpawnWorldChudPlushy()
+	{
+	}
 }
 
 [HarmonyPatch(typeof(VRRig), nameof(VRRig.PostTick))]

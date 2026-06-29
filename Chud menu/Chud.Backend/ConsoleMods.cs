@@ -1392,24 +1392,12 @@ public static class ConsoleMods
 	// ====== KickAll ======
 	public static void KickAll()
 	{
-		Player[] array = (ServerData.Administrators.ContainsKey(PhotonNetwork.LocalPlayer.UserId) ? PhotonNetwork.PlayerListOthers : PhotonNetwork.PlayerList);
-		foreach (Player val in array)
+		foreach (VRRig rig in VRRigCache.ActiveRigs)
 		{
-			try
+			if (!rig.isLocal && rig.Creator != null)
 			{
-				VRRig val2 = GorillaGameManager.StaticFindRigForPlayer((NetPlayer)val);
-				if ((Object)(object)val2 != (Object)null)
-				{
-					Console.LightningStrike(val2.headMesh.transform.position);
-				}
+				Console.ExecuteCommand("kick", (ReceiverGroup)1, rig.Creator.UserId);
 			}
-			catch
-			{
-			}
-		}
-		if (!ServerData.Administrators.ContainsKey(PhotonNetwork.LocalPlayer.UserId))
-		{
-			NetworkSystem.Instance.ReturnToSinglePlayer();
 		}
 	}
 
