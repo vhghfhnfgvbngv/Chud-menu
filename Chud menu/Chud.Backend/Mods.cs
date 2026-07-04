@@ -271,6 +271,8 @@ internal class Mods : MonoBehaviour
 
 	private static bool arsDownloaded = false;
 
+	private static bool arsDownloading = false;
+
 	private static readonly HttpClient arsHttpClient = new HttpClient();
 
 	public static Font comicSansFont;
@@ -391,6 +393,11 @@ internal class Mods : MonoBehaviour
 	private static bool tagGunTriggerWasDown = false;
 	private static VRRig tagGunLockedTarget = null;
 
+	private static VRRig tagAllTarget;
+	private static int tagAllFramesUntilTag;
+	private static List<VRRig> tagAllTargets;
+	private static int tagAllIndex;
+
 	private static float lastUntagSelfTime;
 
 	private static float tagUntaggedCooldown = 0f;
@@ -401,7 +408,6 @@ internal class Mods : MonoBehaviour
 
 	private static bool spazSelfActive = false;
 
-	private static int spazFrameCounter = 0;
 
 	private static bool gunTriggerWasDown = false;
 
@@ -509,7 +515,7 @@ internal class Mods : MonoBehaviour
 	}
 
 
-	private static string ConfigPath => WristMenu.FolderName + "\\Config.json";
+	public static string ConfigPath => WristMenu.FolderName + "\\Config.json";
 
 	private static Transform LeftHandTransform => GTPlayer.Instance.LeftHand.controllerTransform;
 
@@ -540,7 +546,6 @@ internal class Mods : MonoBehaviour
 		}
 		flySpeed = array[num];
 		NotifiLib.SendNotification("[<color=white>[</color><color=blue>SETTINGS</color><color=white>] Fly Speed: " + array2[num] + "</color>");
-		AutoSave();
 	}
 
 	public static void DisableJoystickFly()
@@ -603,7 +608,6 @@ internal class Mods : MonoBehaviour
 		num = (num + 1) % array.Length;
 		wasdFlyMouseSense = array[num];
 		NotifiLib.SendNotification("[<color=white>[</color><color=blue>SETTINGS</color><color=white>] WASD Mouse Sense: " + wasdFlyMouseSense.ToString("0.0") + "</color>");
-		AutoSave();
 	}
 
 	private static void UpdateWASDFly()
@@ -911,7 +915,6 @@ internal class Mods : MonoBehaviour
 		jspeed = array[speedboostCycle];
 		jmulti = array2[speedboostCycle];
 		NotifiLib.SendNotification("[<color=orange>MOVEMENT</color>] Speed: " + array3[speedboostCycle]);
-		AutoSave();
 	}
 
 	public static void SpeedBoost()
@@ -952,7 +955,6 @@ internal class Mods : MonoBehaviour
 		}
 		pullPower = array[pullPowerInt];
 		NotifiLib.SendNotification("[<color=orange>MOVEMENT</color>] Pull power: " + array2[pullPowerInt]);
-		AutoSave();
 	}
 
 	private static void ProcessPullHand(bool left)
@@ -1544,12 +1546,7 @@ internal class Mods : MonoBehaviour
 		}
 		if (spazAllActive || spazSelfActive)
 		{
-			spazFrameCounter++;
-			if (spazFrameCounter >= 10)
-			{
-				spazFrameCounter = 0;
-				RunSpaz();
-			}
+			RunSpaz();
 		}
 		if (launchPlayerGunFramesLeft > 0)
 		{
@@ -2263,8 +2260,9 @@ internal class Mods : MonoBehaviour
 	public static void EnableARS()
 	{
 		arsActive = true;
-		if (!arsDownloaded)
+		if (!arsDownloaded && !arsDownloading)
 		{
+			arsDownloading = true;
 			_ = AsyncGetARSPlayerIDs();
 		}
 	}
@@ -2406,6 +2404,7 @@ internal class Mods : MonoBehaviour
 			System.Console.WriteLine("[ARS] Failed to download player IDs: " + e.Message);
 			arsDownloaded = false;
 		}
+		arsDownloading = false;
 	}
 
 	public static void CosmeticNotifier()
@@ -2651,7 +2650,6 @@ internal class Mods : MonoBehaviour
 		notificationDecayTime = notificationTimeValues[notificationTimeIndex];
 		NotifiLib.DecayTime = notificationDecayTime;
 		NotifiLib.SendNotification("[<color=#00ccff>MOD</color>] Notification time: " + notificationTimeNames[notificationTimeIndex]);
-		AutoSave();
 	}
 
 	private static void ApplyMenuColor(int index)
@@ -2676,7 +2674,6 @@ internal class Mods : MonoBehaviour
 		ApplyMenuColor(menuColorIndex);
 		WristMenu.DestroyMenu();
 		WristMenu.instance.Draw();
-		AutoSave();
 	}
 
 	private static void PlatformsThing(bool invis, bool sticky)
@@ -2863,9 +2860,16 @@ internal class Mods : MonoBehaviour
 	{
 		MakeRightHandGun(delegate
 		{
-			Console.TeleportPlayer(pointer.transform.position);
+			if ((Object)(object)GTPlayer.Instance != (Object)null && (Object)(object)pointer != (Object)null)
+			{
+				Vector3 pos = pointer.transform.position;
+				Vector3 playerPos = ((Component)GorillaTagger.Instance).transform.position - ((Component)GorillaTagger.Instance.bodyCollider).transform.position + pos;
+				GTPlayer.Instance.TeleportTo(playerPos, ((Component)GTPlayer.Instance).transform.rotation, true, false);
+				((Component)VRRig.LocalRig).transform.position = pos;
+			}
 		});
 	}
+
 
 	public static void FlingGun()
 	{
@@ -3395,6 +3399,61 @@ internal class Mods : MonoBehaviour
 			lastUntagSelfTime = Time.time + 0.3f;
 			NotifiLib.SendNotification("[<color=green>MASTER</color>] Untagged self");
 		}
+	}
+
+	public static void TagAll()
+	{
+		GorillaGameManager val = GorillaGameManager.instance;
+		GorillaTagManager val2 = (val is GorillaTagManager tgm) ? tgm : null;
+		if (val2 == null) return;
+
+		if (tagAllTarget == null || tagAllTarget.Creator == null || val2.IsInfected(tagAllTarget.Creator))
+		{
+			if (tagAllTarget != null)
+				((Behaviour)VRRig.LocalRig).enabled = true;
+
+			if (tagAllTargets == null || tagAllIndex >= tagAllTargets.Count)
+			{
+				tagAllTargets = new List<VRRig>();
+				foreach (VRRig r in VRRigCache.ActiveRigs)
+					if (!r.isLocal && r.Creator != null && !val2.IsInfected(r.Creator))
+						tagAllTargets.Add(r);
+				tagAllIndex = 0;
+			}
+
+			if (tagAllIndex >= tagAllTargets.Count)
+				return;
+
+			tagAllTarget = tagAllTargets[tagAllIndex];
+			tagAllIndex++;
+			if (PhotonNetwork.IsMasterClient)
+			{
+				val2.AddInfectedPlayer(tagAllTarget.Creator, true);
+				tagAllTarget = null;
+				return;
+			}
+			tagAllFramesUntilTag = 30;
+		}
+
+		((Behaviour)VRRig.LocalRig).enabled = false;
+		((Component)VRRig.LocalRig).transform.position = ((Component)tagAllTarget).transform.position - new Vector3(0f, 3f, 0f);
+		tagAllFramesUntilTag--;
+
+		if (tagAllFramesUntilTag <= 0)
+		{
+			tagAllFramesUntilTag = 30;
+			GameMode.ReportTag(tagAllTarget.Creator);
+		}
+	}
+
+	public static void DisableTagAll()
+	{
+		tagAllTarget = null;
+		tagAllTargets = null;
+		tagAllIndex = 0;
+		tagAllFramesUntilTag = 0;
+		if ((Object)(object)VRRig.LocalRig != (Object)null)
+			((Behaviour)VRRig.LocalRig).enabled = true;
 	}
 
 	public static void UntagGun()

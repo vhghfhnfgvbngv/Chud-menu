@@ -254,14 +254,16 @@ internal class WristMenu : MonoBehaviour
 		MenuManager.AddCategory("Settings", new List<ButtonInfo>
 		{
 			Nav("Exit Settings", "Settings"),
-			BtnAction("Change Menu Color", Mods.CycleMenuColor, "Cycle menu color scheme"),
-			BtnToggle("Menu Animations", () => { animationsEnabled = true; Mods.AutoSave(); }, () => { animationsEnabled = false; Mods.AutoSave(); }, true, "Toggle menu open/close and button press animations"),
+			BtnAction("Save Mods", Mods.AutoSave, "Save all enabled mods and settings"),
+			BtnAction("Load Mods", Mods.AutoLoad, "Load saved mods and settings"),
+			BtnAction("Change Menu Color", Mods.CycleMenuColor, "Change color of menu"),
+			BtnToggle("Menu Animations", () => { animationsEnabled = true; }, () => { animationsEnabled = false; }, true, "Toggle menu open/close and button press animations"),
 			BtnToggle("Rounded Menu", () => { roundedObjects = true; DestroyMenu(); instance.Draw(); }, () => { roundedObjects = false; DestroyMenu(); instance.Draw(); }, false, "Round the menu corners"),
 			BtnToggle("Right Hand", Mods.EnableRightHand, Mods.DisableRightHand, false, "Move menu to right hand"),
-			BtnToggle("Network Menu", Mods.EnableNetworkMenu, Mods.DisableNetworkMenu, false, "Share menu across network"),
+			BtnToggle("Network Menu", Mods.EnableNetworkMenu, Mods.DisableNetworkMenu, false, "See each others menus"),
 			BtnToggle("Toggle Notifications", Mods.ToggleNotifications, Mods.DisableNotifications, true, "Show/hide notifications"),
 			BtnAction("Clear Notifications", Mods.ClearNotifications, "Remove all on-screen notifications"),
-			BtnAction("Notification Time", Mods.CycleNotificationTime, "Cycle how long notifications stay"),
+			BtnAction("Notification Time", Mods.CycleNotificationTime, "how long notifications stay on screen"),
 			BtnToggle("Show FPS", () => showFPS = true, () => showFPS = false, true, "Show FPS counter"),
 			BtnToggle("Show Session Time", () => showSessionTime = true, () => showSessionTime = false, true, "Show session duration"),
 			BtnAction("Change Button Click Sound", () => { buttonSoundIndex = (buttonSoundIndex + 1) % 2; NotifiLib.SendNotification("[<color=green>CHUD</color>] Button sound: " + ((buttonSoundIndex == 0) ? "Normal" : "Custom"), 2); }, "Cycle button click sound"),
@@ -289,7 +291,7 @@ internal class WristMenu : MonoBehaviour
 			BtnFrameToggle("Noclip", Mods.EnableNoclip, Mods.DisableNoclip, "Walk through walls"),
 			BtnFrameAction("Pull Mod", Mods.PullMod, "Pull forward while gripping"),
 			BtnFrameAction("Platforms", Mods.Platforms, "Place platforms"),
-			BtnFrameAction("Sticky Platforms", Mods.StickyPlatforms, "Stick your hand to the platform"),
+			BtnFrameAction("Sticky Platforms", Mods.StickyPlatforms, "Sticky ver of plats"),
 			BtnGun("TP Gun", Mods.TPGun, Mods.CleanupGun, "Shoot to teleport"),
 			BtnAction("Teleport to Stump", Mods.TeleportToSpawn, "Teleport to the forest stump"),
 			BtnFrameToggle("Minos Prime", Mods.MinosPrime, Mods.DisableMinosPrime, "Right B to jump, then Right A to slam")
@@ -302,15 +304,15 @@ internal class WristMenu : MonoBehaviour
 			BtnFrameToggle("FPS Name Tags", Mods.FPSTags, Mods.DisableFPSTags, "Show FPS above heads"),
 			BtnFrameToggle("Platform Name Tags", Mods.PlatformTags, Mods.DisablePlatformTags, "Show platform above heads"),
 			BtnFrameToggle("Cosmetic Name Tags", Mods.CosmeticNameTags, Mods.DisableCosmeticNameTags, "Show cosmetics above heads"),
-			BtnFrameToggle("ARS Nametags", Mods.EnableARSNameTags, Mods.DisableARSNameTags, "Show ARS players"),
+			BtnFrameToggle("ARS Nametags", Mods.EnableARSNameTags, Mods.DisableARSNameTags, "Show people on ARS"),
 			BtnFrameToggle("Tracers", Mods.Tracers, Mods.DisableTracers, "Lines towards everyone"),
 			BtnFrameToggle("2D Box ESP", Mods.BoxEspRender, Mods.DisableBoxEsp, "Boxes around players"),
 			BtnFrameToggle("Skeleton ESP", Mods.SkeletonEsp, Mods.DisableSkeletonEsp, "Draw skeleton lines on players"),
-			BtnFrameToggle("Random Color Spaz", Mods.RandomColorSpaz, Mods.DisableRandomColorSpaz, "Cycle through colors rapidly"),
+			BtnFrameToggle("Random Color Spaz", Mods.RandomColorSpaz, Mods.DisableRandomColorSpaz, "Change colors fast"),
 			BtnFrameToggle("3rd Person", Mods.EnableThirdPerson, Mods.DisableThirdPerson, "Third person view"),
-			BtnFrameToggle("Cosmetic Notifier", Mods.CosmeticNotifier, Mods.DisableCosmeticNotifier, "Alert on tracked cosmetics"),
-			BtnAction("lowercase name", () => { if (PhotonNetwork.LocalPlayer != null) { string n = System.Text.RegularExpressions.Regex.Replace(PhotonNetwork.LocalPlayer.NickName, "<color[^>]*>", ""); n = n.Replace("</color>", "").ToLower(); PhotonNetwork.LocalPlayer.NickName = n; if ((Object)(object)VRRig.LocalRig != null) VRRig.LocalRig.UpdateName(); } }, "Show names in lowercase"),
-			BtnAction("Random Capital Name", () => { if (PhotonNetwork.LocalPlayer != null) { string n = System.Text.RegularExpressions.Regex.Replace(PhotonNetwork.LocalPlayer.NickName, "<color[^>]*>", ""); n = n.Replace("</color>", ""); char[] c = n.ToCharArray(); for (int i = 0; i < c.Length; i++) c[i] = (i % 2 == 0) ? char.ToUpper(c[i]) : char.ToLower(c[i]); PhotonNetwork.LocalPlayer.NickName = new string(c); if ((Object)(object)VRRig.LocalRig != null) VRRig.LocalRig.UpdateName(); } }, "Show names in alternating case")
+			BtnFrameToggle("Cosmetic Notifier", Mods.CosmeticNotifier, Mods.DisableCosmeticNotifier, "The notis show who has a special cosmetics"),
+			BtnAction("lowercase name", () => { if (PhotonNetwork.LocalPlayer != null) { string n = System.Text.RegularExpressions.Regex.Replace(PhotonNetwork.LocalPlayer.NickName, "<color[^>]*>", ""); n = n.Replace("</color>", "").ToLower(); PhotonNetwork.LocalPlayer.NickName = n; if ((Object)(object)VRRig.LocalRig != null) VRRig.LocalRig.UpdateName(); } }, "Make ur name lowercase"),
+			BtnAction("Random Capital Name", () => { if (PhotonNetwork.LocalPlayer != null) { string n = System.Text.RegularExpressions.Regex.Replace(PhotonNetwork.LocalPlayer.NickName, "<color[^>]*>", ""); n = n.Replace("</color>", ""); char[] c = n.ToCharArray(); for (int i = 0; i < c.Length; i++) c[i] = (i % 2 == 0) ? char.ToUpper(c[i]) : char.ToLower(c[i]); PhotonNetwork.LocalPlayer.NickName = new string(c); if ((Object)(object)VRRig.LocalRig != null) VRRig.LocalRig.UpdateName(); } }, "make ur name alternating case")
 		});
 		MenuManager.AddCategory("Useful Mods", new List<ButtonInfo>
 		{
@@ -341,24 +343,25 @@ internal class WristMenu : MonoBehaviour
 		MenuManager.AddCategory("Rig Mods", new List<ButtonInfo>
 		{
 			Nav("Exit Rig Mods", "Rig Mods"),
-			BtnFrameToggle("Ghost Monke", Mods.GhostMonke, Mods.DisableGhostMonke, "Press B to freeze your rig"),
-			BtnFrameToggle("Invis Monke", Mods.InvisMonke, Mods.DisableInvisMonke, "Press A to be invisible"),
+		BtnFrameToggle("Ghost Monke", Mods.GhostMonke, Mods.DisableGhostMonke, "Press B to freeze your rig"),
+		BtnFrameToggle("Invis Monke", Mods.InvisMonke, Mods.DisableInvisMonke, "Press A to be invisible"),
 			BtnToggle("Backflip", Mods.EnableBackflip, Mods.DisableBackflip, false, "Press B"),
-			BtnToggle("Frontflip", Mods.EnableFrontflip, Mods.DisableFrontflip, false, "Press B")
+			BtnToggle("Frontflip", Mods.EnableFrontflip, Mods.DisableFrontflip, false, "Press B"),
 		});
 		MenuManager.AddCategory("Infection Mods", new List<ButtonInfo>
 		{
 			Nav("Exit Infection Mods", "Infection Mods"),
-			BtnLockOnGun("Tag Gun", Mods.TagGun, Mods.CleanupGun, "Its tag gun")
+			BtnLockOnGun("Tag Gun", Mods.TagGun, Mods.CleanupGun, "Its tag gun"),
+			BtnFrameToggle("Tag All", Mods.TagAll, Mods.DisableTagAll, "Tags everyone")
 		});
 		MenuManager.AddCategory("Master Mods", new List<ButtonInfo>
 		{
 			Nav("Exit Master Mods", "Master Mods"),
 			new ButtonInfo { buttonText = "Not master client", method = null, enabled = false, nontoggleable = true, toolTip = "Your current master client status" },
 			BtnFrameAction("Tag While Not Tagged", Mods.TagWhileNotTagged, "tag while not infected"),
-			BtnAction("Untag Self", Mods.UntagSelf, "Remove yourself from infected list"),
-			BtnToggle("Spaz Self", Mods.SpazSelf, Mods.DisableSpazSelf, false, "Toggle self it/infected every 10 frames"),
-			BtnToggle("Spaz All", Mods.SpazAll, Mods.DisableSpazAll, false, "Toggle all players it/infected every 10 frames"),
+			BtnAction("Untag Self", Mods.UntagSelf, "untag urself"),
+			BtnToggle("Spaz Self", Mods.SpazSelf, Mods.DisableSpazSelf, false, "Tag and untag urself"),
+			BtnToggle("Spaz All", Mods.SpazAll, Mods.DisableSpazAll, false, "Tag and untag everyone"),
 			BtnGun("Untag Gun", Mods.UntagGun, Mods.CleanupGun, "Shoot infected players to untag them"),
 			BtnFrameToggle("Grab All Bugs", Mods.GrabAllBugs, Mods.DisableGrabAllBugs, "Grab all bugs with your hand"),
 			BtnFrameToggle("Grab Green Bug", Mods.GrabGreenBug, Mods.DisableGrabGreenBug, "Grab green bugs with your hand"),
@@ -366,9 +369,9 @@ internal class WristMenu : MonoBehaviour
 			BtnFrameToggle("Grab Gold Bug", Mods.GrabGoldBug, Mods.DisableGrabGoldBug, "Grab gold bugs with your hand"),
 			BtnFrameToggle("Spaz Bugs", Mods.SpazBugs, Mods.DisableSpazBugs, "Bugs spaz between your hands with random rotation")
 		});
-		MenuManager.AddCategory("Admin Mods", new List<ButtonInfo>
+		MenuManager.AddCategory("Console Mods", new List<ButtonInfo>
 		{
-			Nav("Exit Admin Mods", "Admin Mods"),
+			Nav("Exit Console Mods", "Console Mods"),
 			BtnGun("Kick Gun", Mods.KickGun, Mods.CleanupGun, "Shoot a player to kick them"),
 			BtnGun("Silent Kick Gun", Mods.SilentKickGun, Mods.CleanupGun, "Shoot a player to silently kick them"),
 			BtnGun("Fling Gun", Mods.FlingGun, Mods.CleanupGun, "Shoot a player to fling them"),
@@ -377,6 +380,7 @@ internal class WristMenu : MonoBehaviour
 			BtnGun("Lightning Gun", Mods.LightningGun, Mods.CleanupGun, "Shoot to strike lightning"),
 			BtnGun("Jail Gun", Mods.JailGun, Mods.JailGunOff, "Trap players in a jail cell"),
 			BtnConsoleToggle("Admin Grab", ConsoleMods.AdminGrab.Enable, ConsoleMods.AdminGrab.Disable, false, "Grab players with your hand"),
+			BtnConsoleToggle("Admin Grab All", ConsoleMods.AdminGrabAll.Enable, ConsoleMods.AdminGrabAll.Disable, false, "Grab all players at once no matter distance"),
 			BtnConsoleToggle("Laser", ConsoleMods.Laser.Enable, ConsoleMods.Laser.Disable, false, "Toggle lasers from your hands"),
 			BtnAction("Kick All", ConsoleMods.KickAll, "Kick everyone from lobby"),
 			BtnConsoleToggle("Karambit", ConsoleMods.Karambit.Enable, ConsoleMods.Karambit.Disable, false, "This is Karambit"),
@@ -429,11 +433,6 @@ internal class WristMenu : MonoBehaviour
 			BtnAction("DeepSeek V4", () => NotifiLib.SendNotification("[<color=#00ccff>MOD</color>] DeepSeek V4: Made most of the mods on the menu", 2), "Made most of the mods on the menu"),
 			BtnAction("Seralyth", () => NotifiLib.SendNotification("[<color=#00ccff>MOD</color>] Seralyth: has skidded code from Seralyth", 2), "has skidded code from Seralyth"),
 			BtnAction("Industry", () => NotifiLib.SendNotification("[<color=#00ccff>MOD</color>] Industry: ARS system by Industry", 2), "ARS system by Industry"),
-			Nav("Tripple T", "Tripple T")
-		});
-		MenuManager.AddCategory("Tripple T", new List<ButtonInfo>
-		{
-			BtnAction("Exit Tripple T", () => MenuManager.ToggleCategory("Credits"), "Go back to Credits")
 		});
 	}
 
@@ -636,9 +635,9 @@ internal class WristMenu : MonoBehaviour
 						if ((Object)(object)val != (Object)null)
 						{
 							_tpc = val.GetComponent<Camera>();
-						}
-					}
-				}
+			}
+		}
+	}
 				if ((Object)(object)_tpc != (Object)null)
 				{
 					menu.transform.parent = ((Component)_tpc).transform;
@@ -756,12 +755,12 @@ internal class WristMenu : MonoBehaviour
 		private void CheckAdminStatus()
 		{
 			bool flag = PhotonNetwork.LocalPlayer != null && ServerData.Administrators.ContainsKey(PhotonNetwork.LocalPlayer.UserId);
-			bool flag2 = MenuManager.Categories.Any((MenuCategory c) => c.Name == "Admin Mods");
+			bool flag2 = MenuManager.Categories.Any((MenuCategory c) => c.Name == "Console Mods");
 			bool flag3 = false;
 			MenuCategory menuCategory = MenuManager.Categories.Find((MenuCategory c) => c.Name == "Main");
 			if (menuCategory != null)
 			{
-				flag3 = menuCategory.Buttons.Any((ButtonInfo b) => b.buttonText == "Admin Mods");
+				flag3 = menuCategory.Buttons.Any((ButtonInfo b) => b.buttonText == "Console Mods");
 			}
 			if (flag && flag2 && !flag3)
 			{
@@ -776,21 +775,21 @@ internal class WristMenu : MonoBehaviour
 				{
 					menuCategory.Buttons.Add(new ButtonInfo
 					{
-						buttonText = "Admin Mods",
+						buttonText = "Console Mods",
 						method = delegate
 						{
-							MenuManager.ToggleCategory("Admin Mods");
+							MenuManager.ToggleCategory("Console Mods");
 						},
 						enabled = false,
 						nontoggleable = true,
-						toolTip = "Go to Admin Mods!"
+						toolTip = "Go to Console Mods!"
 					});
 				}
 			}
 			else if (!flag && flag3)
 			{
-				menuCategory?.Buttons.RemoveAll((ButtonInfo b) => b.buttonText == "Admin Mods");
-				if (MenuManager.CurrentCategoryName == "Admin Mods" || MenuManager.CurrentCategoryName == "Console Settings")
+				menuCategory?.Buttons.RemoveAll((ButtonInfo b) => b.buttonText == "Console Mods");
+				if (MenuManager.CurrentCategoryName == "Console Mods" || MenuManager.CurrentCategoryName == "Console Settings")
 				{
 					MenuManager.CurrentCategoryName = "Main";
 				}
@@ -798,7 +797,7 @@ internal class WristMenu : MonoBehaviour
 				DestroyMenu();
 				instance.Draw();
 			}
-		}
+	}
 
 	private void UpdateCustomBoardText()
 	{
@@ -854,7 +853,7 @@ internal class WristMenu : MonoBehaviour
 		val4.transform.parent = canvasObj.transform;
 		Text val5 = (titiel = val4.AddComponent<Text>());
 		val5.font = MenuFont;
-		val5.text = ((MenuManager.CurrentCategoryName == "Tripple T") ? "Tripple T" : ((Mods.menuColorIndex == 4) ? "ii's stupid menu" : MenuTitle));
+		val5.text = MenuTitle;
 		val5.fontSize = 200;
 		((Graphic)val5).color = MenuTitleColor;
 		val5.fontStyle = (FontStyle)2;
@@ -1045,17 +1044,6 @@ internal class WristMenu : MonoBehaviour
 				((Transform)component7).rotation = Quaternion.Euler(new Vector3(180f, 90f, 90f));
 			}
 		}
-		if (MenuManager.CurrentCategoryName == "Tripple T" && (Object)(object)menuImage != (Object)null)
-		{
-			GameObject val19 = new GameObject("TrippleTImage");
-			val19.transform.SetParent(canvasObj.transform);
-			RawImage val20 = val19.AddComponent<RawImage>();
-			val20.texture = (Texture)(object)menuImage;
-			RectTransform component8 = val19.GetComponent<RectTransform>();
-			((Transform)component8).localPosition = new Vector3(0.064f, 0f, -0.025f);
-			component8.sizeDelta = new Vector2(0.18f, 0.2f);
-			((Transform)component8).rotation = Quaternion.Euler(180f, 90f, 90f);
-		}
 	}
 
 	public static void RoundGameObject(GameObject obj, string identifier)
@@ -1139,10 +1127,6 @@ internal class WristMenu : MonoBehaviour
 		sessionStartTime = DateTime.Now;
 		((MonoBehaviour)this).StartCoroutine(LoadMenuImage());
 		((MonoBehaviour)this).StartCoroutine(LoadCustomButtonClickAudio());
-		GorillaTagger.OnPlayerSpawned((Action)delegate
-		{
-			Mods.AutoLoad();
-		});
 		Draw();
 	}
 
@@ -1167,7 +1151,7 @@ internal class WristMenu : MonoBehaviour
 		});
 		foreach (MenuCategory category in MenuManager.Categories)
 		{
-			if (category.Name == "Main" || category.Name == "Enabled Mods" || category.Name == "Admin Mods" || category.Name == "Console Settings")
+			if (category.Name == "Main" || category.Name == "Enabled Mods" || category.Name == "Console Mods" || category.Name == "Console Settings")
 			{
 				continue;
 			}
@@ -1290,7 +1274,6 @@ internal class WristMenu : MonoBehaviour
 		{
 			buttonInfo.disableMethod();
 		}
-		Mods.AutoSave();
 		Mods.SendButtonClick();
 		Mods.SendMenuState();
 		if (buttonInfo.enabled == true && !string.IsNullOrEmpty(buttonInfo.toolTip) && buttonInfo.toolTip != "This button doesn't have a tooltip/tutorial")

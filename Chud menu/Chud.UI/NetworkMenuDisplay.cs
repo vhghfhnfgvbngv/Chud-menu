@@ -69,7 +69,7 @@ internal static class NetworkMenuDisplay
 			val7.transform.parent = val4.transform;
 			Text val8 = val7.AddComponent<Text>();
 			val8.font = WristMenu.MenuFont;
-			val8.text = ((state.category == "Tripple T") ? "Tripple T" : ((state.menuColorIndex == 4) ? "ii's stupid menu" : WristMenu.MenuTitle));
+			val8.text = WristMenu.MenuTitle;
 			val8.fontSize = 200;
 			((Graphic)val8).color = state.menuColors.MenuTitleColor;
 			val8.fontStyle = (FontStyle)2;
@@ -176,17 +176,6 @@ internal static class NetworkMenuDisplay
 			((Transform)component8).localPosition = new Vector3(0.064f, -0.195f, 0f);
 			((Transform)component8).localRotation = Quaternion.Euler(new Vector3(180f, 90f, 90f));
 			BuildButtonPage(state, val, val4, val2);
-			if (state.category == "Tripple T" && (Object)(object)WristMenu.menuImage != (Object)null)
-			{
-				GameObject val18 = new GameObject("TrippleTImage");
-				val18.transform.SetParent(val4.transform);
-				RawImage val19 = val18.AddComponent<RawImage>();
-				val19.texture = (Texture)(object)WristMenu.menuImage;
-				RectTransform component9 = val18.GetComponent<RectTransform>();
-				((Transform)component9).localPosition = new Vector3(0.064f, 0f, -0.025f);
-				component9.sizeDelta = new Vector2(0.18f, 0.2f);
-				((Transform)component9).localRotation = Quaternion.Euler(180f, 90f, 90f);
-			}
 			state.displayObject = val;
 			UpdatePosition(state);
 			val.transform.localScale = Vector3.zero;
@@ -422,7 +411,7 @@ internal static class NetworkMenuDisplay
 					}
 					else if (((Object)val4).name == "MenuTitle")
 					{
-						component4.text = ((state.category == "Tripple T") ? "Tripple T" : ((state.menuColorIndex == 4) ? "ii's stupid menu" : WristMenu.MenuTitle));
+						component4.text = WristMenu.MenuTitle;
 						((Graphic)component4).color = state.menuColors.MenuTitleColor;
 					}
 					else if (state.buttonStates.TryGetValue(component4.text, out value2))
@@ -497,26 +486,9 @@ internal static class NetworkMenuDisplay
 					Text component3 = ((Component)val5).GetComponent<Text>();
 					if ((Object)(object)component3 != (Object)null)
 					{
-						component3.text = ((state.category == "Tripple T") ? "Tripple T" : ((state.menuColorIndex == 4) ? "ii's stupid menu" : WristMenu.MenuTitle));
+						component3.text = WristMenu.MenuTitle;
 					}
 				}
-			}
-			bool flag = state.category == "Tripple T";
-			Transform val6 = val.transform.Find("TrippleTImage");
-			if (flag && (Object)(object)val6 == (Object)null && (Object)(object)WristMenu.menuImage != (Object)null)
-			{
-				GameObject val7 = new GameObject("TrippleTImage");
-				val7.transform.SetParent(val.transform);
-				RawImage val8 = val7.AddComponent<RawImage>();
-				val8.texture = (Texture)(object)WristMenu.menuImage;
-				RectTransform component4 = val7.GetComponent<RectTransform>();
-				((Transform)component4).localPosition = new Vector3(0.064f, 0f, -0.025f);
-				component4.sizeDelta = new Vector2(0.18f, 0.2f);
-				((Transform)component4).localRotation = Quaternion.Euler(180f, 90f, 90f);
-			}
-			else if (!flag && (Object)(object)val6 != (Object)null)
-			{
-				Object.Destroy((Object)(object)((Component)val6).gameObject);
 			}
 		}
 		BuildButtonPage(state, displayObject, ((Object)(object)val != (Object)null) ? val : displayObject, uber);

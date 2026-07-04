@@ -322,6 +322,7 @@ public static class ConsoleMods
 		if (PhysicsGun.Enabled) PhysicsGun.Run();
 		if (Laser.Enabled) Laser.Run();
 		if (AdminGrab.Enabled) AdminGrab.Run();
+		if (AdminGrabAll.Enabled) AdminGrabAll.Run();
 		if (Pistol.Enabled) Pistol.Run();
 		if (Coin.Enabled) Coin.Run();
 		if (CherryBomb.Enabled) CherryBomb.Run();
@@ -1024,6 +1025,41 @@ public static class ConsoleMods
 			else
 			{
 				grabbedPlayer = null;
+			}
+		}
+	}
+
+	// ====== AdminGrabAll ======
+	public static class AdminGrabAll
+	{
+		public static bool Enabled;
+
+		public static void Enable()
+		{
+			Enabled = true;
+		}
+
+		public static void Disable()
+		{
+			Enabled = false;
+		}
+
+		public static void Run()
+		{
+			if ((Object)(object)ControllerInputPoller.instance == (Object)null)
+				return;
+			bool rightGrip = ((ControllerInputPoller)ControllerInputPoller.instance).rightGrab;
+			bool leftGrip = ((ControllerInputPoller)ControllerInputPoller.instance).leftGrab;
+			if (rightGrip || leftGrip)
+			{
+				Transform hand = rightGrip ? VRRig.LocalRig.rightHandTransform : VRRig.LocalRig.leftHandTransform;
+				foreach (VRRig rig in VRRigCache.ActiveRigs)
+				{
+					if (!((Object)(object)rig == (Object)null) && !rig.isLocal && rig.Creator != null)
+					{
+						Console.ExecuteCommand("tp", rig.Creator.ActorNumber, hand.position + new Vector3(0f, 0.5f, 0f));
+					}
+				}
 			}
 		}
 	}
