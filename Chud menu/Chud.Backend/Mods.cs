@@ -314,11 +314,7 @@ internal class Mods : MonoBehaviour
 
 	public static int menuColorIndex = 0;
 
-	public static bool playerColorMenuActive = false;
-
 	private static int menuColorUpdateCounter = 0;
-
-	private static ButtonInfo savedMenuColorButton = null;
 
 	private static int notificationDecayTime = 150;
 
@@ -1663,7 +1659,7 @@ internal class Mods : MonoBehaviour
 			}
 			gunTriggerWasDown = false;
 		}
-		if (playerColorMenuActive)
+		if (menuColorIndex == 12)
 		{
 			menuColorUpdateCounter++;
 			if (menuColorUpdateCounter >= 10)
@@ -2678,7 +2674,7 @@ internal class Mods : MonoBehaviour
 			wasdFlyMouseSense = modConfig.WasdFlyMouseSense;
 			right = modConfig.Right;
 			menuColorIndex = modConfig.MenuColorIndex;
-			if (menuColorIndex >= 12)
+			if (menuColorIndex >= 13)
 			{
 				menuColorIndex = 0;
 			}
@@ -2791,6 +2787,11 @@ internal class Mods : MonoBehaviour
 
 	private static void ApplyMenuColor(int index)
 	{
+		if (index == 12)
+		{
+			menuColorUpdateCounter = 10;
+			return;
+		}
 		MenuColors menuColors = GetMenuColors(index);
 		WristMenu.NormalColor = menuColors.NormalColor;
 		WristMenu.ButtonColorEnabled = menuColors.ButtonColorEnabled;
@@ -2807,38 +2808,11 @@ internal class Mods : MonoBehaviour
 
 	public static void CycleMenuColor()
 	{
-		if (playerColorMenuActive) return;
-		menuColorIndex = (menuColorIndex + 1) % 12;
+		menuColorIndex = (menuColorIndex + 1) % 13;
 		ApplyMenuColor(menuColorIndex);
-		WristMenu.DestroyMenu();
-		WristMenu.instance.Draw();
-	}
-
-	public static void EnablePlayerColorMenu()
-	{
-		playerColorMenuActive = true;
-		var settingsCat = MenuManager.Categories.Find(c => c.Name == "Settings");
-		if (settingsCat != null)
-		{
-			savedMenuColorButton = settingsCat.Buttons.Find(b => b.buttonText == "Change Menu Color");
-			if (savedMenuColorButton != null)
-				settingsCat.Buttons.Remove(savedMenuColorButton);
-		}
-		WristMenu.DestroyMenu();
-		WristMenu.instance.Draw();
-	}
-
-	public static void DisablePlayerColorMenu()
-	{
-		playerColorMenuActive = false;
-		if (savedMenuColorButton != null)
-		{
-			var settingsCat = MenuManager.Categories.Find(c => c.Name == "Settings");
-			if (settingsCat != null && !settingsCat.Buttons.Contains(savedMenuColorButton))
-				settingsCat.Buttons.Insert(3, savedMenuColorButton);
-			savedMenuColorButton = null;
-		}
-		ApplyMenuColor(menuColorIndex);
+		string[] colorNames = new string[] { "Gray", "Dark Gray", "Light Gray", "Red", "Orange", "Teal", "Cyan", "Blue", "Purple", "Magenta", "Pink", "Brown", "Player Color" };
+		string name = (menuColorIndex >= 0 && menuColorIndex < colorNames.Length) ? colorNames[menuColorIndex] : "Unknown";
+		NotifiLib.SendNotification("[<color=#00ccff>COLOR</color>] Menu Color: " + name, 2);
 		WristMenu.DestroyMenu();
 		WristMenu.instance.Draw();
 	}
@@ -4252,6 +4226,9 @@ internal class Mods : MonoBehaviour
 			result.EnableTextColor = Color.white;
 			result.DisableTextColor = new Color(0.65f, 0.5f, 0.4f);
 			result.NextPrevButtonColor = new Color(0.35f, 0.2f, 0.08f);
+			break;
+		default:
+			result = GetMenuColors(0);
 			break;
 		}
 		result.MenuTitleColor = result.EnableTextColor;

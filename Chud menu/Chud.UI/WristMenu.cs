@@ -259,7 +259,6 @@ internal class WristMenu : MonoBehaviour
 			BtnAction("Save Mods", Mods.Save, "Save all enabled mods and settings"),
 			BtnAction("Load Mods", Mods.Load, "Load saved mods and settings"),
 			BtnAction("Change Menu Color", Mods.CycleMenuColor, "Change color of menu"),
-			BtnToggle("Player Color Menu", Mods.EnablePlayerColorMenu, Mods.DisablePlayerColorMenu, false, "Override menu with your gorilla color"),
 			BtnToggle("Menu Animations", () => { animationsEnabled = true; }, () => { animationsEnabled = false; }, true, "Toggle menu open/close and button press animations"),
 			BtnToggle("Rounded Menu", () => { roundedObjects = true; DestroyMenu(); instance.Draw(); }, () => { roundedObjects = false; DestroyMenu(); instance.Draw(); }, false, "Round the menu corners"),
 			BtnToggle("Right Hand", Mods.EnableRightHand, Mods.DisableRightHand, false, "Move menu to right hand"),
