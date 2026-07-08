@@ -314,6 +314,12 @@ internal class Mods : MonoBehaviour
 
 	public static int menuColorIndex = 0;
 
+	public static bool playerColorMenuActive = false;
+
+	private static int menuColorUpdateCounter = 0;
+
+	private static ButtonInfo savedMenuColorButton = null;
+
 	private static int notificationDecayTime = 150;
 
 	private static int notificationTimeIndex = 3;
@@ -406,6 +412,8 @@ internal class Mods : MonoBehaviour
 
 	private static bool spazAllActive = false;
 
+	private static int spazAllFrameCounter = 0;
+
 	private static bool spazSelfActive = false;
 
 
@@ -497,22 +505,17 @@ internal class Mods : MonoBehaviour
 
 	private static bool grabSpazBugActive = false;
 
+	private static bool goldDougCosmeticActive = false;
+	private static ThrowableBug goldDougBug = null;
+	private static RequestableOwnershipGuard goldDougGuard = null;
+	private static IRequestableOwnershipGuardCallbacks goldDougDeny = null;
+	private static bool goldDougWasHeld = false;
+
 	private static float grabBugLastScan;
 
-	private static ThrowableBug[] cachedGrabBugs = Array.Empty<ThrowableBug>();
+	private static readonly List<ThrowableBug> cachedGrabBugs = new List<ThrowableBug>();
 
-	private const float GRAB_BUG_SCAN_INTERVAL = 0.5f;
-
-	private static readonly HashSet<RequestableOwnershipGuard> deniedBugGuards = new HashSet<RequestableOwnershipGuard>();
-
-	private sealed class DenyBugOwnership : IRequestableOwnershipGuardCallbacks
-	{
-		public bool OnOwnershipRequest(NetPlayer fromPlayer) => false;
-		public bool OnMasterClientAssistedTakeoverRequest(NetPlayer fromPlayer, NetPlayer toPlayer) => false;
-		public void OnOwnershipTransferred(NetPlayer toPlayer, NetPlayer fromPlayer) { }
-		public void OnMyOwnerLeft() { }
-		public void OnMyCreatorLeft() { }
-	}
+	private const float GRAB_BUG_SCAN_INTERVAL = 3f;
 
 
 	public static string ConfigPath => WristMenu.FolderName + "\\Config.json";
@@ -719,8 +722,6 @@ internal class Mods : MonoBehaviour
 	public static void DisableGrabGreenBug()
 	{
 		grabGreenBugActive = false;
-		if (!grabDougBugActive && !grabGoldBugActive && !grabAllBugsActive)
-			ClearDeniedBugGuards();
 	}
 
 	public static void GrabDougBug()
@@ -731,8 +732,6 @@ internal class Mods : MonoBehaviour
 	public static void DisableGrabDougBug()
 	{
 		grabDougBugActive = false;
-		if (!grabGreenBugActive && !grabGoldBugActive && !grabAllBugsActive)
-			ClearDeniedBugGuards();
 	}
 
 	public static void GrabGoldBug()
@@ -743,13 +742,6 @@ internal class Mods : MonoBehaviour
 	public static void DisableGrabGoldBug()
 	{
 		grabGoldBugActive = false;
-		if (!grabGreenBugActive && !grabDougBugActive && !grabAllBugsActive)
-			ClearDeniedBugGuards();
-	}
-
-	private static void ClearDeniedBugGuards()
-	{
-		deniedBugGuards.Clear();
 	}
 
 	public static void GrabAllBugs()
@@ -760,8 +752,6 @@ internal class Mods : MonoBehaviour
 	public static void DisableGrabAllBugs()
 	{
 		grabAllBugsActive = false;
-		if (!grabGreenBugActive && !grabDougBugActive && !grabGoldBugActive)
-			ClearDeniedBugGuards();
 	}
 
 	public static void SpazBugs()
@@ -772,6 +762,108 @@ internal class Mods : MonoBehaviour
 	public static void DisableSpazBugs()
 	{
 		grabSpazBugActive = false;
+	}
+
+	public static void GoldDougCosmetic()
+	{
+		goldDougCosmeticActive = true;
+		goldDougBug = null;
+		goldDougGuard = null;
+		goldDougDeny = null;
+		goldDougWasHeld = false;
+	}
+
+	public static void DisableGoldDougCosmetic()
+	{
+		goldDougCosmeticActive = false;
+		if (goldDougGuard != null && goldDougDeny != null)
+		{
+			goldDougGuard.RemoveCallbackTarget(goldDougDeny);
+		}
+		goldDougBug = null;
+		goldDougGuard = null;
+		goldDougDeny = null;
+	}
+
+	private static void UpdateGoldDougCosmetic()
+	{
+		if (!goldDougCosmeticActive)
+			return;
+
+		if ((Object)(object)goldDougBug == (Object)null || (Object)(object)goldDougBug.gameObject == (Object)null)
+		{
+			ThrowableBug[] allBugs = Resources.FindObjectsOfTypeAll<ThrowableBug>();
+			foreach (ThrowableBug bug in allBugs)
+			{
+				if (bug.name != "Floating Bug Holdable") continue;
+				try
+				{
+					Transform model = bug.transform.Find("model/PlumpBeetle");
+					if ((Object)(object)model == (Object)null) continue;
+					SkinnedMeshRenderer renderer = model.GetComponent<SkinnedMeshRenderer>();
+					if ((Object)(object)renderer == (Object)null || (Object)(object)renderer.material == (Object)null) continue;
+					if (!renderer.material.name.Contains("PlumpBeetle_Gold")) continue;
+					goldDougBug = bug;
+					break;
+				}
+				catch { }
+			}
+			if ((Object)(object)goldDougBug == (Object)null)
+				return;
+		}
+
+		ThrowableBug b = goldDougBug;
+		if ((Object)(object)b == (Object)null || (Object)(object)b.gameObject == (Object)null)
+		{
+			goldDougBug = null;
+			return;
+		}
+
+		if (!b.IsMyItem())
+			b.WorldShareableRequestOwnership();
+
+		b.disableStealing = true;
+
+		if (goldDougGuard == null)
+		{
+			goldDougGuard = b.GetComponentInParent<RequestableOwnershipGuard>();
+			if ((Object)(object)goldDougGuard != (Object)null)
+			{
+				goldDougDeny = new GoldDougDenyOwnership();
+				goldDougGuard.AddCallbackTarget(goldDougDeny);
+			}
+		}
+
+		bool inHand = b.currentState == TransferrableObject.PositionState.InRightHand || b.currentState == TransferrableObject.PositionState.InLeftHand;
+
+		if (inHand)
+		{
+			goldDougWasHeld = true;
+			return;
+		}
+
+		if (goldDougWasHeld)
+		{
+			goldDougWasHeld = false;
+			b.disableStealing = true;
+		}
+
+		Transform arm = VRRig.LocalRig.myBodyDockPositions.rightArmTransform;
+		if ((Object)(object)arm != (Object)null)
+		{
+			b.transform.SetParent(arm);
+			b.transform.localPosition = new Vector3(0f, -0.06f, -0.02f);
+			b.transform.localRotation = Quaternion.Euler(0f, 0f, 90f);
+		}
+	}
+
+	private sealed class GoldDougDenyOwnership : IRequestableOwnershipGuardCallbacks
+	{
+		public bool OnOwnershipRequest(NetPlayer fromPlayer) => false;
+		public bool OnMasterClientAssistedTakeoverRequest(NetPlayer fromPlayer, NetPlayer toPlayer) => false;
+		public void OnOwnershipTransferred(NetPlayer toPlayer, NetPlayer fromPlayer) { }
+		public void OnMyOwnerLeft() { }
+		public void OnMyCreatorLeft() { }
 	}
 
 	public static void UpdateGrabBugs()
@@ -786,45 +878,44 @@ internal class Mods : MonoBehaviour
 		if (!anyGrip && !grabSpazBugActive)
 			return;
 
-		bool grabModsActive = grabGreenBugActive || grabDougBugActive || grabGoldBugActive || grabAllBugsActive;
+		if (Time.time > grabBugLastScan + GRAB_BUG_SCAN_INTERVAL)
+		{
+			grabBugLastScan = Time.time;
+			cachedGrabBugs.Clear();
+			cachedGrabBugs.AddRange(Resources.FindObjectsOfTypeAll<ThrowableBug>());
+		}
 
 		Transform rightHand = GorillaTagger.Instance.rightHandTransform;
 		Transform leftHand = GorillaTagger.Instance.leftHandTransform;
 		Transform hand = rightGrip ? rightHand : leftHand;
 
-		if ((Object)(object)hand == (Object)null && !grabSpazBugActive)
-			return;
-
-		if (Time.time > grabBugLastScan + GRAB_BUG_SCAN_INTERVAL)
+		for (int i = cachedGrabBugs.Count - 1; i >= 0; i--)
 		{
-			grabBugLastScan = Time.time;
-			cachedGrabBugs = Resources.FindObjectsOfTypeAll<ThrowableBug>();
-		}
-
-		if (grabSpazBugActive)
-		{
-			foreach (ThrowableBug bug in cachedGrabBugs)
+			ThrowableBug bug = cachedGrabBugs[i];
+			if ((Object)(object)bug == (Object)null)
 			{
-				if ((Object)(object)bug == (Object)null) continue;
-				if (bug.name != "Floating Bug Holdable") continue;
-				if (!bug.IsMyItem())
-					bug.WorldShareableRequestOwnership();
-				float phase = (float)(bug.GetInstanceID() % 97) * 0.010309f;
-				float t = (Mathf.Sin((Time.time + phase) * 12f) + 1f) * 0.5f;
-				bug.transform.position = Vector3.Lerp(leftHand.position, rightHand.position, t);
-				bug.transform.rotation = Random.rotation;
+				cachedGrabBugs.RemoveAt(i);
+				continue;
 			}
-		}
-
-		if (grabModsActive && !grabSpazBugActive)
-		{
-		foreach (ThrowableBug bug in cachedGrabBugs)
-		{
-			if ((Object)(object)bug == (Object)null) continue;
-			if (bug.name != "Floating Bug Holdable") continue;
+			if (bug.name != "Floating Bug Holdable")
+				continue;
 
 			try
 			{
+				if (grabSpazBugActive)
+				{
+					if (!bug.IsMyItem())
+						bug.WorldShareableRequestOwnership();
+					float phase = (float)(bug.GetInstanceID() % 97) * 0.010309f;
+					float t = (Mathf.Sin((Time.time + phase) * 12f) + 1f) * 0.5f;
+					bug.transform.position = Vector3.Lerp(leftHand.position, rightHand.position, t);
+					bug.transform.rotation = Random.rotation;
+					continue;
+				}
+
+				if (!anyGrip)
+					continue;
+
 				Transform model = bug.transform.Find("model/PlumpBeetle");
 				if ((Object)(object)model == (Object)null) continue;
 				SkinnedMeshRenderer renderer = model.GetComponent<SkinnedMeshRenderer>();
@@ -835,32 +926,24 @@ internal class Mods : MonoBehaviour
 				bool isDoug = !isGold && !isGreen && matName.Contains("PlumpBeetle");
 				bool shouldGrab = grabAllBugsActive || (grabGreenBugActive && isGreen) || (grabDougBugActive && isDoug) || (grabGoldBugActive && isGold);
 
-				if (shouldGrab)
-				{
-					RequestableOwnershipGuard guard = bug.GetComponentInParent<RequestableOwnershipGuard>();
-					if ((Object)(object)guard != (Object)null && !deniedBugGuards.Contains(guard))
-					{
-						guard.AddCallbackTarget(new DenyBugOwnership());
-						deniedBugGuards.Add(guard);
-					}
-					if (!bug.IsMyItem())
-						bug.WorldShareableRequestOwnership();
-					if (anyGrip)
-					{
-						Rigidbody rb = bug.GetComponent<Rigidbody>();
-						if ((Object)(object)rb != (Object)null)
-							rb.position = hand.position;
-						else
-							bug.transform.position = hand.position;
-					}
-					if (!float.IsPositiveInfinity(bug.maxDistanceFromOriginBeforeRespawn))
-						bug.maxDistanceFromOriginBeforeRespawn = float.MaxValue;
-					if (!float.IsPositiveInfinity(bug.maxDistanceFromTargetPlayerBeforeRespawn))
-						bug.maxDistanceFromTargetPlayerBeforeRespawn = float.MaxValue;
-				}
+				if (!shouldGrab)
+					continue;
+
+				if (!bug.IsMyItem())
+					bug.WorldShareableRequestOwnership();
+
+				Rigidbody rb = bug.GetComponent<Rigidbody>();
+				if ((Object)(object)rb != (Object)null)
+					rb.position = hand.position;
+				else
+					bug.transform.position = hand.position;
+
+				if (!float.IsPositiveInfinity(bug.maxDistanceFromOriginBeforeRespawn))
+					bug.maxDistanceFromOriginBeforeRespawn = float.MaxValue;
+				if (!float.IsPositiveInfinity(bug.maxDistanceFromTargetPlayerBeforeRespawn))
+					bug.maxDistanceFromTargetPlayerBeforeRespawn = float.MaxValue;
 			}
 			catch { }
-		}
 		}
 	}
 
@@ -1162,6 +1245,7 @@ internal class Mods : MonoBehaviour
 		if (stickyRightActive && jump_right_local != null) ClampHandToCage(jump_right_local.transform.position, true);
 		if (stickyLeftActive && jump_left_local != null) ClampHandToCage(jump_left_local.transform.position, false);
 		UpdateGrabBugs();
+		UpdateGoldDougCosmetic();
 	}
 
 	private static void ClampHandToCage(Vector3 center, bool isRight)
@@ -1546,7 +1630,19 @@ internal class Mods : MonoBehaviour
 		}
 		if (spazAllActive || spazSelfActive)
 		{
-			RunSpaz();
+			if (spazAllActive)
+			{
+				spazAllFrameCounter++;
+				if (spazAllFrameCounter >= 5)
+				{
+					spazAllFrameCounter = 0;
+					RunSpaz();
+				}
+			}
+			else
+			{
+				RunSpaz();
+			}
 		}
 		if (launchPlayerGunFramesLeft > 0)
 		{
@@ -1566,6 +1662,40 @@ internal class Mods : MonoBehaviour
 				Line = null;
 			}
 			gunTriggerWasDown = false;
+		}
+		if (playerColorMenuActive)
+		{
+			menuColorUpdateCounter++;
+			if (menuColorUpdateCounter >= 10)
+			{
+				menuColorUpdateCounter = 0;
+				Color pc = Color.white;
+				if ((Object)(object)VRRig.LocalRig != (Object)null)
+					pc = ColorUtil.PlayerColor(VRRig.LocalRig);
+				bool isBlacklisted = (pc.r > 0.9f && pc.g > 0.9f && pc.b > 0.9f) || (pc.r < 0.1f && pc.g < 0.1f && pc.b < 0.1f);
+				if (isBlacklisted)
+				{
+					MenuColors def = GetMenuColors(0);
+					WristMenu.NormalColor = def.NormalColor;
+					WristMenu.ButtonColorEnabled = def.ButtonColorEnabled;
+					WristMenu.ButtonColorDisable = def.ButtonColorDisable;
+					WristMenu.EnableTextColor = def.EnableTextColor;
+					WristMenu.DisableTextColor = def.DisableTextColor;
+					WristMenu.NextPrevButtonColor = def.NextPrevButtonColor;
+					WristMenu.MenuTitleColor = def.MenuTitleColor;
+				}
+				else
+				{
+					Color textColor = Color.white;
+					WristMenu.NormalColor = pc * 0.25f;
+					WristMenu.ButtonColorEnabled = pc;
+					WristMenu.ButtonColorDisable = pc * 0.5f;
+					WristMenu.EnableTextColor = textColor;
+					WristMenu.DisableTextColor = new Color(0.75f, 0.75f, 0.75f);
+					WristMenu.NextPrevButtonColor = pc * 0.4f;
+					WristMenu.MenuTitleColor = textColor;
+				}
+			}
 		}
 		ConsoleMods.Run();
 		Console.UpdateAdminIndicators();
@@ -2456,7 +2586,7 @@ internal class Mods : MonoBehaviour
 		}
 	}
 
-	public static void AutoSave()
+	public static void Save()
 	{
 		try
 		{
@@ -2516,7 +2646,7 @@ internal class Mods : MonoBehaviour
 		}
 	}
 
-	public static void AutoLoad()
+	public static void Load()
 	{
 		try
 		{
@@ -2576,12 +2706,17 @@ internal class Mods : MonoBehaviour
 			WristMenu.showFPS = modConfig.ShowFPS;
 			WristMenu.showSessionTime = modConfig.ShowSessionTime;
 
+			List<MenuCategory> cats = new List<MenuCategory>(MenuManager.Categories);
 			foreach (string enabledButton in modConfig.EnabledButtons)
 			{
-				foreach (MenuCategory category in MenuManager.Categories)
+				for (int ci = 0; ci < cats.Count; ci++)
 				{
-					foreach (ButtonInfo button in category.Buttons)
+					MenuCategory category = cats[ci];
+					if (category.Buttons == null) continue;
+					List<ButtonInfo> btns = new List<ButtonInfo>(category.Buttons);
+					for (int bi = 0; bi < btns.Count; bi++)
 					{
+						ButtonInfo button = btns[bi];
 						if (button.buttonText == enabledButton)
 						{
 							button.enabled = true;
@@ -2600,7 +2735,9 @@ internal class Mods : MonoBehaviour
 		catch
 		{
 		}
+		WristMenu.RefreshButtonVisuals();
 		SpawnWorldChudPlushy();
+		ReapplyActiveMods();
 	}
 
 	public static void ReapplyActiveMods()
@@ -2670,7 +2807,37 @@ internal class Mods : MonoBehaviour
 
 	public static void CycleMenuColor()
 	{
+		if (playerColorMenuActive) return;
 		menuColorIndex = (menuColorIndex + 1) % 12;
+		ApplyMenuColor(menuColorIndex);
+		WristMenu.DestroyMenu();
+		WristMenu.instance.Draw();
+	}
+
+	public static void EnablePlayerColorMenu()
+	{
+		playerColorMenuActive = true;
+		var settingsCat = MenuManager.Categories.Find(c => c.Name == "Settings");
+		if (settingsCat != null)
+		{
+			savedMenuColorButton = settingsCat.Buttons.Find(b => b.buttonText == "Change Menu Color");
+			if (savedMenuColorButton != null)
+				settingsCat.Buttons.Remove(savedMenuColorButton);
+		}
+		WristMenu.DestroyMenu();
+		WristMenu.instance.Draw();
+	}
+
+	public static void DisablePlayerColorMenu()
+	{
+		playerColorMenuActive = false;
+		if (savedMenuColorButton != null)
+		{
+			var settingsCat = MenuManager.Categories.Find(c => c.Name == "Settings");
+			if (settingsCat != null && !settingsCat.Buttons.Contains(savedMenuColorButton))
+				settingsCat.Buttons.Insert(3, savedMenuColorButton);
+			savedMenuColorButton = null;
+		}
 		ApplyMenuColor(menuColorIndex);
 		WristMenu.DestroyMenu();
 		WristMenu.instance.Draw();
@@ -4864,6 +5031,9 @@ public class TorsoPatch
 			}
 
 			VRRigLateUpdate?.Invoke();
+
+			if ((Object)(object)__instance.playerText1 != (Object)null)
+				__instance.playerText1.color = ColorUtil.PlayerColor(__instance);
 		}
 	}
 }

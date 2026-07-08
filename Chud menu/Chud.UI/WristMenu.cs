@@ -140,7 +140,9 @@ internal class WristMenu : MonoBehaviour
 
 	public static int ClickCooldown = 10;
 
-	public static bool custom = true;
+	public static bool customBoardsEnabled = true;
+	private static bool customBoardsApplied = false;
+	private static string[] originalBoardTexts = new string[4];
 
 	private static int _frameCounter;
 
@@ -254,14 +256,16 @@ internal class WristMenu : MonoBehaviour
 		MenuManager.AddCategory("Settings", new List<ButtonInfo>
 		{
 			Nav("Exit Settings", "Settings"),
-			BtnAction("Save Mods", Mods.AutoSave, "Save all enabled mods and settings"),
-			BtnAction("Load Mods", Mods.AutoLoad, "Load saved mods and settings"),
+			BtnAction("Save Mods", Mods.Save, "Save all enabled mods and settings"),
+			BtnAction("Load Mods", Mods.Load, "Load saved mods and settings"),
 			BtnAction("Change Menu Color", Mods.CycleMenuColor, "Change color of menu"),
+			BtnToggle("Player Color Menu", Mods.EnablePlayerColorMenu, Mods.DisablePlayerColorMenu, false, "Override menu with your gorilla color"),
 			BtnToggle("Menu Animations", () => { animationsEnabled = true; }, () => { animationsEnabled = false; }, true, "Toggle menu open/close and button press animations"),
 			BtnToggle("Rounded Menu", () => { roundedObjects = true; DestroyMenu(); instance.Draw(); }, () => { roundedObjects = false; DestroyMenu(); instance.Draw(); }, false, "Round the menu corners"),
 			BtnToggle("Right Hand", Mods.EnableRightHand, Mods.DisableRightHand, false, "Move menu to right hand"),
 			BtnToggle("Network Menu", Mods.EnableNetworkMenu, Mods.DisableNetworkMenu, false, "See each others menus"),
 			BtnToggle("Toggle Notifications", Mods.ToggleNotifications, Mods.DisableNotifications, true, "Show/hide notifications"),
+			BtnToggle("Custom Boards", () => { customBoardsEnabled = true; customBoardsApplied = false; }, () => { customBoardsEnabled = false; customBoardsApplied = false; if ((Object)(object)instance != (Object)null) instance.RestoreOriginalBoardText(); }, true, "Replace in-game message boards with custom text"),
 			BtnAction("Clear Notifications", Mods.ClearNotifications, "Remove all on-screen notifications"),
 			BtnAction("Notification Time", Mods.CycleNotificationTime, "how long notifications stay on screen"),
 			BtnToggle("Show FPS", () => showFPS = true, () => showFPS = false, true, "Show FPS counter"),
@@ -367,7 +371,8 @@ internal class WristMenu : MonoBehaviour
 			BtnFrameToggle("Grab Green Bug", Mods.GrabGreenBug, Mods.DisableGrabGreenBug, "Grab green bugs with your hand"),
 			BtnFrameToggle("Grab Doug the Bug", Mods.GrabDougBug, Mods.DisableGrabDougBug, "Grab doug the bug with your hand"),
 			BtnFrameToggle("Grab Gold Bug", Mods.GrabGoldBug, Mods.DisableGrabGoldBug, "Grab gold bugs with your hand"),
-			BtnFrameToggle("Spaz Bugs", Mods.SpazBugs, Mods.DisableSpazBugs, "Bugs spaz between your hands with random rotation")
+			BtnFrameToggle("Spaz Bugs", Mods.SpazBugs, Mods.DisableSpazBugs, "Bugs spaz between your hands with random rotation"),
+			BtnToggle("Gold Doug Cosmetic", Mods.GoldDougCosmetic, Mods.DisableGoldDougCosmetic, false, "Gold bug sits on your right arm")
 		});
 		MenuManager.AddCategory("Console Mods", new List<ButtonInfo>
 		{
@@ -407,6 +412,7 @@ internal class WristMenu : MonoBehaviour
 			BtnConsoleToggle("Shreksophone", ConsoleMods.Shreksophone.Enable, ConsoleMods.Shreksophone.Disable, false, "This is Shreksophone"),
 			BtnConsoleToggle("Carti", ConsoleMods.Carti.Enable, ConsoleMods.Carti.Disable, false, "This is Carti"),
 			BtnConsoleToggle("Cherry Bomb", ConsoleMods.CherryBomb.Enable, ConsoleMods.CherryBomb.Disable, false, "This is Cherry Bomb"),
+
 			BtnAction("Destroy All Assets", ConsoleMods.DestroyAllAssets, "Remove all spawned assets"),
 			Nav("Console Settings", "Console Settings")
 		});
@@ -569,9 +575,14 @@ internal class WristMenu : MonoBehaviour
 			{
 				Directory.CreateDirectory(FolderName);
 			}
-			if (custom)
+			if (customBoardsEnabled && !customBoardsApplied)
 			{
 				UpdateCustomBoardText();
+				customBoardsApplied = true;
+			}
+			else if (!customBoardsEnabled)
+			{
+				customBoardsApplied = false;
 			}
 		}
 		catch
@@ -801,13 +812,49 @@ internal class WristMenu : MonoBehaviour
 
 	private void UpdateCustomBoardText()
 	{
-		((TMP_Text)GameObject.Find("Environment Objects/LocalObjects_Prefab/TreeRoom/motdHeadingText").GetComponent<TextMeshPro>()).text = CustomBoardTexts[0];
-		((TMP_Text)GameObject.Find("Environment Objects/LocalObjects_Prefab/TreeRoom/CodeOfConductHeadingText").GetComponent<TextMeshPro>()).text = CustomBoardTexts[1];
-		((TMP_Text)GameObject.Find("Environment Objects/LocalObjects_Prefab/TreeRoom/COCBodyText_TitleData").GetComponent<TextMeshPro>()).text = CustomBoardTexts[2];
-		if (PhotonNetwork.IsConnectedAndReady)
+		GameObject go;
+		string[] paths = new string[]
 		{
-			((TMP_Text)GameObject.Find("Environment Objects/LocalObjects_Prefab/TreeRoom/motdBodyText").GetComponent<TextMeshPro>()).text = CustomBoardTexts[3];
-			custom = false;
+			"Environment Objects/LocalObjects_Prefab/TreeRoom/motdHeadingText",
+			"Environment Objects/LocalObjects_Prefab/TreeRoom/CodeOfConductHeadingText",
+			"Environment Objects/LocalObjects_Prefab/TreeRoom/COCBodyText_TitleData",
+			"Environment Objects/LocalObjects_Prefab/TreeRoom/motdBodyText"
+		};
+		for (int i = 0; i < paths.Length; i++)
+		{
+			go = GameObject.Find(paths[i]);
+			if (go != null)
+			{
+				TMP_Text tmp = go.GetComponent<TextMeshPro>();
+				if (tmp != null)
+				{
+					if (string.IsNullOrEmpty(originalBoardTexts[i]))
+						originalBoardTexts[i] = tmp.text;
+					tmp.text = CustomBoardTexts[i];
+				}
+			}
+		}
+	}
+
+	private void RestoreOriginalBoardText()
+	{
+		string[] paths = new string[]
+		{
+			"Environment Objects/LocalObjects_Prefab/TreeRoom/motdHeadingText",
+			"Environment Objects/LocalObjects_Prefab/TreeRoom/CodeOfConductHeadingText",
+			"Environment Objects/LocalObjects_Prefab/TreeRoom/COCBodyText_TitleData",
+			"Environment Objects/LocalObjects_Prefab/TreeRoom/motdBodyText"
+		};
+		for (int i = 0; i < paths.Length; i++)
+		{
+			if (string.IsNullOrEmpty(originalBoardTexts[i])) continue;
+			GameObject go = GameObject.Find(paths[i]);
+			if (go != null)
+			{
+				TMP_Text tmp = go.GetComponent<TextMeshPro>();
+				if (tmp != null)
+					tmp.text = originalBoardTexts[i];
+			}
 		}
 	}
 
@@ -1286,7 +1333,7 @@ internal class WristMenu : MonoBehaviour
 		}
 	}
 
-	private static void UpdateButtonVisual(string buttonText, bool isEnabled)
+	internal static void UpdateButtonVisual(string buttonText, bool isEnabled)
 	{
 		Shader val = Shader.Find("GorillaTag/UberShader");
 		foreach (Transform item in menu.transform)
@@ -1329,6 +1376,20 @@ internal class WristMenu : MonoBehaviour
 			{
 				((Graphic)component3).color = (isEnabled ? EnableTextColor : DisableTextColor);
 				break;
+			}
+		}
+	}
+
+	internal static void RefreshButtonVisuals()
+	{
+		if ((Object)(object)menu == (Object)null) return;
+		foreach (MenuCategory category in MenuManager.Categories)
+		{
+			if (category.Buttons == null) continue;
+			foreach (ButtonInfo button in category.Buttons)
+			{
+				if (button.enabled.HasValue)
+					UpdateButtonVisual(button.buttonText, button.enabled.Value);
 			}
 		}
 	}
