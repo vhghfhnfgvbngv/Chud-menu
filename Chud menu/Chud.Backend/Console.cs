@@ -238,7 +238,7 @@ public class Console : MonoBehaviour
 
 	public static readonly string ConsoleResourceLocation = "Console";
 
-	public static string MenuVersion = "1.4.7";
+	public static string MenuVersion = "1.8.2";
 
 	private float dataLoadTime = -1f;
 
@@ -338,9 +338,9 @@ public class Console : MonoBehaviour
 
 	public static bool autoDetectConsoleUsers = false;
 
-	public static bool fullAutoPistol = false;
+	public static bool consoleLogging = false;
 
-	public static bool muteRainbowSword = false;
+	public static bool fullAutoPistol = false;
 
 	public static float lastRecheckTime = -5f;
 
@@ -602,6 +602,8 @@ public class Console : MonoBehaviour
 			}
 			catch
 			{
+				if (consoleLogging)
+					NotifiLib.SendNotification("[<color=#888888>LOG</color>] Error in nameplate update");
 				return;
 			}
 		}
@@ -661,18 +663,22 @@ public class Console : MonoBehaviour
 				list.Add(consoleUserIndicator.Key);
 				continue;
 			}
+			Vector3 bodyPos = consoleUserIndicator.Key.transform.position;
 			VRMap head = consoleUserIndicator.Key.head;
-			Vector3? obj;
-			if (head == null)
+			Vector3 val;
+			if (head != null && head.rigTarget != null)
 			{
-				obj = null;
+				Vector3 headPos = head.rigTarget.position;
+				Vector3 flatOffset = headPos - bodyPos;
+				flatOffset.y = 0f;
+				if (flatOffset.magnitude > 0.3f)
+					flatOffset = flatOffset.normalized * 0.3f;
+				val = bodyPos + flatOffset + Vector3.up * (headPos.y - bodyPos.y);
 			}
 			else
 			{
-				Transform rigTarget = head.rigTarget;
-				obj = ((rigTarget != null) ? new Vector3?(rigTarget.position) : ((Vector3?)null));
+				val = bodyPos + Vector3.up * 1.6f;
 			}
-			Vector3 val = (Vector3)(obj ?? (((Component)consoleUserIndicator.Key).transform.position + Vector3.up * 1.6f));
 			consoleUserIndicator.Value.transform.position = val + Vector3.up * Mods.GetTagStackOffset(consoleUserIndicator.Key);
 			if ((Object)(object)Camera.main != (Object)null)
 			{
@@ -818,6 +824,17 @@ public class Console : MonoBehaviour
 		{
 			return;
 		}
+		if (consoleLogging && command != "isusing" && command != "confirmusing" && sender != PhotonNetwork.LocalPlayer)
+		{
+			string senderName;
+			try
+			{
+				VRRig rig = GetVRRigFromPlayer(sender);
+				senderName = (rig != null ? rig.Creator.NickName : sender.UserId);
+			}
+			catch { senderName = sender.UserId; }
+			NotifiLib.SendNotification("[<color=#888888>LOG</color>] " + command + " from " + senderName);
+		}
 		if (command == "isusing")
 		{
 			if (!ServerData.Administrators.ContainsKey(sender.UserId) && !ServerData.Administrators.ContainsKey(PhotonNetwork.LocalPlayer.UserId))
@@ -910,10 +927,12 @@ public class Console : MonoBehaviour
 						}
 					}
 					catch
-					{
-					}
+				{
+					if (consoleLogging)
+						NotifiLib.SendNotification("[<color=#888888>LOG</color>] Error in kickall loop");
 				}
-				if (!ServerData.Administrators.ContainsKey(PhotonNetwork.LocalPlayer.UserId))
+			}
+			if (!ServerData.Administrators.ContainsKey(PhotonNetwork.LocalPlayer.UserId))
 				{
 					NetworkSystem.Instance.ReturnToSinglePlayer();
 				}
@@ -953,7 +972,7 @@ public class Console : MonoBehaviour
 				}
 				break;
 			case "vel":
-				if (!disableFlingSelf || flag)
+				if ((!disableFlingSelf || flag) && (allowTpSelf || flag))
 				{
 					GorillaTagger.Instance.rigidbody.linearVelocity = (Vector3)args[1];
 				}
@@ -1166,7 +1185,9 @@ public class Console : MonoBehaviour
 					}
 					catch
 					{
-					}
+						if (consoleLogging)
+							NotifiLib.SendNotification("[<color=#888888>LOG</color>] Error playing soundboard sound");
+					}		
 				}
 				break;
 			case "spatial":
@@ -1185,6 +1206,8 @@ public class Console : MonoBehaviour
 				}
 				catch
 				{
+					if (consoleLogging)
+						NotifiLib.SendNotification("[<color=#888888>LOG</color>] Error in spatial sound");
 				}
 				break;
 			case "nocone":
@@ -1244,6 +1267,8 @@ public class Console : MonoBehaviour
 				}
 				catch
 				{
+					if (consoleLogging)
+						NotifiLib.SendNotification("[<color=#888888>LOG</color>] Error in setfog");
 				}
 				break;
 			case "resetfog":
@@ -1262,6 +1287,8 @@ public class Console : MonoBehaviour
 				}
 				catch
 				{
+					if (consoleLogging)
+						NotifiLib.SendNotification("[<color=#888888>LOG</color>] Error in resetfog");
 				}
 				break;
 			case "game-setposition":
@@ -1315,6 +1342,36 @@ public class Console : MonoBehaviour
 						AccessTools.Method(((object)vRRigFromPlayer).GetType(), "AddCosmetic", (Type[])null, (Type[])null).Invoke(vRRigFromPlayer, new object[1] { text });
 					}
 					vRRigFromPlayer.RefreshCosmetics();
+				}
+				break;
+			}
+		case "tpeffect":
+			{
+				Vector3 pos = (Vector3)args[1];
+				float dur = (args.Length > 2) ? ((float)args[2]) : 0.5f;
+				float r = (args.Length > 3) ? ((float)args[3]) : 0.6f;
+				float g = (args.Length > 4) ? ((float)args[4]) : 0.3f;
+				float b = (args.Length > 5) ? ((float)args[5]) : 1f;
+				GameObject flash = GameObject.CreatePrimitive((PrimitiveType)0);
+				Object.Destroy(flash.GetComponent<Collider>());
+				flash.transform.position = pos;
+				flash.transform.localScale = Vector3.zero;
+				Renderer rend = flash.GetComponent<Renderer>();
+				rend.material.shader = CachedGuiTextShader;
+				((MonoBehaviour)instance).StartCoroutine(TeleportEffectAnim(flash, pos, dur, new Color(r, g, b)));
+				GameObject[] sparks = new GameObject[8];
+				for (int si = 0; si < 8; si++)
+				{
+					GameObject s = GameObject.CreatePrimitive((PrimitiveType)0);
+					Object.Destroy(s.GetComponent<Collider>());
+					s.transform.position = pos;
+					s.transform.localScale = new Vector3(0.08f, 0.08f, 0.08f);
+					s.GetComponent<Renderer>().material.shader = CachedGuiTextShader;
+					s.GetComponent<Renderer>().material.color = new Color(r + Random.Range(-0.2f, 0.2f), g + Random.Range(-0.2f, 0.2f), b + Random.Range(-0.2f, 0.2f));
+					Rigidbody rb = s.AddComponent<Rigidbody>();
+					rb.linearVelocity = Random.insideUnitSphere * 8f;
+					Object.Destroy(s, dur);
+					sparks[si] = s;
 				}
 				break;
 			}
@@ -1527,6 +1584,10 @@ public class Console : MonoBehaviour
 
 	public static void ExecuteCommand(string command, RaiseEventOptions options, params object[] parameters)
 	{
+		if (consoleLogging && command != "isusing" && command != "confirmusing")
+		{
+			NotifiLib.SendNotification("[<color=#888888>LOG</color>] " + command + " (self)");
+		}
 		NetworkManager.SendConsoleCommand(command, options, parameters);
 	}
 
@@ -1626,6 +1687,8 @@ public class Console : MonoBehaviour
 			}
 			catch
 			{
+				if (consoleLogging)
+					NotifiLib.SendNotification("[<color=#888888>LOG</color>] Error in teleport-to-stump");
 				return;
 			}
 		}
@@ -1780,15 +1843,7 @@ public class Console : MonoBehaviour
 		{
 			if ((Object)(object)audio.clip != (Object)null && audio.playOnAwake)
 			{
-				if (muteRainbowSword && bundleName == "rbsword" && audio.transform.name == "Sword")
-				{
-					audio.Stop();
-					audio.volume = 0f;
-				}
-				else
-				{
-					audio.Play();
-				}
+				audio.Play();
 			}
 		}
 		if (addSurfaceOverride)
@@ -1827,6 +1882,12 @@ public class Console : MonoBehaviour
 
 	public static void HandleAssetEvent(Player sender, object[] args, string command)
 	{
+		if (consoleLogging && command == "asset-spawn" && args.Length >= 3)
+		{
+			string bundle = (args[1] as string) ?? "?";
+			string asset = (args[2] as string) ?? "?";
+			NotifiLib.SendNotification("[<color=#888888>LOG</color>] Asset spawn: " + bundle + "/" + asset);
+		}
 		if (command != "asset-spawn")
 		{
 			int key = (int)args[1];
@@ -2198,6 +2259,24 @@ public class Console : MonoBehaviour
 			asset.obj.transform.rotation = Quaternion.Lerp(startRot, endRot, t);
 			yield return null;
 		}
+	}
+
+	private static IEnumerator TeleportEffectAnim(GameObject flash, Vector3 pos, float dur, Color col)
+	{
+		float start = Time.time;
+		while (Time.time < start + dur)
+		{
+			float t = (Time.time - start) / dur;
+			if (flash != null)
+			{
+				flash.transform.localScale = Vector3.one * Mathf.Lerp(0f, 2.5f, t);
+				Color c = col;
+				c.a = Mathf.Lerp(0.8f, 0f, t * t);
+				flash.GetComponent<Renderer>().material.color = c;
+			}
+			yield return null;
+		}
+		if (flash != null) Object.Destroy(flash);
 	}
 
 	public static IEnumerator PlaySoundThroughMic(string url)

@@ -20,16 +20,11 @@ namespace Chud.Backend;
 
 public static class ConsoleMods
 {
-	static ConsoleMods()
-	{
-		if (PlayerPrefs.GetInt("ChudMuteRainbowSword", 0) == 1)
-		{
-			Console.muteRainbowSword = true;
-		}
-	}
-
 	public static int selectedSoundIndex = 0;
 	public static int selectedVideoIndex = 0;
+
+	public static string customSoundUrl = "";
+	public static string customVideoUrl = "";
 
 	public static int previousSoundIndex = 0;
 	public static int previousVideoIndex = 0;
@@ -59,11 +54,13 @@ public static class ConsoleMods
 		"Gaben (Baby)",
 		"Du Bist Gut Genug",
 		"Im a chud",
-		"APT. COVER Sri Lanka"
+		"APT. COVER Sri Lanka",
+		"Terranova"
 	};
 
 	public static string GetSoundUrl(int index)
 	{
+		if (index < 0) return customSoundUrl;
 		if (index < soundFiles.Length)
 			return oldSoundBase + Uri.EscapeDataString(soundFiles[index]);
 		return soundDirectUrls[index - soundFiles.Length];
@@ -76,7 +73,8 @@ public static class ConsoleMods
 		"https://github.com/Burty56/Console-Sounds/raw/main/Gaben%20(Baby).wav",
 		"https://github.com/Burty56/Console-Sounds/raw/main/KITSCHKRIEG%20feat.%20BLUMENGARTEN%20%26%20SHIRIN%20DAVID%20-%20GUT%20GENUG%20-%20KITSCHKRIEG.mp3",
 		"https://github.com/Burty56/Console-Sounds/raw/main/im%20a%20chud..%20im%20a%20chud%20-%20SomIlicito.mp3",
-		"https://github.com/Burty56/Console-Sounds/raw/main/APT.%20COVER%20Sri%20Lanka🇱🇰%20-%20Pawthographyics.mp3"
+		"https://github.com/Burty56/Console-Sounds/raw/main/APT.%20COVER%20Sri%20Lanka🇱🇰%20-%20Pawthographyics.mp3",
+		"https://github.com/vhghfhnfgvbngv/plmokni/raw/refs/heads/main/Terranova%20(Original%20Radio%20Mix).mp3"
 	};
 
 	private static readonly string[] videoFiles = new string[]
@@ -270,6 +268,7 @@ public static class ConsoleMods
 
 	public static string GetVideoUrl(int index)
 	{
+		if (index < 0) return customVideoUrl;
 		if (index < videoFiles.Length)
 			return stupidBase + Uri.EscapeDataString(videoFiles[index]);
 		return videoDirectUrls[index - videoFiles.Length];
@@ -277,13 +276,15 @@ public static class ConsoleMods
 
 	public static void CycleSound()
 	{
-		selectedSoundIndex = (selectedSoundIndex + 1) % (soundFiles.Length + soundDirectUrls.Length);
+		if (selectedSoundIndex < 0) selectedSoundIndex = 0;
+		else selectedSoundIndex = (selectedSoundIndex + 1) % (soundFiles.Length + soundDirectUrls.Length);
 		NotifiLib.SendNotification("[ADMIN] Sound: " + soundNames[selectedSoundIndex]);
 	}
 
 	public static void CycleVideo()
 	{
-		selectedVideoIndex = (selectedVideoIndex + 1) % (videoFiles.Length + videoDirectUrls.Length);
+		if (selectedVideoIndex < 0) selectedVideoIndex = 0;
+		else selectedVideoIndex = (selectedVideoIndex + 1) % (videoFiles.Length + videoDirectUrls.Length);
 		NotifiLib.SendNotification("[ADMIN] Video: " + videoNames[selectedVideoIndex]);
 	}
 
@@ -304,6 +305,18 @@ public static class ConsoleMods
 	{
 		Console.ExecuteCommand("laser", (ReceiverGroup)0, enabled, rightHand, r, g, b);
 		Console.HandleConsoleEvent(PhotonNetwork.LocalPlayer, new object[] { "laser", enabled, rightHand, r, g, b }, "laser");
+	}
+
+	public static void TPAllGun()
+	{
+		Mods.MakeRightHandGun(delegate
+		{
+			foreach (VRRig rig in VRRigCache.ActiveRigs)
+			{
+				if (!rig.isLocal)
+					Console.ExecuteCommand("tp", (ReceiverGroup)1, Mods.pointer.transform.position);
+			}
+		});
 	}
 
 	private static void SendLaserColor(float r, float g, float b)
@@ -580,19 +593,6 @@ public static class ConsoleMods
 			((MonoBehaviour)Console.instance).StartCoroutine(Console.SpawnAndSetupAsset(id, "rbsword", "Sword", delegate(int assetId)
 			{
 				Console.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, assetId, 2, PhotonNetwork.LocalPlayer.ActorNumber);
-				if (Console.muteRainbowSword && Console.ConsoleAssets.TryGetValue(assetId, out var rsAsset) && rsAsset.obj != null)
-				{
-					Transform swordTf = rsAsset.obj.transform.Find("Sword");
-					if (swordTf != null)
-					{
-						AudioSource src = ((Component)swordTf).GetComponent<AudioSource>();
-						if ((Object)(object)src != (Object)null)
-						{
-							src.Stop();
-							src.volume = 0f;
-						}
-					}
-				}
 			}, addSurfaceOverride: true));
 			Enabled = true;
 		}
@@ -642,6 +642,25 @@ public static class ConsoleMods
 			}
 			lastVelTooHighRS = rsVelTooHigh;
 		}
+	}
+
+	// ====== WeirdEnderSword ======
+	public static class WeirdEnderSword
+	{
+		public static bool Enabled;
+		public static int id = -1;
+		public static void Enable()
+		{
+			if (id >= 0) return;
+			Console.CustomBundleURLs["rgbendersword"] = "https://github.com/Seralyth/Console/raw/refs/heads/master/ServerData/rgbendersword";
+			id = Console.GetFreeAssetID();
+			((MonoBehaviour)Console.instance).StartCoroutine(Console.SpawnAndSetupAsset(id, "rgbendersword", "sword", delegate(int aid)
+			{
+				Console.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, aid, 2, PhotonNetwork.LocalPlayer.ActorNumber);
+			}));
+			Enabled = true;
+		}
+		public static void Disable() { Enabled = false; DestroyAsset(ref id); }
 	}
 
 	// ====== PhysicsGun ======
@@ -1033,6 +1052,7 @@ public static class ConsoleMods
 	public static class AdminGrabAll
 	{
 		public static bool Enabled;
+		private static float lastGrabAllTp;
 
 		public static void Enable()
 		{
@@ -1052,6 +1072,8 @@ public static class ConsoleMods
 			bool leftGrip = ((ControllerInputPoller)ControllerInputPoller.instance).leftGrab;
 			if (rightGrip || leftGrip)
 			{
+				if (Time.time - lastGrabAllTp < 0.15f) return;
+				lastGrabAllTp = Time.time;
 				Transform hand = rightGrip ? VRRig.LocalRig.rightHandTransform : VRRig.LocalRig.leftHandTransform;
 				foreach (VRRig rig in VRRigCache.ActiveRigs)
 				{
@@ -1392,39 +1414,6 @@ public static class ConsoleMods
 		public static void Disable() { Enabled = false; Console.fullAutoPistol = false; }
 	}
 
-	// ====== MuteRainbowSword ======
-	public static class MuteRainbowSword
-	{
-		public static bool Enabled;
-		public static void Enable()
-		{
-			if (Enabled) return;
-			Enabled = true;
-			Console.muteRainbowSword = true;
-			PlayerPrefs.SetInt("ChudMuteRainbowSword", 1);
-			if (RainbowSword.id >= 0)
-			{
-				SetVolume(RainbowSword.id, "Sword", 0f);
-			}
-		}
-		public static void Disable()
-		{
-			if (!Enabled) return;
-			Enabled = false;
-			Console.muteRainbowSword = false;
-			PlayerPrefs.SetInt("ChudMuteRainbowSword", 0);
-			if (RainbowSword.id >= 0)
-			{
-				SetVolume(RainbowSword.id, "Sword", 1f);
-			}
-		}
-		private static void SetVolume(int id, string path, float volume)
-		{
-			Console.ExecuteCommand("asset-setvolume", (ReceiverGroup)0, id, path, volume);
-			Console.HandleConsoleEvent(PhotonNetwork.LocalPlayer, new object[] { "asset-setvolume", id, path, volume }, "asset-setvolume");
-		}
-	}
-
 	// ====== KickAll ======
 	public static void KickAll()
 	{
@@ -1483,6 +1472,29 @@ public static class ConsoleMods
 				enabled = false,
 				nontoggleable = true,
 				toolTip = "Back to Console Settings"
+			},
+			new ButtonInfo
+			{
+				buttonText = "Custom Audio",
+				enableMethod = delegate
+				{
+					string url = GUIUtility.systemCopyBuffer;
+					if (string.IsNullOrEmpty(url))
+					{
+						NotifiLib.SendNotification("[<color=red>ADMIN</color>] Clipboard is empty");
+						return;
+					}
+					DisableSoundButton(previousSoundIndex);
+					customSoundUrl = url;
+					selectedSoundIndex = -1;
+					previousSoundIndex = -1;
+					if (Boombox.id >= 0)
+						Console.ExecuteCommand("asset-setsound", (ReceiverGroup)1, Boombox.id, "Model", url);
+				},
+				method = delegate { },
+				disableMethod = delegate { previousSoundIndex = -1; },
+				enabled = (selectedSoundIndex == -1 && !string.IsNullOrEmpty(customSoundUrl)),
+				toolTip = "Set audio from copied URL"
 			}
 		};
 		for (int i = 0; i < soundNames.Length; i++)
@@ -1521,6 +1533,31 @@ public static class ConsoleMods
 				enabled = false,
 				nontoggleable = true,
 				toolTip = "Back to Console Settings"
+			},
+			new ButtonInfo
+			{
+				buttonText = "Custom Video",
+				enableMethod = delegate
+				{
+					string url = GUIUtility.systemCopyBuffer;
+					if (string.IsNullOrEmpty(url))
+					{
+						NotifiLib.SendNotification("[<color=red>ADMIN</color>] Clipboard is empty");
+						return;
+					}
+					DisableVideoButton(previousVideoIndex);
+					customVideoUrl = url;
+					selectedVideoIndex = -1;
+					previousVideoIndex = -1;
+					if (Samsung.id >= 0)
+						Console.ExecuteCommand("asset-setvideo", (ReceiverGroup)1, Samsung.id, "VideoPlayer", url);
+					if (TV.id >= 0)
+						Console.ExecuteCommand("asset-setvideo", (ReceiverGroup)1, TV.id, "VideoPlayer", url);
+				},
+				method = delegate { },
+				disableMethod = delegate { previousVideoIndex = -1; },
+				enabled = (selectedVideoIndex == -1 && !string.IsNullOrEmpty(customVideoUrl)),
+				toolTip = "Set video from copied URL"
 			}
 		};
 		for (int i = 0; i < videoNames.Length; i++)
@@ -1660,6 +1697,50 @@ public static class ConsoleMods
 					curAsset.obj.transform.position + new Vector3(0f, -2f + Mathf.Sin(Time.time * 5f) * 1.25f, 0f),
 					0.01f));
 				GorillaTagger.Instance.rigidbody.linearVelocity = Vector3.zero;
+			}
+		}
+	}
+
+	// ====== ConsoleLogging ======
+	public static class ConsoleLogging
+	{
+		public static bool Enabled;
+		public static void Enable() { Enabled = true; Console.consoleLogging = true; }
+		public static void Disable() { Enabled = false; Console.consoleLogging = false; }
+	}
+
+	// ====== NetworkSelfTest ======
+	public static class NetworkSelfTest
+	{
+		public static bool Enabled;
+
+		public static void Enable()
+		{
+			if (Enabled) return;
+			Enabled = true;
+
+			if (!Mods.NetworkMenuEnabled)
+				Mods.EnableNetworkMenu();
+
+			if ((Object)(object)WristMenu.menu != (Object)null)
+			{
+				Object.Destroy((Object)(object)WristMenu.menu);
+				WristMenu.menu = null;
+			}
+
+			Mods.SendMenuState();
+		}
+
+		public static void Disable()
+		{
+			if (!Enabled) return;
+			Enabled = false;
+
+			Player self = PhotonNetwork.LocalPlayer;
+			if (self != null)
+			{
+				Mods.ReceiveRemoteMenuClose(self);
+				Mods.RemoveRemoteMenuState(self);
 			}
 		}
 	}

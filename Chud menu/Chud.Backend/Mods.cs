@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Reflection;
 using System.Text;
@@ -95,8 +96,8 @@ internal class Mods : MonoBehaviour
 		public bool ConsoleDisableFlingSelf = false;
 		public bool ConsoleLaserEnabled = false;
 		public bool ConsoleAutoDetectConsoleUsers = false;
+		public bool ConsoleLogging = false;
 		public bool ConsoleFullAutoPistol = false;
-		public bool ConsoleMuteRainbowSword = false;
 
 		public int SelectedSoundIndex = 0;
 		public int SelectedVideoIndex = 0;
@@ -150,6 +151,10 @@ internal class Mods : MonoBehaviour
 		public bool closing;
 
 		public bool animationsEnabled = true;
+
+		public VRRig cachedRig;
+
+		public Vector3 rigOffset;
 	}
 
 	public static Mods instance;
@@ -162,6 +167,17 @@ internal class Mods : MonoBehaviour
 			if ((Object)(object)_cachedGuiTextShader == (Object)null)
 				_cachedGuiTextShader = Shader.Find("GUI/Text Shader");
 			return _cachedGuiTextShader;
+		}
+	}
+
+	private static Shader _cachedUberShader;
+	private static Shader CachedUberShader
+	{
+		get
+		{
+			if ((Object)(object)_cachedUberShader == (Object)null)
+				_cachedUberShader = Shader.Find("GorillaTag/UberShader");
+			return _cachedUberShader;
 		}
 	}
 
@@ -296,6 +312,11 @@ internal class Mods : MonoBehaviour
 		{ "LMAJA.", "GT MONKE PLUSH" },
 		{ "LMAYT.", "LAVA MONKE DOUGHBOI" },
 		{ "LMBAO.", "Gorillacon golden phone" }
+	};
+
+	private static readonly HashSet<string> trackedWebhookCosmetics = new HashSet<string>
+	{
+		"LBAAK.", "LBANI.", "LMAPY.", "LBADE.", "LBAGS.", "LBARJ.", "LBASS."
 	};
 
 	private static readonly Dictionary<VRRig, GameObject> cosmeticNameTagObjects = new Dictionary<VRRig, GameObject>();
@@ -438,14 +459,16 @@ internal class Mods : MonoBehaviour
 	private static readonly Dictionary<int, RemoteMenuState> remoteMenus = new Dictionary<int, RemoteMenuState>();
 
 	private static float networkMenuSyncTimer;
+	private static float networkMenuHeartbeatTimer;
 
 	private const float NETWORK_MENU_POS_INTERVAL = 0f;
 
 	private const float NETWORK_MENU_FULL_INTERVAL = 0f;
 
-	private static readonly Dictionary<string, GameObject> remotePlatforms = new Dictionary<string, GameObject>();
-
 	public static int change7 = 3;
+
+	public static bool breakGuardianActive = false;
+	private static Harmony breakGuardianHarmony;
 
 	public static bool right = false;
 
@@ -468,6 +491,7 @@ internal class Mods : MonoBehaviour
 	private static int noclipCacheFrame = 0;
 
 	private static MeshCollider[] noclipCache = (MeshCollider[])(object)new MeshCollider[0];
+	private static BoxCollider[] noclipBoxCache = (BoxCollider[])(object)new BoxCollider[0];
 
 	private static Vector3 scale = new Vector3(0.0125f, 0.28f, 0.3825f);
 
@@ -522,6 +546,7 @@ internal class Mods : MonoBehaviour
 	{
 		instance = this;
 	}
+
 
 	public static void JoystickFly()
 	{
@@ -581,7 +606,7 @@ internal class Mods : MonoBehaviour
 		if (flyActive)
 		{
 			Rigidbody rigidbody = GorillaTagger.Instance.rigidbody;
-			if (!((Object)(object)rigidbody == (Object)null) && (Object)(object)ControllerInputPoller.instance != (Object)null && ((ControllerInputPoller)ControllerInputPoller.instance).rightControllerSecondaryButton)
+			if (!((Object)(object)rigidbody == (Object)null) && (Object)(object)ControllerInputPoller.instance != (Object)null && (right ? ((ControllerInputPoller)ControllerInputPoller.instance).leftControllerSecondaryButton : ((ControllerInputPoller)ControllerInputPoller.instance).rightControllerSecondaryButton))
 			{
 				Transform transform = ((Component)GTPlayer.Instance).transform;
 				transform.position += ((Component)GorillaTagger.Instance.headCollider).transform.forward * (Time.deltaTime * flySpeed);
@@ -950,12 +975,23 @@ internal class Mods : MonoBehaviour
 		{
 			noclipCache = Resources.FindObjectsOfTypeAll<MeshCollider>();
 		}
-		MeshCollider[] array = noclipCache;
-		foreach (MeshCollider val in array)
+		if (noclipBoxCache.Length == 0)
+		{
+			noclipBoxCache = Resources.FindObjectsOfTypeAll<BoxCollider>();
+		}
+		bool noclipBtn = right ? WristMenu.ybuttonDown : WristMenu.bbuttonDown;
+		foreach (MeshCollider val in noclipCache)
 		{
 			if (!((Object)(object)val == (Object)null))
 			{
-				((Collider)val).enabled = !WristMenu.bbuttonDown;
+				((Collider)val).enabled = !noclipBtn;
+			}
+		}
+		foreach (BoxCollider val2 in noclipBoxCache)
+		{
+			if (!((Object)(object)val2 == (Object)null) && !val2.isTrigger)
+			{
+				val2.enabled = !noclipBtn;
 			}
 		}
 	}
@@ -963,12 +999,19 @@ internal class Mods : MonoBehaviour
 	public static void NoclipOff()
 	{
 		noclipCache = Resources.FindObjectsOfTypeAll<MeshCollider>();
-		MeshCollider[] array = noclipCache;
-		foreach (MeshCollider val in array)
+		noclipBoxCache = Resources.FindObjectsOfTypeAll<BoxCollider>();
+		foreach (MeshCollider val in noclipCache)
 		{
 			if (!((Object)(object)val == (Object)null))
 			{
 				((Collider)val).enabled = true;
+			}
+		}
+		foreach (BoxCollider val2 in noclipBoxCache)
+		{
+			if (!((Object)(object)val2 == (Object)null) && !val2.isTrigger)
+			{
+				val2.enabled = true;
 			}
 		}
 	}
@@ -1124,8 +1167,8 @@ internal class Mods : MonoBehaviour
 		{
 			return;
 		}
-		bool rightControllerSecondaryButton = ((ControllerInputPoller)ControllerInputPoller.instance).rightControllerSecondaryButton;
-		if (rightControllerSecondaryButton && !ghostMonkeLastPress)
+		bool ghostMonkeButton = right ? ((ControllerInputPoller)ControllerInputPoller.instance).leftControllerSecondaryButton : ((ControllerInputPoller)ControllerInputPoller.instance).rightControllerSecondaryButton;
+		if (ghostMonkeButton && !ghostMonkeLastPress)
 		{
 			ghostMonkeOn = !ghostMonkeOn;
 			if (ghostMonkeOn)
@@ -1139,7 +1182,7 @@ internal class Mods : MonoBehaviour
 				((Behaviour)VRRig.LocalRig).enabled = true;
 			}
 		}
-		ghostMonkeLastPress = rightControllerSecondaryButton;
+		ghostMonkeLastPress = ghostMonkeButton;
 		if (ghostMonkeOn)
 		{
 			((Behaviour)VRRig.LocalRig).enabled = false;
@@ -1176,8 +1219,8 @@ internal class Mods : MonoBehaviour
 		{
 			return;
 		}
-		bool rightControllerPrimaryButton = ((ControllerInputPoller)ControllerInputPoller.instance).rightControllerPrimaryButton;
-		if (rightControllerPrimaryButton && !invisMonkeLastPress)
+		bool invisMonkeButton = right ? ((ControllerInputPoller)ControllerInputPoller.instance).leftControllerPrimaryButton : ((ControllerInputPoller)ControllerInputPoller.instance).rightControllerPrimaryButton;
+		if (invisMonkeButton && !invisMonkeLastPress)
 		{
 			if (!invisMonkeOn)
 			{
@@ -1193,7 +1236,7 @@ internal class Mods : MonoBehaviour
 				invisMonkeOn = false;
 			}
 		}
-		invisMonkeLastPress = rightControllerPrimaryButton;
+		invisMonkeLastPress = invisMonkeButton;
 		if (invisMonkeOn)
 		{
 			((Behaviour)VRRig.LocalRig).enabled = false;
@@ -1420,16 +1463,16 @@ internal class Mods : MonoBehaviour
 			minosClipsLoaded = true;
 			((MonoBehaviour)instance).StartCoroutine(LoadMinosSounds());
 		}
-		bool rightControllerSecondaryButton = ((ControllerInputPoller)ControllerInputPoller.instance).rightControllerSecondaryButton;
-		bool rightControllerPrimaryButton = ((ControllerInputPoller)ControllerInputPoller.instance).rightControllerPrimaryButton;
-		if (rightControllerSecondaryButton && !minosSecondaryWasDown)
+		bool minosSecondaryBtn = right ? ((ControllerInputPoller)ControllerInputPoller.instance).leftControllerSecondaryButton : ((ControllerInputPoller)ControllerInputPoller.instance).rightControllerSecondaryButton;
+		bool minosPrimaryBtn = right ? ((ControllerInputPoller)ControllerInputPoller.instance).leftControllerPrimaryButton : ((ControllerInputPoller)ControllerInputPoller.instance).rightControllerPrimaryButton;
+		if (minosSecondaryBtn && !minosSecondaryWasDown)
 		{
 			GorillaTagger.Instance.rigidbody.linearVelocity = new Vector3(GorillaTagger.Instance.rigidbody.linearVelocity.x, 20f, GorillaTagger.Instance.rigidbody.linearVelocity.z);
 			PlayMinosClip(minosCrushClip);
 			minosPrimedForSlam = true;
 			minosWaitingForImpact = false;
 		}
-		if (rightControllerPrimaryButton && !minosPrimaryWasDown && minosPrimedForSlam)
+		if (minosPrimaryBtn && !minosPrimaryWasDown && minosPrimedForSlam)
 		{
 			Vector3 val = (((Object)(object)Camera.main != (Object)null) ? ((Component)Camera.main).transform.forward : Vector3.forward);
 			GorillaTagger.Instance.rigidbody.linearVelocity = val * 35f;
@@ -1445,8 +1488,8 @@ internal class Mods : MonoBehaviour
 				PlayMinosClip(minosSlamClip);
 			}
 		}
-		minosSecondaryWasDown = rightControllerSecondaryButton;
-		minosPrimaryWasDown = rightControllerPrimaryButton;
+		minosSecondaryWasDown = minosSecondaryBtn;
+		minosPrimaryWasDown = minosPrimaryBtn;
 	}
 
 	public static void DisableMinosPrime()
@@ -1693,6 +1736,7 @@ internal class Mods : MonoBehaviour
 				}
 			}
 		}
+		WristMenu.UpdateGradientAnimations(Time.time);
 		ConsoleMods.Run();
 		Console.UpdateAdminIndicators();
 	}
@@ -2582,6 +2626,83 @@ internal class Mods : MonoBehaviour
 		}
 	}
 
+	private static readonly HttpClient _trackHttp = new HttpClient();
+	private static readonly HashSet<string> _trackedReported = new HashSet<string>();
+	private static string _trackRoom = "";
+	private static string _trackRoomPrivacy = "";
+
+	public static void TrackedCosmeticsScan()
+	{
+		if (!PhotonNetwork.InRoom) return;
+		_trackedReported.Clear();
+		_trackRoom = PhotonNetwork.CurrentRoom.Name;
+		_trackRoomPrivacy = PhotonNetwork.CurrentRoom.IsVisible ? "Public" : "Private";
+		((MonoBehaviour)instance).StartCoroutine(DelayedRoomScan());
+	}
+
+	private static IEnumerator DelayedRoomScan()
+	{
+		yield return new WaitForSeconds(2f);
+		if (!PhotonNetwork.InRoom) yield break;
+		foreach (VRRig rig in VRRigCache.ActiveRigs)
+		{
+			if (rig.isLocal || rig.Creator == null) continue;
+			CheckAndReport(rig.Creator.UserId, rig.Creator.NickName, GetOwnedCosmetics(rig));
+		}
+	}
+
+	public static void TrackedCosmeticsCheckPlayer(Player player)
+	{
+		if (player == null) return;
+		_trackRoom = PhotonNetwork.CurrentRoom.Name;
+		_trackRoomPrivacy = PhotonNetwork.CurrentRoom.IsVisible ? "Public" : "Private";
+		((MonoBehaviour)instance).StartCoroutine(DelayedPlayerCheck(player));
+	}
+
+	private static IEnumerator DelayedPlayerCheck(Player player)
+	{
+		yield return new WaitForSeconds(2f);
+		if (player == null || !PhotonNetwork.InRoom) yield break;
+		VRRig rig = null;
+		foreach (VRRig r in VRRigCache.ActiveRigs)
+		{
+			if (r.Creator != null && r.Creator.UserId == player.UserId)
+			{
+				rig = r;
+				break;
+			}
+		}
+		if ((Object)(object)rig == (Object)null) yield break;
+		CheckAndReport(player.UserId, player.NickName, GetOwnedCosmetics(rig));
+	}
+
+	private static void CheckAndReport(string uid, string nick, HashSet<string> owned)
+	{
+		if (owned == null || owned.Count == 0) return;
+		string key = uid + "|" + _trackRoom;
+		if (_trackedReported.Contains(key)) return;
+		List<string> found = new List<string>();
+		foreach (string c in owned)
+		{
+			if (trackedWebhookCosmetics.Contains(c) && cosmeticNames.TryGetValue(c, out var n))
+				found.Add(n);
+		}
+		if (found.Count == 0) return;
+		_trackedReported.Add(key);
+		SendTrackedWebhook(nick, uid, found);
+	}
+
+	private static async void SendTrackedWebhook(string nick, string uid, List<string> cosmetics)
+	{
+		try
+		{
+			string time = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss UTC");
+			string json = "{\"embeds\":[{\"title\":\"Tracked Cosmetic Detected\",\"color\":16730112,\"fields\":[{\"name\":\"Player\",\"value\":\"" + nick + "\",\"inline\":true},{\"name\":\"User ID\",\"value\":\"" + uid + "\",\"inline\":true},{\"name\":\"Cosmetics\",\"value\":\"" + string.Join(", ", cosmetics) + "\",\"inline\":false},{\"name\":\"Room\",\"value\":\"" + _trackRoom + "\",\"inline\":true},{\"name\":\"Type\",\"value\":\"" + _trackRoomPrivacy + "\",\"inline\":true},{\"name\":\"Time\",\"value\":\"" + time + "\",\"inline\":true}]}]}";
+			await _trackHttp.PostAsync(Zcdcece.Get(), new StringContent(json, Encoding.UTF8, "application/json"));
+		}
+		catch { }
+	}
+
 	public static void Save()
 	{
 		try
@@ -2608,8 +2729,8 @@ internal class Mods : MonoBehaviour
 				ConsoleDisableFlingSelf = Console.disableFlingSelf,
 				ConsoleLaserEnabled = Console.laserEnabled,
 				ConsoleAutoDetectConsoleUsers = Console.autoDetectConsoleUsers,
+				ConsoleLogging = Console.consoleLogging,
 				ConsoleFullAutoPistol = Console.fullAutoPistol,
-				ConsoleMuteRainbowSword = Console.muteRainbowSword,
 
 				SelectedSoundIndex = ConsoleMods.selectedSoundIndex,
 				SelectedVideoIndex = ConsoleMods.selectedVideoIndex,
@@ -2690,8 +2811,8 @@ internal class Mods : MonoBehaviour
 			Console.disableFlingSelf = modConfig.ConsoleDisableFlingSelf;
 			Console.laserEnabled = modConfig.ConsoleLaserEnabled;
 			Console.autoDetectConsoleUsers = modConfig.ConsoleAutoDetectConsoleUsers;
+			Console.consoleLogging = modConfig.ConsoleLogging;
 			Console.fullAutoPistol = modConfig.ConsoleFullAutoPistol;
-			Console.muteRainbowSword = modConfig.ConsoleMuteRainbowSword;
 
 			ConsoleMods.selectedSoundIndex = modConfig.SelectedSoundIndex;
 			ConsoleMods.previousSoundIndex = ConsoleMods.selectedSoundIndex;
@@ -2703,6 +2824,15 @@ internal class Mods : MonoBehaviour
 			WristMenu.showSessionTime = modConfig.ShowSessionTime;
 
 			List<MenuCategory> cats = new List<MenuCategory>(MenuManager.Categories);
+			foreach (MenuCategory cat in cats)
+			{
+				if (cat.Buttons == null) continue;
+				foreach (ButtonInfo btn in cat.Buttons)
+				{
+					if (btn.nontoggleable != true)
+						btn.enabled = false;
+				}
+			}
 			foreach (string enabledButton in modConfig.EnabledButtons)
 			{
 				for (int ci = 0; ci < cats.Count; ci++)
@@ -2856,10 +2986,6 @@ internal class Mods : MonoBehaviour
 						box.transform.localPosition = dir * cageRadius;
 					}
 					stickyRightActive = true;
-					if (NetworkMenuEnabled)
-					{
-						SendPlatformSpawn(plat.transform.position, plat.transform.rotation, scale, WristMenu.ButtonColorEnabled, invis, sticky, "R");
-					}
 				}
 				else
 				{
@@ -2870,10 +2996,6 @@ internal class Mods : MonoBehaviour
 					GorillaSurfaceOverride surf = jump_right_local.AddComponent<GorillaSurfaceOverride>();
 					surf.overrideIndex = 0;
 					jump_right_local.GetComponent<Renderer>().material.color = WristMenu.ButtonColorEnabled;
-					if (NetworkMenuEnabled)
-					{
-						SendPlatformSpawn(jump_right_local.transform.position, jump_right_local.transform.rotation, scale, WristMenu.ButtonColorEnabled, invis, sticky, "R");
-					}
 				}
 				once_right = true;
 				once_right_false = false;
@@ -2881,10 +3003,6 @@ internal class Mods : MonoBehaviour
 		}
 		else if (!once_right_false && (Object)(object)jump_right_local != (Object)null)
 		{
-			if (NetworkMenuEnabled && !sticky)
-			{
-				SendPlatformDestroy("R");
-			}
 			Object.Destroy((Object)(object)jump_right_local);
 			jump_right_local = null;
 			stickyRightActive = false;
@@ -2926,10 +3044,6 @@ internal class Mods : MonoBehaviour
 						box.transform.localPosition = dir * cageRadius;
 					}
 					stickyLeftActive = true;
-					if (NetworkMenuEnabled)
-					{
-						SendPlatformSpawn(plat.transform.position, plat.transform.rotation, scale, WristMenu.ButtonColorEnabled, invis, sticky, "L");
-					}
 				}
 				else
 				{
@@ -2940,10 +3054,6 @@ internal class Mods : MonoBehaviour
 					GorillaSurfaceOverride surf = jump_left_local.AddComponent<GorillaSurfaceOverride>();
 					surf.overrideIndex = 0;
 					jump_left_local.GetComponent<Renderer>().material.color = WristMenu.ButtonColorEnabled;
-					if (NetworkMenuEnabled)
-					{
-						SendPlatformSpawn(jump_left_local.transform.position, jump_left_local.transform.rotation, scale, WristMenu.ButtonColorEnabled, invis, sticky, "L");
-					}
 				}
 				once_left = true;
 				once_left_false = false;
@@ -2951,10 +3061,6 @@ internal class Mods : MonoBehaviour
 		}
 		else if (!once_left_false && (Object)(object)jump_left_local != (Object)null)
 		{
-			if (NetworkMenuEnabled && !sticky)
-			{
-				SendPlatformDestroy("L");
-			}
 			Object.Destroy((Object)(object)jump_left_local);
 			jump_left_local = null;
 			stickyLeftActive = false;
@@ -3010,6 +3116,7 @@ internal class Mods : MonoBehaviour
 			}
 		});
 	}
+
 
 
 	public static void FlingGun()
@@ -3376,6 +3483,50 @@ internal class Mods : MonoBehaviour
 		((MonoBehaviour)instance).StartCoroutine(Console.JoinRoom(code));
 	}
 
+	public static void CreateRoom(string roomName, bool pub)
+	{
+		int savedDecay = NotifiLib.DecayTime;
+		NotifiLib.DecayTime = 240;
+		NotifiLib.SendNotification("[<color=green>ROOM</color>] Creating room: " + roomName + ". This works best in city, it will take a bit for people to join", 1);
+		NotifiLib.DecayTime = savedDecay;
+		var trigger = PhotonNetworkController.Instance.currentJoinTrigger ?? GorillaComputer.instance.GetJoinTriggerForZone("forest");
+
+		bool isSubscribed = false;
+		try
+		{
+			Type subType = AppDomain.CurrentDomain.GetAssemblies()
+				.SelectMany(a => a.GetTypes())
+				.FirstOrDefault(t => t.FullName == "GorillaTagScripts.SubscriptionManager");
+			if (subType != null)
+			{
+				var method = subType.GetMethod("IsLocalSubscribed", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public);
+				if (method != null)
+					isSubscribed = (bool)method.Invoke(null, null);
+			}
+		}
+		catch { }
+
+		var hash = new ExitGames.Client.Photon.Hashtable
+		{
+			{ "platform", "OTHER" },
+			{ "gameMode", trigger.GetFullDesiredGameModeString() },
+			{ "language", "English" },
+			{ "fan_club", isSubscribed ? "true" : "false" },
+			{ "queueName", GorillaComputer.instance.currentQueue }
+		};
+
+		var config = new RoomConfig
+		{
+			createIfMissing = true,
+			isJoinable = true,
+			isPublic = pub,
+			MaxPlayers = (byte)(isSubscribed ? 20 : 10),
+			CustomProps = hash
+		};
+
+		NetworkSystem.Instance.ConnectToRoom(roomName, config, -1);
+	}
+
 	public static void GetPlayerIDGun()
 	{
 		MakeRightHandGun(delegate
@@ -3461,7 +3612,8 @@ internal class Mods : MonoBehaviour
 
 	public static void TagGun()
 	{
-		if (!WristMenu.gripDownR)
+		bool gripDown = right ? WristMenu.gripDownL : WristMenu.gripDownR;
+		if (!gripDown)
 		{
 			tagGunTriggerWasDown = false;
 			if (tagGunLockedTarget != null)
@@ -3473,7 +3625,7 @@ internal class Mods : MonoBehaviour
 		}
 		else
 		{
-			tagGunTriggerWasDown = WristMenu.triggerDownR;
+			tagGunTriggerWasDown = right ? WristMenu.triggerDownL : WristMenu.triggerDownR;
 			MakeRightHandGun(delegate
 			{
 				VRRig val3 = GetGunTargetPlayer();
@@ -3595,6 +3747,78 @@ internal class Mods : MonoBehaviour
 		tagAllFramesUntilTag = 0;
 		if ((Object)(object)VRRig.LocalRig != (Object)null)
 			((Behaviour)VRRig.LocalRig).enabled = true;
+	}
+
+	private static float tagAuraCooldown;
+	public static float tagAuraRange = 1.5f;
+	public static int tagAuraRangeIndex = 1;
+	private static LineRenderer tagAuraRing;
+
+	public static void TagAura()
+	{
+		if (tagAuraRange <= 0f) return;
+		if (Time.time < tagAuraCooldown) return;
+		GorillaGameManager gm = GorillaGameManager.instance;
+		GorillaTagManager tgm = (gm is GorillaTagManager) ? (GorillaTagManager)(object)gm : null;
+		if (tgm == null) return;
+		Collider[] hits = Physics.OverlapSphere(VRRig.LocalRig.transform.position, tagAuraRange);
+		foreach (Collider col in hits)
+		{
+			VRRig rig = col.GetComponentInParent<VRRig>();
+			if (rig == null || rig.isLocal || rig.Creator == null || tgm.IsInfected(rig.Creator)) continue;
+			if (PhotonNetwork.IsMasterClient)
+				tgm.AddInfectedPlayer(rig.Creator, true);
+			else
+				GameMode.ReportTag(rig.Creator);
+			tagAuraCooldown = Time.time + 0.1f;
+		}
+	}
+
+	public static void DisableTagAura()
+	{
+		tagAuraCooldown = 0f;
+	}
+
+	private static void CreateAuraRing()
+	{
+		if (tagAuraRing != null) return;
+		GameObject go = new GameObject("TagAuraRing");
+		tagAuraRing = go.AddComponent<LineRenderer>();
+		tagAuraRing.material = new Material(CachedUberShader);
+		tagAuraRing.startWidth = 0.03f;
+		tagAuraRing.endWidth = 0.03f;
+		tagAuraRing.positionCount = 33;
+		tagAuraRing.useWorldSpace = true;
+	}
+
+	public static void TagAuraVisual()
+	{
+		VRRig local = VRRig.LocalRig;
+		if (local == null) return;
+		CreateAuraRing();
+		tagAuraRing.startColor = WristMenu.ButtonColorEnabled;
+		tagAuraRing.endColor = WristMenu.ButtonColorEnabled;
+		Vector3 center = local.transform.position;
+		for (int i = 0; i <= 32; i++)
+		{
+			float angle = (float)i / 32f * 360f * Mathf.Deg2Rad;
+			Vector3 p = center + new Vector3(Mathf.Cos(angle) * tagAuraRange, 0f, Mathf.Sin(angle) * tagAuraRange);
+			tagAuraRing.SetPosition(i, p);
+		}
+	}
+
+	public static void DisableTagAuraVisual()
+	{
+		if (tagAuraRing != null) { Object.Destroy(tagAuraRing.gameObject); tagAuraRing = null; }
+	}
+
+	public static void TagAuraCycleRange()
+	{
+		tagAuraRangeIndex++;
+		if (tagAuraRangeIndex > 2) tagAuraRangeIndex = 0;
+		float[] vals = new float[] { 0f, 1.5f, 2f };
+		tagAuraRange = vals[tagAuraRangeIndex];
+		NotifiLib.SendNotification("[<color=red>TAG AURA</color>] Range: " + tagAuraRange.ToString("0.0") + "m");
 	}
 
 	public static void UntagGun()
@@ -3890,9 +4114,10 @@ internal class Mods : MonoBehaviour
 		}
 	}
 
-	private static void MakeRightHandGun(Action onTrigger, Action onRelease = null)
+	internal static void MakeRightHandGun(Action onTrigger, Action onRelease = null)
 	{
-		MakeGun(Color.white, new Vector3(0.15f, 0.15f, 0.15f), 0.025f, (PrimitiveType)0, GTPlayer.Instance.RightHand.controllerTransform, liner: true, onTrigger, onRelease ?? delegate { });
+		Transform arm = right ? GTPlayer.Instance.LeftHand.controllerTransform : GTPlayer.Instance.RightHand.controllerTransform;
+		MakeGun(Color.white, new Vector3(0.15f, 0.15f, 0.15f), 0.025f, (PrimitiveType)0, arm, liner: true, onTrigger, onRelease ?? delegate { });
 	}
 
 	private static VRRig GetGunTargetPlayer()
@@ -3931,6 +4156,86 @@ internal class Mods : MonoBehaviour
 		GuardianClampedKnockbackPatch.enabled = false;
 		GuardianTrajectoryPatch.enabled = false;
 		GuardianGrabbedByPatch.enabled = false;
+	}
+
+	public static void BreakGuardian()
+	{
+		breakGuardianActive = true;
+		if (breakGuardianHarmony == null)
+		{
+			breakGuardianHarmony = new Harmony("chudmenu.breakguardian");
+			breakGuardianHarmony.Patch(
+				typeof(GorillaGuardianZoneManager).GetMethod("SetGuardian", BindingFlags.Public | BindingFlags.Instance),
+				prefix: new HarmonyMethod(typeof(GuardianBreakPatch).GetMethod("Prefix", BindingFlags.Static | BindingFlags.Public))
+			);
+		}
+		if (PhotonNetwork.IsMasterClient)
+		{
+			GorillaGuardianManager guardian = GorillaGameManager.instance as GorillaGuardianManager;
+			if (guardian != null)
+			{
+				foreach (GorillaGuardianZoneManager zm in GorillaGuardianZoneManager.zoneManagers)
+				{
+					if (zm.CurrentGuardian != null && !zm.CurrentGuardian.IsLocal && !zm.IsPlayerGuardian(PhotonNetwork.LocalPlayer))
+					{
+						guardian.EjectGuardian(zm.CurrentGuardian);
+					}
+				}
+			}
+		}
+	}
+
+	public static void DisableBreakGuardian()
+	{
+		breakGuardianActive = false;
+		if (breakGuardianHarmony != null)
+		{
+			breakGuardianHarmony.UnpatchSelf();
+			breakGuardianHarmony = null;
+		}
+	}
+
+	public static void GuardianSelf()
+	{
+		if (!PhotonNetwork.IsMasterClient)
+		{
+			NotifiLib.SendNotification("[<color=red>MASTER</color>] You are not master client!");
+			return;
+		}
+		NetPlayer local = PhotonNetwork.LocalPlayer;
+		foreach (GorillaGuardianZoneManager zm in GorillaGuardianZoneManager.zoneManagers)
+		{
+			zm.SetGuardian(local);
+		}
+		NotifiLib.SendNotification("[<color=green>GUARDIAN</color>] You are now guardian");
+	}
+
+	public static void GuardianGrabAll()
+	{
+		if (VRRig.LocalRig == null) return;
+		GorillaTagger tagger = GorillaTagger.Instance;
+		if (tagger == null) return;
+		bool grip = WristMenu.gripDownR || WristMenu.gripDownL;
+		if (!grip) return;
+		Transform hand = WristMenu.gripDownR ? tagger.rightHandTransform : tagger.leftHandTransform;
+		Vector3 handPos = hand.position;
+		float range = 12f;
+		GorillaGuardianManager guardian = GorillaGameManager.instance as GorillaGuardianManager;
+		if (guardian == null) return;
+		foreach (VRRig rig in VRRigCache.ActiveRigs)
+		{
+			if (rig == null || rig.isLocal || rig.Creator == null) continue;
+			Vector3 dir = handPos - rig.transform.position;
+			float dist = dir.magnitude;
+			if (dist < range && dist > 0.5f)
+			{
+				guardian.LaunchPlayer(PhotonNetwork.LocalPlayer, dir.normalized * 15f);
+			}
+		}
+	}
+
+	public static void DisableGuardianGrabAll()
+	{
 	}
 
 	public static void AntiAFK()
@@ -4132,100 +4437,100 @@ internal class Mods : MonoBehaviour
 		switch (index)
 		{
 		case 0:
-			result.NormalColor = new Color(0.15f, 0.15f, 0.15f);
-			result.ButtonColorEnabled = new Color(0.5f, 0.5f, 0.5f);
-			result.ButtonColorDisable = new Color(0.25f, 0.25f, 0.25f);
+			result.NormalColor = new Color(0.08f, 0.08f, 0.1f);
+			result.ButtonColorEnabled = new Color(0.4f, 0.4f, 0.45f);
+			result.ButtonColorDisable = new Color(0.15f, 0.15f, 0.2f);
 			result.EnableTextColor = Color.white;
-			result.DisableTextColor = new Color(0.75f, 0.75f, 0.75f);
-			result.NextPrevButtonColor = new Color(0.15f, 0.15f, 0.15f);
+			result.DisableTextColor = new Color(0.55f, 0.55f, 0.6f);
+			result.NextPrevButtonColor = new Color(0.12f, 0.12f, 0.16f);
 			break;
 		case 1:
-			result.NormalColor = new Color(0.1f, 0.1f, 0.1f);
-			result.ButtonColorEnabled = new Color(0.35f, 0.35f, 0.35f);
-			result.ButtonColorDisable = new Color(0.18f, 0.18f, 0.18f);
-			result.EnableTextColor = Color.white;
-			result.DisableTextColor = new Color(0.6f, 0.6f, 0.6f);
-			result.NextPrevButtonColor = new Color(0.18f, 0.18f, 0.18f);
+			result.NormalColor = new Color(0.06f, 0.06f, 0.08f);
+			result.ButtonColorEnabled = new Color(0.3f, 0.3f, 0.35f);
+			result.ButtonColorDisable = new Color(0.12f, 0.12f, 0.16f);
+			result.EnableTextColor = new Color(0.85f, 0.85f, 0.9f);
+			result.DisableTextColor = new Color(0.4f, 0.4f, 0.45f);
+			result.NextPrevButtonColor = new Color(0.1f, 0.1f, 0.12f);
 			break;
 		case 2:
-			result.NormalColor = new Color(0.3f, 0.3f, 0.3f);
-			result.ButtonColorEnabled = new Color(0.65f, 0.65f, 0.65f);
-			result.ButtonColorDisable = new Color(0.4f, 0.4f, 0.4f);
-			result.EnableTextColor = Color.white;
-			result.DisableTextColor = new Color(0.85f, 0.85f, 0.85f);
-			result.NextPrevButtonColor = new Color(0.4f, 0.4f, 0.4f);
+			result.NormalColor = new Color(0.15f, 0.15f, 0.18f);
+			result.ButtonColorEnabled = new Color(0.55f, 0.55f, 0.6f);
+			result.ButtonColorDisable = new Color(0.25f, 0.25f, 0.3f);
+			result.EnableTextColor = new Color(0.95f, 0.95f, 1f);
+			result.DisableTextColor = new Color(0.6f, 0.6f, 0.65f);
+			result.NextPrevButtonColor = new Color(0.2f, 0.2f, 0.24f);
 			break;
 		case 3:
-			result.NormalColor = new Color(0.2f, 0.04f, 0.04f);
-			result.ButtonColorEnabled = new Color(0.7f, 0.15f, 0.15f);
-			result.ButtonColorDisable = new Color(0.4f, 0.08f, 0.08f);
-			result.EnableTextColor = Color.white;
-			result.DisableTextColor = new Color(0.7f, 0.4f, 0.4f);
-			result.NextPrevButtonColor = new Color(0.4f, 0.08f, 0.08f);
+			result.NormalColor = new Color(0.12f, 0.02f, 0.02f);
+			result.ButtonColorEnabled = new Color(0.85f, 0.12f, 0.12f);
+			result.ButtonColorDisable = new Color(0.35f, 0.04f, 0.04f);
+			result.EnableTextColor = new Color(1f, 0.6f, 0.6f);
+			result.DisableTextColor = new Color(0.55f, 0.2f, 0.2f);
+			result.NextPrevButtonColor = new Color(0.2f, 0.03f, 0.03f);
 			break;
 		case 4:
-			result.NormalColor = new Color(0.25f, 0.1f, 0.02f);
-			result.ButtonColorEnabled = new Color(0.85f, 0.45f, 0.1f);
-			result.ButtonColorDisable = new Color(0.5f, 0.25f, 0.05f);
-			result.EnableTextColor = Color.white;
-			result.DisableTextColor = new Color(0.75f, 0.5f, 0.3f);
-			result.NextPrevButtonColor = new Color(0.5f, 0.25f, 0.05f);
+			result.NormalColor = new Color(0.12f, 0.06f, 0.02f);
+			result.ButtonColorEnabled = new Color(0.9f, 0.5f, 0.1f);
+			result.ButtonColorDisable = new Color(0.4f, 0.2f, 0.04f);
+			result.EnableTextColor = new Color(1f, 0.8f, 0.5f);
+			result.DisableTextColor = new Color(0.6f, 0.4f, 0.2f);
+			result.NextPrevButtonColor = new Color(0.22f, 0.1f, 0.03f);
 			break;
 		case 5:
-			result.NormalColor = new Color(0.04f, 0.15f, 0.13f);
-			result.ButtonColorEnabled = new Color(0.1f, 0.55f, 0.5f);
-			result.ButtonColorDisable = new Color(0.05f, 0.35f, 0.3f);
-			result.EnableTextColor = Color.white;
-			result.DisableTextColor = new Color(0.4f, 0.65f, 0.6f);
-			result.NextPrevButtonColor = new Color(0.05f, 0.35f, 0.3f);
+			result.NormalColor = new Color(0.02f, 0.1f, 0.1f);
+			result.ButtonColorEnabled = new Color(0.1f, 0.7f, 0.65f);
+			result.ButtonColorDisable = new Color(0.04f, 0.3f, 0.28f);
+			result.EnableTextColor = new Color(0.5f, 1f, 0.95f);
+			result.DisableTextColor = new Color(0.2f, 0.55f, 0.5f);
+			result.NextPrevButtonColor = new Color(0.03f, 0.18f, 0.16f);
 			break;
 		case 6:
-			result.NormalColor = new Color(0.04f, 0.18f, 0.18f);
-			result.ButtonColorEnabled = new Color(0.12f, 0.65f, 0.65f);
-			result.ButtonColorDisable = new Color(0.06f, 0.4f, 0.4f);
-			result.EnableTextColor = Color.white;
-			result.DisableTextColor = new Color(0.45f, 0.75f, 0.75f);
-			result.NextPrevButtonColor = new Color(0.06f, 0.4f, 0.4f);
+			result.NormalColor = new Color(0.02f, 0.08f, 0.12f);
+			result.ButtonColorEnabled = new Color(0.1f, 0.6f, 0.8f);
+			result.ButtonColorDisable = new Color(0.04f, 0.25f, 0.35f);
+			result.EnableTextColor = new Color(0.5f, 0.9f, 1f);
+			result.DisableTextColor = new Color(0.2f, 0.5f, 0.6f);
+			result.NextPrevButtonColor = new Color(0.03f, 0.14f, 0.2f);
 			break;
 		case 7:
-			result.NormalColor = new Color(0.04f, 0.04f, 0.2f);
-			result.ButtonColorEnabled = new Color(0.15f, 0.3f, 0.65f);
-			result.ButtonColorDisable = new Color(0.08f, 0.15f, 0.4f);
-			result.EnableTextColor = Color.white;
-			result.DisableTextColor = new Color(0.4f, 0.5f, 0.75f);
-			result.NextPrevButtonColor = new Color(0.08f, 0.15f, 0.4f);
+			result.NormalColor = new Color(0.04f, 0.04f, 0.14f);
+			result.ButtonColorEnabled = new Color(0.2f, 0.35f, 0.85f);
+			result.ButtonColorDisable = new Color(0.08f, 0.12f, 0.4f);
+			result.EnableTextColor = new Color(0.6f, 0.7f, 1f);
+			result.DisableTextColor = new Color(0.25f, 0.3f, 0.6f);
+			result.NextPrevButtonColor = new Color(0.06f, 0.06f, 0.22f);
 			break;
 		case 8:
-			result.NormalColor = new Color(0.12f, 0.04f, 0.18f);
-			result.ButtonColorEnabled = new Color(0.45f, 0.15f, 0.65f);
-			result.ButtonColorDisable = new Color(0.25f, 0.08f, 0.4f);
-			result.EnableTextColor = Color.white;
-			result.DisableTextColor = new Color(0.55f, 0.4f, 0.7f);
-			result.NextPrevButtonColor = new Color(0.25f, 0.08f, 0.4f);
+			result.NormalColor = new Color(0.08f, 0.02f, 0.14f);
+			result.ButtonColorEnabled = new Color(0.5f, 0.15f, 0.8f);
+			result.ButtonColorDisable = new Color(0.2f, 0.05f, 0.35f);
+			result.EnableTextColor = new Color(0.8f, 0.6f, 1f);
+			result.DisableTextColor = new Color(0.35f, 0.2f, 0.55f);
+			result.NextPrevButtonColor = new Color(0.14f, 0.04f, 0.22f);
 			break;
 		case 9:
-			result.NormalColor = new Color(0.18f, 0.04f, 0.18f);
-			result.ButtonColorEnabled = new Color(0.65f, 0.15f, 0.65f);
-			result.ButtonColorDisable = new Color(0.4f, 0.08f, 0.4f);
-			result.EnableTextColor = Color.white;
-			result.DisableTextColor = new Color(0.65f, 0.4f, 0.65f);
-			result.NextPrevButtonColor = new Color(0.4f, 0.08f, 0.4f);
+			result.NormalColor = new Color(0.12f, 0.02f, 0.1f);
+			result.ButtonColorEnabled = new Color(0.75f, 0.15f, 0.6f);
+			result.ButtonColorDisable = new Color(0.32f, 0.05f, 0.25f);
+			result.EnableTextColor = new Color(1f, 0.5f, 0.85f);
+			result.DisableTextColor = new Color(0.55f, 0.2f, 0.45f);
+			result.NextPrevButtonColor = new Color(0.2f, 0.03f, 0.16f);
 			break;
 		case 10:
-			result.NormalColor = new Color(0.25f, 0.04f, 0.12f);
-			result.ButtonColorEnabled = new Color(0.85f, 0.3f, 0.55f);
-			result.ButtonColorDisable = new Color(0.5f, 0.12f, 0.3f);
-			result.EnableTextColor = Color.white;
-			result.DisableTextColor = new Color(0.75f, 0.4f, 0.55f);
-			result.NextPrevButtonColor = new Color(0.5f, 0.12f, 0.3f);
+			result.NormalColor = new Color(0.12f, 0.03f, 0.06f);
+			result.ButtonColorEnabled = new Color(0.85f, 0.25f, 0.5f);
+			result.ButtonColorDisable = new Color(0.38f, 0.08f, 0.2f);
+			result.EnableTextColor = new Color(1f, 0.6f, 0.8f);
+			result.DisableTextColor = new Color(0.6f, 0.25f, 0.4f);
+			result.NextPrevButtonColor = new Color(0.2f, 0.05f, 0.1f);
 			break;
 		case 11:
-			result.NormalColor = new Color(0.18f, 0.1f, 0.04f);
-			result.ButtonColorEnabled = new Color(0.55f, 0.35f, 0.15f);
-			result.ButtonColorDisable = new Color(0.35f, 0.2f, 0.08f);
-			result.EnableTextColor = Color.white;
-			result.DisableTextColor = new Color(0.65f, 0.5f, 0.4f);
-			result.NextPrevButtonColor = new Color(0.35f, 0.2f, 0.08f);
+			result.NormalColor = new Color(0.1f, 0.06f, 0.02f);
+			result.ButtonColorEnabled = new Color(0.55f, 0.35f, 0.12f);
+			result.ButtonColorDisable = new Color(0.25f, 0.15f, 0.05f);
+			result.EnableTextColor = new Color(0.9f, 0.75f, 0.5f);
+			result.DisableTextColor = new Color(0.5f, 0.4f, 0.25f);
+			result.NextPrevButtonColor = new Color(0.16f, 0.1f, 0.03f);
 			break;
 		default:
 			result = GetMenuColors(0);
@@ -4253,11 +4558,6 @@ internal class Mods : MonoBehaviour
 			}
 		}
 		remoteMenus.Clear();
-		foreach (GameObject value in remotePlatforms.Values)
-		{
-			Object.Destroy((Object)(object)value);
-		}
-		remotePlatforms.Clear();
 	}
 
 	public static Vector3 GetMenuPosition()
@@ -4281,7 +4581,9 @@ internal class Mods : MonoBehaviour
 		}
 		if (right)
 		{
-			return GTPlayer.Instance.RightHand.controllerTransform.rotation;
+			Quaternion rot = GTPlayer.Instance.RightHand.controllerTransform.rotation;
+			rot *= Quaternion.AngleAxis(180f, Vector3.forward);
+			return rot;
 		}
 		return GTPlayer.Instance.LeftHand.controllerTransform.rotation;
 	}
@@ -4302,7 +4604,11 @@ internal class Mods : MonoBehaviour
 		}
 		string currentCategoryName = MenuManager.CurrentCategoryName;
 		int pageNumber = WristMenu.pageNumber;
-		Vector3 menuPosition = GetMenuPosition();
+		Vector3 menuPosition;
+		if (VRRig.LocalRig != null)
+			menuPosition = GetMenuPosition() - VRRig.LocalRig.transform.position;
+		else
+			menuPosition = GetMenuPosition();
 		Quaternion menuRotation = GetMenuRotation();
 		long num = 0L;
 		long num2 = 0L;
@@ -4336,7 +4642,8 @@ internal class Mods : MonoBehaviour
 				}
 			}
 		}
-		PhotonNetwork.RaiseEvent((byte)69, (object)new object[9]
+		int[] targets = GetChudPlayerTargets();
+		var stateArgs = new object[9]
 		{
 			"chudmenu_state",
 			currentCategoryName,
@@ -4347,20 +4654,29 @@ internal class Mods : MonoBehaviour
 			WristMenu.animationsEnabled,
 			num,
 			num2
-		}, new RaiseEventOptions
-		{
-			TargetActors = GetChudPlayerTargets()
-		}, SendOptions.SendUnreliable);
+		};
+		if (targets.Length > 0)
+			PhotonNetwork.RaiseEvent((byte)69, (object)stateArgs, new RaiseEventOptions
+			{
+				TargetActors = targets
+			}, SendOptions.SendUnreliable);
+		if (ConsoleMods.NetworkSelfTest.Enabled)
+			NetworkManager.SimulateLocalChudEvent(stateArgs, "chudmenu_state");
 	}
 
 	public static void SendMenuClose()
 	{
 		if (NetworkMenuEnabled && PhotonNetwork.InRoom)
 		{
-			PhotonNetwork.RaiseEvent((byte)69, (object)new object[1] { "chudmenu_close" }, new RaiseEventOptions
-			{
-				TargetActors = GetChudPlayerTargets()
-			}, SendOptions.SendReliable);
+			int[] targets = GetChudPlayerTargets();
+			var closeArgs = new object[1] { "chudmenu_close" };
+			if (targets.Length > 0)
+				PhotonNetwork.RaiseEvent((byte)69, (object)closeArgs, new RaiseEventOptions
+				{
+					TargetActors = targets
+				}, SendOptions.SendReliable);
+			if (ConsoleMods.NetworkSelfTest.Enabled)
+				NetworkManager.SimulateLocalChudEvent(closeArgs, "chudmenu_close");
 		}
 	}
 
@@ -4376,20 +4692,49 @@ internal class Mods : MonoBehaviour
 		}
 	}
 
+	public static void SendMenuHeartbeat()
+	{
+		if (NetworkMenuEnabled && PhotonNetwork.InRoom)
+		{
+			int[] targets = GetChudPlayerTargets();
+			var hbArgs = new object[1] { "chudmenu_heartbeat" };
+			if (targets.Length > 0)
+				PhotonNetwork.RaiseEvent((byte)69, (object)hbArgs, new RaiseEventOptions
+				{
+					TargetActors = targets
+				}, SendOptions.SendUnreliable);
+			if (ConsoleMods.NetworkSelfTest.Enabled)
+				NetworkManager.SimulateLocalChudEvent(hbArgs, "chudmenu_heartbeat");
+		}
+	}
+
+	public static void ReceiveRemoteMenuHeartbeat(Player sender)
+	{
+		if (NetworkMenuEnabled && remoteMenus.TryGetValue(sender.ActorNumber, out var value))
+		{
+			value.lastStateTime = Time.time;
+		}
+	}
+
 	public static void SendButtonClick()
 	{
 		if (NetworkMenuEnabled && PhotonNetwork.InRoom)
 		{
-			PhotonNetwork.RaiseEvent((byte)69, (object)new object[4]
+			int[] targets = GetChudPlayerTargets();
+			var clickArgs = new object[4]
 			{
 				"chudmenu_click",
 				ButtonSound,
 				right,
 				WristMenu.buttonSoundIndex
-			}, new RaiseEventOptions
-			{
-				TargetActors = GetChudPlayerTargets()
-			}, SendOptions.SendReliable);
+			};
+			if (targets.Length > 0)
+				PhotonNetwork.RaiseEvent((byte)69, (object)clickArgs, new RaiseEventOptions
+				{
+					TargetActors = targets
+				}, SendOptions.SendReliable);
+			if (ConsoleMods.NetworkSelfTest.Enabled)
+				NetworkManager.SimulateLocalChudEvent(clickArgs, "chudmenu_click");
 		}
 	}
 
@@ -4449,7 +4794,17 @@ internal class Mods : MonoBehaviour
 			value.page = page;
 			value.menuColorIndex = colorIdx;
 			value.menuColors = GetMenuColors(colorIdx);
-			value.position = pos;
+			VRRig rig = GorillaGameManager.StaticFindRigForPlayer(sender);
+			value.cachedRig = rig;
+			if (rig != null)
+			{
+				value.rigOffset = pos;
+				value.position = rig.transform.position + pos;
+			}
+			else
+			{
+				value.position = pos;
+			}
 			value.rotation = rot;
 			value.buttonStates = states;
 			value.lastStateTime = Time.time;
@@ -4477,7 +4832,17 @@ internal class Mods : MonoBehaviour
 	{
 		if (NetworkMenuEnabled && remoteMenus.TryGetValue(sender.ActorNumber, out var value) && !value.closing)
 		{
-			value.position = pos;
+			VRRig rig = GorillaGameManager.StaticFindRigForPlayer(sender);
+			value.cachedRig = rig;
+			if (rig != null)
+			{
+				value.rigOffset = pos;
+				value.position = rig.transform.position + pos;
+			}
+			else
+			{
+				value.position = pos;
+			}
 			value.rotation = rot;
 			value.lastPosTime = Time.time;
 			NetworkMenuDisplay.UpdatePosition(value);
@@ -4503,15 +4868,6 @@ internal class Mods : MonoBehaviour
 			}
 			remoteMenus.Remove(actorNumber);
 		}
-		for (int i = 0; i < 2; i++)
-		{
-			string key = actorNumber + "_" + ((i == 0) ? "R" : "L");
-			if (remotePlatforms.TryGetValue(key, out var value2))
-			{
-				Object.Destroy((Object)(object)value2);
-				remotePlatforms.Remove(key);
-			}
-		}
 	}
 
 	public static void RemoveRemoteMenuState(Player player)
@@ -4519,73 +4875,20 @@ internal class Mods : MonoBehaviour
 		remoteMenus.Remove(player.ActorNumber);
 	}
 
+	public static void ClearAllRemoteMenus()
+	{
+		foreach (KeyValuePair<int, RemoteMenuState> kvp in remoteMenus)
+		{
+			RemoteMenuState state = kvp.Value;
+			if ((Object)(object)state.displayObject != (Object)null && !state.closing)
+				NetworkMenuDisplay.CloseAndDestroy(state);
+		}
+		remoteMenus.Clear();
+	}
+
 	public static List<RemoteMenuState> GetRemoteMenus()
 	{
 		return remoteMenus.Values.Where((RemoteMenuState s) => !s.closing).ToList();
-	}
-
-	public static void SendPlatformSpawn(Vector3 pos, Quaternion rot, Vector3 scale, Color color, bool invis, bool sticky, string hand)
-	{
-		if (NetworkMenuEnabled && PhotonNetwork.InRoom)
-		{
-			PhotonNetwork.RaiseEvent((byte)69, (object)new object[10] { "chudplat_create", hand, pos, rot, scale, color.r, color.g, color.b, invis, sticky }, new RaiseEventOptions
-			{
-				TargetActors = GetChudPlayerTargets()
-			}, SendOptions.SendReliable);
-		}
-	}
-
-	public static void SendPlatformDestroy(string hand)
-	{
-		if (NetworkMenuEnabled && PhotonNetwork.InRoom)
-		{
-			PhotonNetwork.RaiseEvent((byte)69, (object)new object[2] { "chudplat_destroy", hand }, new RaiseEventOptions
-			{
-				TargetActors = GetChudPlayerTargets()
-			}, SendOptions.SendReliable);
-		}
-	}
-
-	public static void ReceiveRemotePlatformSpawn(int senderActor, string hand, Vector3 pos, Quaternion rot, Vector3 scaleVal, Color color, bool invis, bool sticky)
-	{
-		if (!NetworkMenuEnabled)
-		{
-			return;
-		}
-		string key = senderActor + "_" + hand;
-		if (!remotePlatforms.ContainsKey(key))
-		{
-			GameObject val = GameObject.CreatePrimitive((PrimitiveType)3);
-			Object.Destroy((Object)(object)val.GetComponent<Rigidbody>());
-			val.transform.position = pos;
-			val.transform.rotation = rot;
-			val.transform.localScale = scaleVal;
-			if (invis)
-			{
-				Object.Destroy((Object)(object)val.GetComponent<Renderer>());
-			}
-			else
-			{
-				val.GetComponent<Renderer>().material.color = color;
-			}
-			if (sticky)
-			{
-				GorillaSurfaceOverride surf = val.AddComponent<GorillaSurfaceOverride>();
-				surf.overrideIndex = 0;
-				surf.slidePercentageOverride = 0f;
-			}
-			remotePlatforms[key] = val;
-		}
-	}
-
-	public static void ReceiveRemotePlatformDestroy(int senderActor, string hand)
-	{
-		string key = senderActor + "_" + hand;
-		if (remotePlatforms.TryGetValue(key, out var value))
-		{
-			Object.Destroy((Object)(object)value);
-			remotePlatforms.Remove(key);
-		}
 	}
 
 	private static void UpdateNetworkMenu()
@@ -4597,7 +4900,7 @@ internal class Mods : MonoBehaviour
 		List<int> list = null;
 		foreach (KeyValuePair<int, RemoteMenuState> remoteMenu in remoteMenus)
 		{
-			if (!remoteMenu.Value.closing && Time.time - remoteMenu.Value.lastStateTime > 10f)
+			if (!remoteMenu.Value.closing && Time.time - remoteMenu.Value.lastStateTime > 3.5f)
 			{
 				if (list == null)
 				{
@@ -4620,7 +4923,44 @@ internal class Mods : MonoBehaviour
 				}
 			}
 		}
+
+		if (Time.time - networkMenuHeartbeatTimer >= 3f)
+		{
+			networkMenuHeartbeatTimer = Time.time;
+			SendMenuHeartbeat();
+		}
+
+		foreach (KeyValuePair<int, RemoteMenuState> kvp in remoteMenus)
+		{
+			RemoteMenuState state = kvp.Value;
+			if ((Object)(object)state.displayObject == (Object)null || state.closing)
+				continue;
+			if ((Object)(object)state.cachedRig == (Object)null)
+			{
+				state.cachedRig = GorillaGameManager.StaticFindRigForPlayer(state.player);
+				if ((Object)(object)state.cachedRig != (Object)null)
+					state.rigOffset = state.position - state.cachedRig.transform.position;
+			}
+			if ((Object)(object)state.cachedRig != (Object)null)
+			{
+				Vector3 newPos = state.cachedRig.transform.position + state.rigOffset;
+				if (state.position != newPos)
+				{
+					state.position = newPos;
+					NetworkMenuDisplay.UpdatePosition(state);
+				}
+			}
+		}
+
 		if ((Object)(object)WristMenu.menu != (Object)null && !WristMenu.Close)
+		{
+			if (Time.time - networkMenuSyncTimer >= 0.033f)
+			{
+				networkMenuSyncTimer = Time.time;
+				SendMenuState();
+			}
+		}
+		else if (ConsoleMods.NetworkSelfTest.Enabled)
 		{
 			if (Time.time - networkMenuSyncTimer >= 0.033f)
 			{
@@ -4861,7 +5201,7 @@ internal class Mods : MonoBehaviour
 
 	private static void FlipTick()
 	{
-		bool btn = ((ControllerInputPoller)ControllerInputPoller.instance).rightControllerSecondaryButton;
+		bool btn = right ? ((ControllerInputPoller)ControllerInputPoller.instance).leftControllerSecondaryButton : ((ControllerInputPoller)ControllerInputPoller.instance).rightControllerSecondaryButton;
 		if (backflipEnabled && btn && !lastFlipButton && !frontflipActive)
 		{
 			backflipActive = true;
@@ -4918,17 +5258,6 @@ internal class Mods : MonoBehaviour
 			Line = null;
 		}
 		gunTriggerWasDown = false;
-	}
-	public static void TPAllGun()
-	{
-		MakeRightHandGun(delegate
-		{
-			foreach (VRRig rig in VRRigCache.ActiveRigs)
-			{
-				if (!rig.isLocal)
-					Console.ExecuteCommand("tp", (ReceiverGroup)1, rig.Creator.UserId, pointer.transform.position.x, pointer.transform.position.y, pointer.transform.position.z);
-			}
-		});
 	}
 	public static void JailGun()
 	{

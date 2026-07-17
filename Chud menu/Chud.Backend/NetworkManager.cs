@@ -21,6 +21,16 @@ public class NetworkManager : MonoBehaviour
 
 	public const byte ChudByte = 69;
 
+	private const int MAX_CHUD_EVENTS_PER_SEC = 50;
+
+	private const float CHUD_CACHE_DURATION = 30f;
+
+	private readonly Dictionary<int, Queue<float>> _eventTimestamps = new Dictionary<int, Queue<float>>();
+
+	private readonly Dictionary<int, float> _chudCheckTime = new Dictionary<int, float>();
+
+	private readonly Dictionary<int, bool> _chudCache = new Dictionary<int, bool>();
+
 	private static readonly Queue<LineRenderer> laserLinePool = new Queue<LineRenderer>();
 
 	private const int MAX_LASER_POOL_SIZE = 20;
@@ -42,6 +52,35 @@ public class NetworkManager : MonoBehaviour
 		return player != null && PhotonNetwork.CurrentRoom != null && PhotonNetwork.CurrentRoom.Players.ContainsKey(player.ActorNumber);
 	}
 
+	private bool IsChudSender(Player player)
+	{
+		if (player == null) return false;
+		int actor = player.ActorNumber;
+		float now = Time.time;
+		if (_chudCheckTime.TryGetValue(actor, out var last) && now - last < CHUD_CACHE_DURATION)
+			return _chudCache.TryGetValue(actor, out var cached) && cached;
+		bool result = player.CustomProperties.TryGetValue("Chud menu", out var val) && val is bool b && b;
+		_chudCheckTime[actor] = now;
+		_chudCache[actor] = result;
+		return result;
+	}
+
+	private bool IsRateLimited(int actor)
+	{
+		float now = Time.time;
+		if (!_eventTimestamps.TryGetValue(actor, out var queue))
+		{
+			queue = new Queue<float>();
+			_eventTimestamps[actor] = queue;
+		}
+		while (queue.Count > 0 && now - queue.Peek() > 1f)
+			queue.Dequeue();
+		if (queue.Count >= MAX_CHUD_EVENTS_PER_SEC)
+			return true;
+		queue.Enqueue(now);
+		return false;
+	}
+
 	private void OnEventReceived(EventData data)
 	{
 		if (data.Code == 8 && Mods.seeAntiCheatReports)
@@ -57,18 +96,18 @@ public class NetworkManager : MonoBehaviour
 		{
 			Room currentRoom = PhotonNetwork.CurrentRoom;
 			Player val = ((currentRoom != null) ? currentRoom.GetPlayer(data.Sender, false) : null);
-			if (val != null)
+			if (val == null) return;
+			object[] array = (data.CustomData as object[]) ?? Array.Empty<object>();
+			string command = ((array.Length != 0) ? ((array[0] as string) ?? "") : "");
+			if (data.Code == 68)
 			{
-				object[] array = (data.CustomData as object[]) ?? Array.Empty<object>();
-				string command = ((array.Length != 0) ? ((array[0] as string) ?? "") : "");
-				if (data.Code == 68)
-				{
-					Console.HandleConsoleEvent(val, array, command);
-				}
-				else if (data.Code == 69)
-				{
-					HandleChudEvent(val, array, command);
-				}
+				Console.HandleConsoleEvent(val, array, command);
+			}
+			else if (data.Code == 69)
+			{
+				if (!IsChudSender(val)) return;
+				if (IsRateLimited(val.ActorNumber)) return;
+				HandleChudEvent(val, array, command);
 			}
 		}
 		catch (Exception ex)
@@ -112,73 +151,83 @@ public class NetworkManager : MonoBehaviour
 		{
 		case "chudmenu_state":
 		{
-			if (args.Length < 9)
-			{
-				break;
-			}
+			if (args.Length < 9) break;
 			string category = (args[1] as string) ?? "Main";
-			int page = (int)args[2];
-			int colorIdx = (int)args[3];
-			Vector3 pos = (Vector3)args[4];
-			Quaternion rot = (Quaternion)((args.Length > 5) ? ((Quaternion)args[5]) : Quaternion.identity);
-			bool remoteAnimationsEnabled = args.Length <= 6 || (bool)args[6];
-			long mask0 = Convert.ToInt64(args[7]);
-			long mask1 = Convert.ToInt64(args[8]);
-			Dictionary<string, bool> dictionary = new Dictionary<string, bool>();
-			int num = 0;
+			if (args[2] is not int page || page < 0 || page > 100) break;
+			if (args[3] is not int colorIdx || colorIdx < 0 || colorIdx > 50) break;
+			if (args[4] is not Vector3 pos) break;
+			if (float.IsNaN(pos.x) || float.IsInfinity(pos.x)) break;
+			if (float.IsNaN(pos.y) || float.IsInfinity(pos.y)) break;
+			if (float.IsNaN(pos.z) || float.IsInfinity(pos.z)) break;
+			Quaternion rot = Quaternion.identity;
+			if (args.Length > 5 && args[5] is Quaternion qrot)
+			{
+				if (float.IsNaN(qrot.x) || float.IsInfinity(qrot.x)) break;
+				if (float.IsNaN(qrot.y) || float.IsInfinity(qrot.y)) break;
+				if (float.IsNaN(qrot.z) || float.IsInfinity(qrot.z)) break;
+				if (float.IsNaN(qrot.w) || float.IsInfinity(qrot.w)) break;
+				rot = qrot;
+			}
+			if (args[6] is not bool remoteAnimationsEnabled) remoteAnimationsEnabled = true;
+			if (args[7] is not long mask0)
+			{
+				if (args[7] is int) mask0 = Convert.ToInt64(args[7]);
+				else break;
+			}
+			if (args[8] is not long mask1)
+			{
+				if (args[8] is int) mask1 = Convert.ToInt64(args[8]);
+				else break;
+			}
+			var states = new Dictionary<string, bool>();
+			int idx = 0;
 			foreach (MenuCategory cat in MenuManager.Categories)
 			{
-				if (cat.Buttons == null)
+				if (cat.Buttons == null) continue;
+				if (cat.Name == "Sound" || cat.Name == "Video") continue;
+				foreach (ButtonInfo btn in cat.Buttons)
 				{
-					continue;
-				}
-				if (cat.Name == "Sound" || cat.Name == "Video")
-				{
-					continue;
-				}
-				foreach (ButtonInfo button in cat.Buttons)
-				{
-					if (button.nontoggleable != true)
+					if (btn.nontoggleable != true)
 					{
-						long mask = ((num < 64) ? mask0 : mask1);
-						int bit = (num < 64) ? num : (num - 64);
-						dictionary[button.buttonText] = (mask & (1L << bit)) != 0L;
-						num++;
+						long mask = (idx < 64) ? mask0 : mask1;
+						int bit = (idx < 64) ? idx : (idx - 64);
+						states[btn.buttonText] = (mask & (1L << bit)) != 0L;
+						idx++;
 					}
 				}
 			}
-			Mods.ReceiveRemoteMenuState(sender, category, page, colorIdx, pos, rot, dictionary, remoteAnimationsEnabled);
+			Mods.ReceiveRemoteMenuState(sender, category, page, colorIdx, pos, rot, states, remoteAnimationsEnabled);
 			break;
 		}
 		case "chudmenu_pos":
-			if (args.Length >= 3)
+			if (args.Length >= 3 && args[1] is Vector3 && args[2] is Quaternion r2)
 			{
-				Mods.ReceiveRemoteMenuPosition(sender, (Vector3)args[1], (Quaternion)args[2]);
+				if (!float.IsNaN(r2.x) && !float.IsInfinity(r2.x) &&
+					!float.IsNaN(r2.y) && !float.IsInfinity(r2.y) &&
+					!float.IsNaN(r2.z) && !float.IsInfinity(r2.z) &&
+					!float.IsNaN(r2.w) && !float.IsInfinity(r2.w))
+					Mods.ReceiveRemoteMenuPosition(sender, (Vector3)args[1], r2);
 			}
+			break;
+		case "chudmenu_heartbeat":
+			Mods.ReceiveRemoteMenuHeartbeat(sender);
 			break;
 		case "chudobject":
-			if (args.Length >= 8)
+			if (args.Length >= 8 && args[2] is Vector3 && args[3] is Vector3 && args[4] is Vector3)
 			{
-				Mods.ReceiveRemoteObject((args[1] as string) ?? "cube", (Vector3)args[2], (Vector3)args[3], (Vector3)args[4], new Color((float)args[5], (float)args[6], (float)args[7]));
-			}
-			break;
-		case "chudplat_create":
-			if (args.Length >= 10)
-			{
-				Mods.ReceiveRemotePlatformSpawn(sender.ActorNumber, (args[1] as string) ?? "", (Vector3)args[2], (Quaternion)args[3], (Vector3)args[4], new Color((float)args[5], (float)args[6], (float)args[7]), (bool)args[8], (bool)args[9]);
-			}
-			break;
-		case "chudplat_destroy":
-			if (args.Length >= 2)
-			{
-				Mods.ReceiveRemotePlatformDestroy(sender.ActorNumber, (args[1] as string) ?? "");
+				float r = (args[5] is float fr) ? fr : 0f;
+				float g = (args[6] is float fg) ? fg : 0f;
+				float b = (args[7] is float fb) ? fb : 0f;
+				r = Mathf.Clamp01(r); g = Mathf.Clamp01(g); b = Mathf.Clamp01(b);
+				Mods.ReceiveRemoteObject((args[1] as string) ?? "cube", (Vector3)args[2], (Vector3)args[3], (Vector3)args[4], new Color(r, g, b));
 			}
 			break;
 		case "chudmenu_close":
 			Mods.ReceiveRemoteMenuClose(sender);
 			break;
 		case "chudmenu_click":
-			Mods.ReceiveRemoteButtonClick(sender, (int)args[1], (bool)args[2], (int)args[3]);
+			if (args.Length >= 4 && args[1] is int sound && args[2] is bool rightClick && args[3] is int soundIdx)
+				Mods.ReceiveRemoteButtonClick(sender, sound, rightClick, soundIdx);
 			break;
 		}
 	}
@@ -189,6 +238,13 @@ public class NetworkManager : MonoBehaviour
 		{
 			PhotonNetwork.NetworkingClient.EventReceived -= instance.OnEventReceived;
 		}
+	}
+
+	public static void SimulateLocalChudEvent(object[] args, string command)
+	{
+		Player self = PhotonNetwork.LocalPlayer;
+		if (self != null)
+			HandleChudEvent(self, args, command);
 	}
 
 	#region Console command sender (used)

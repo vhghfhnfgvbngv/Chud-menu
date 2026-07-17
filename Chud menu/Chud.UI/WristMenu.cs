@@ -76,6 +76,8 @@ internal class WristMenu : MonoBehaviour
 
 	public static bool roundedObjects = false;
 
+	internal static List<Material> gradientMaterials = new List<Material>();
+
 	private static Dictionary<string, List<Renderer>> roundedRenderers = new Dictionary<string, List<Renderer>>();
 
 	private const float bevelWidth = 0.02f;
@@ -143,6 +145,15 @@ internal class WristMenu : MonoBehaviour
 	public static bool customBoardsEnabled = true;
 	private static bool customBoardsApplied = false;
 	private static string[] originalBoardTexts = new string[4];
+	private static GameObject[] cachedBoardObjects = new GameObject[4];
+	private static TMP_Text[] cachedBoardTexts = new TMP_Text[4];
+	private static readonly string[] BoardPaths = new string[]
+	{
+		"Environment Objects/LocalObjects_Prefab/TreeRoom/motdHeadingText",
+		"Environment Objects/LocalObjects_Prefab/TreeRoom/CodeOfConductHeadingText",
+		"Environment Objects/LocalObjects_Prefab/TreeRoom/COCBodyText_TitleData",
+		"Environment Objects/LocalObjects_Prefab/TreeRoom/motdBodyText"
+	};
 
 	private static int _frameCounter;
 
@@ -250,6 +261,7 @@ internal class WristMenu : MonoBehaviour
 			Nav("Rig Mods", "Rig Mods"),
 			Nav("Infection Mods", "Infection Mods"),
 			Nav("Master Mods", "Master Mods"),
+			Nav("Room mods", "Room mods"),
 			Nav("Credits", "Credits"),
 			Nav("Soundboard", "Soundboard")
 		});
@@ -259,16 +271,17 @@ internal class WristMenu : MonoBehaviour
 			BtnAction("Save Mods", Mods.Save, "Save all enabled mods and settings"),
 			BtnAction("Load Mods", Mods.Load, "Load saved mods and settings"),
 			BtnAction("Change Menu Color", Mods.CycleMenuColor, "Change color of menu"),
-			BtnToggle("Menu Animations", () => { animationsEnabled = true; }, () => { animationsEnabled = false; }, true, "Toggle menu open/close and button press animations"),
+			BtnToggle("Menu Animations", () => { animationsEnabled = true; }, () => { animationsEnabled = false; }, false, "Toggle menu open/close and button press animations"),
 			BtnToggle("Rounded Menu", () => { roundedObjects = true; DestroyMenu(); instance.Draw(); }, () => { roundedObjects = false; DestroyMenu(); instance.Draw(); }, false, "Round the menu corners"),
 			BtnToggle("Right Hand", Mods.EnableRightHand, Mods.DisableRightHand, false, "Move menu to right hand"),
 			BtnToggle("Network Menu", Mods.EnableNetworkMenu, Mods.DisableNetworkMenu, false, "See each others menus"),
-			BtnToggle("Toggle Notifications", Mods.ToggleNotifications, Mods.DisableNotifications, true, "Show/hide notifications"),
-			BtnToggle("Custom Boards", () => { customBoardsEnabled = true; customBoardsApplied = false; }, () => { customBoardsEnabled = false; customBoardsApplied = false; if ((Object)(object)instance != (Object)null) instance.RestoreOriginalBoardText(); }, true, "Replace in-game message boards with custom text"),
+			BtnToggle("Toggle Notifications", Mods.ToggleNotifications, Mods.DisableNotifications, false, "Show/hide notifications"),
+			BtnToggle("Custom Boards", () => { customBoardsEnabled = true; customBoardsApplied = false; }, () => { customBoardsEnabled = false; customBoardsApplied = false; if ((Object)(object)instance != (Object)null) instance.RestoreOriginalBoardText(); }, false, "Replace in-game message boards with custom text"),
 			BtnAction("Clear Notifications", Mods.ClearNotifications, "Remove all on-screen notifications"),
 			BtnAction("Notification Time", Mods.CycleNotificationTime, "how long notifications stay on screen"),
-			BtnToggle("Show FPS", () => showFPS = true, () => showFPS = false, true, "Show FPS counter"),
-			BtnToggle("Show Session Time", () => showSessionTime = true, () => showSessionTime = false, true, "Show session duration"),
+			BtnAction("Tag Aura Range", Mods.TagAuraCycleRange, "Cycle tag aura range (0 / 1.5 / 2m)"),
+			BtnToggle("Show FPS", () => showFPS = true, () => showFPS = false, false, "Show FPS counter"),
+			BtnToggle("Show Session Time", () => showSessionTime = true, () => showSessionTime = false, false, "Show session duration"),
 			BtnAction("Change Button Click Sound", () => { buttonSoundIndex = (buttonSoundIndex + 1) % 2; NotifiLib.SendNotification("[<color=green>CHUD</color>] Button sound: " + ((buttonSoundIndex == 0) ? "Normal" : "Custom"), 2); }, "Cycle button click sound"),
 			BtnAction("Change Speed Amount", () => Mods.ChangeSpeedBoostAmount(), "Cycle speed boost multiplier"),
 			BtnAction("Change Fly Speed", () => Mods.ChangeFlySpeed(), "Cycle fly speed (max 20)"),
@@ -320,7 +333,7 @@ internal class WristMenu : MonoBehaviour
 		MenuManager.AddCategory("Useful Mods", new List<ButtonInfo>
 		{
 			Nav("Exit Useful Mods", "Useful Mods"),
-			BtnToggle("Anti Name Ban", Mods.AntiNameBan, Mods.DisableAntiNameBan, true, "Prevent name bans"),
+			BtnToggle("Anti Name Ban", Mods.AntiNameBan, Mods.DisableAntiNameBan, false, "Prevent name bans"),
 			BtnToggle("Anti AFK", Mods.AntiAFK, Mods.DisableAntiAFK, false, "Prevent AFK kick"),
 			BtnToggle("Anti Guardian Grab", Mods.AntiGuardianGrab, Mods.DisableAntiGuardianGrab, false, "Block guardian grab"),
 			BtnToggle("Disable Quit Box", Mods.EnableDisableQuitBox, Mods.DisableDisableQuitBox, false, "Disable quit box"),
@@ -329,9 +342,16 @@ internal class WristMenu : MonoBehaviour
 			BtnGun("Mute Gun", Mods.MuteGun, Mods.CleanupGun, "Shoot to mute/unmute"),
 			BtnAction("Get ID Self", Mods.GetIDSelf, "Copy your ID"),
 			BtnToggle("ARS", Mods.EnableARS, Mods.DisableARS, false, "Auto-report system"),
+		});
+		MenuManager.AddCategory("Room mods", new List<ButtonInfo>
+		{
+			Nav("Exit Room mods", "Room mods"),
 			BtnAction("Join Code MODS", () => Mods.JoinCode("MODS"), "Join MODS room"),
 			BtnAction("Join Code MOD", () => Mods.JoinCode("MOD"), "Join MOD room"),
-			BtnAction("Join Code chud", () => Mods.JoinCode("chud"), "Join chud room")
+			BtnAction("Join Code chud", () => Mods.JoinCode("chud"), "Join chud room"),
+			BtnAction("Create pub K.K.K", () => Mods.CreateRoom("K.K.K", true), ""),
+			BtnAction("Create pub P.e.n.i.s676767", () => Mods.CreateRoom("P.e.n.i.s676767", true), ""),
+			BtnAction("Create pub FEMBOYS :3", () => Mods.CreateRoom("FEMBOYS :3", true), ""),
 		});
 		MenuManager.AddCategory("Fun Mods", new List<ButtonInfo>
 		{
@@ -341,7 +361,9 @@ internal class WristMenu : MonoBehaviour
 			BtnToggle("Bitcrunch Mic", Mods.BitcrunchMic, Mods.DisableBitcrunchMic, false, "Makes ur mic sound bad"),
 			BtnFrameToggle("Boop", Mods.Boop, Mods.DisableBoop, "Play's a noise when booping someone"),
 			BtnGun("GetPlayerID Gun", Mods.GetPlayerIDGun, Mods.CleanupGun, "Shoot to copy ID"),
-			new ButtonInfo { buttonText = "Paintbrawl Aimbot", enableMethod = () => GetLaunchPatch.enabled = true, disableMethod = () => GetLaunchPatch.enabled = false, enabled = false, toolTip = "Redirects your slingshot to the closest player" }
+
+
+			new ButtonInfo { buttonText = "Paintbrawl Aimbot", enableMethod = () => GetLaunchPatch.enabled = true, disableMethod = () => GetLaunchPatch.enabled = false, enabled = false, toolTip = "Redirects your slingshot to the closest player" },
 		});
 		MenuManager.AddCategory("Rig Mods", new List<ButtonInfo>
 		{
@@ -355,7 +377,9 @@ internal class WristMenu : MonoBehaviour
 		{
 			Nav("Exit Infection Mods", "Infection Mods"),
 			BtnLockOnGun("Tag Gun", Mods.TagGun, Mods.CleanupGun, "Its tag gun"),
-			BtnFrameToggle("Tag All", Mods.TagAll, Mods.DisableTagAll, "Tags everyone")
+			BtnFrameToggle("Tag All", Mods.TagAll, Mods.DisableTagAll, "Tags everyone"),
+			BtnFrameToggle("Tag Aura", Mods.TagAura, Mods.DisableTagAura, "Auto-tag players around you"),
+			BtnFrameToggle("Tag Aura Visual", Mods.TagAuraVisual, Mods.DisableTagAuraVisual, "Show aura range visual")
 		});
 		MenuManager.AddCategory("Master Mods", new List<ButtonInfo>
 		{
@@ -371,7 +395,10 @@ internal class WristMenu : MonoBehaviour
 			BtnFrameToggle("Grab Doug the Bug", Mods.GrabDougBug, Mods.DisableGrabDougBug, "Grab doug the bug with your hand"),
 			BtnFrameToggle("Grab Gold Bug", Mods.GrabGoldBug, Mods.DisableGrabGoldBug, "Grab gold bugs with your hand"),
 			BtnFrameToggle("Spaz Bugs", Mods.SpazBugs, Mods.DisableSpazBugs, "Bugs spaz between your hands with random rotation"),
-			BtnToggle("Gold Doug Cosmetic", Mods.GoldDougCosmetic, Mods.DisableGoldDougCosmetic, false, "Gold bug sits on your right arm")
+			BtnToggle("Gold Doug Cosmetic", Mods.GoldDougCosmetic, Mods.DisableGoldDougCosmetic, false, "Gold bug sits on your right arm"),
+			BtnToggle("Break Guardian", Mods.BreakGuardian, Mods.DisableBreakGuardian, false, "No Guardian??"),
+			BtnAction("Guardian Self", Mods.GuardianSelf, "Make yourself guardian"),
+			BtnFrameToggle("Guardian Grab All", Mods.GuardianGrabAll, Mods.DisableGuardianGrabAll, "Pull players toward your hand on grip")
 		});
 		MenuManager.AddCategory("Console Mods", new List<ButtonInfo>
 		{
@@ -380,7 +407,7 @@ internal class WristMenu : MonoBehaviour
 			BtnGun("Silent Kick Gun", Mods.SilentKickGun, Mods.CleanupGun, "Shoot a player to silently kick them"),
 			BtnGun("Fling Gun", Mods.FlingGun, Mods.CleanupGun, "Shoot a player to fling them"),
 			BtnGun("Vibrate Gun", Mods.VibrateGun, Mods.CleanupGun, "Shoot a player to vibrate their controllers"),
-			BtnGun("TP All Gun", Mods.TPAllGun, Mods.CleanupGun, "Shoot to TP everyone to that spot"),
+			BtnGun("TP All Gun", ConsoleMods.TPAllGun, Mods.CleanupGun, "Shoot to TP everyone to that spot"),
 			BtnGun("Lightning Gun", Mods.LightningGun, Mods.CleanupGun, "Shoot to strike lightning"),
 			BtnGun("Jail Gun", Mods.JailGun, Mods.JailGunOff, "Trap players in a jail cell"),
 			BtnConsoleToggle("Admin Grab", ConsoleMods.AdminGrab.Enable, ConsoleMods.AdminGrab.Disable, false, "Grab players with your hand"),
@@ -394,6 +421,7 @@ internal class WristMenu : MonoBehaviour
 			BtnConsoleToggle("Ban Hammer", ConsoleMods.BanHammer.Enable, ConsoleMods.BanHammer.Disable, false, "This is Ban Hammer"),
 			BtnConsoleToggle("Roblox Sword", ConsoleMods.RobloxSword.Enable, ConsoleMods.RobloxSword.Disable, false, "This is Roblox Sword"),
 			BtnConsoleToggle("Rainbow Sword", ConsoleMods.RainbowSword.Enable, ConsoleMods.RainbowSword.Disable, false, "This is Rainbow Sword"),
+			BtnConsoleToggle("Weird Ender Sword", ConsoleMods.WeirdEnderSword.Enable, ConsoleMods.WeirdEnderSword.Disable, false, "This is Weird Ender Sword"),
 			BtnConsoleToggle("Pistol", ConsoleMods.Pistol.Enable, ConsoleMods.Pistol.Disable, false, "This is Pistol"),
 			BtnConsoleToggle("Physics Gun", ConsoleMods.PhysicsGun.Enable, ConsoleMods.PhysicsGun.Disable, false, "This is Physics Gun"),
 			BtnConsoleToggle("Noli Star", ConsoleMods.NoliStar.Enable, ConsoleMods.NoliStar.Disable, false, "This is Noli Star"),
@@ -419,14 +447,15 @@ internal class WristMenu : MonoBehaviour
 		{
 			Nav("Exit Console Settings", "Console Settings"),
 			BtnConsoleToggle("Allow Kick Self", ConsoleMods.AllowKickSelf.Enable, ConsoleMods.AllowKickSelf.Disable, false, "Allow other admins to kick/tp/fling you"),
-			BtnConsoleToggle("Allow Teleport Self", ConsoleMods.AllowTpSelf.Enable, ConsoleMods.AllowTpSelf.Disable, true, "Allow other admins to teleport you"),
+			BtnConsoleToggle("Allow Teleport Self", ConsoleMods.AllowTpSelf.Enable, ConsoleMods.AllowTpSelf.Disable, false, "Allow other admins to teleport you"),
 			BtnConsoleToggle("Detect Console Users", ConsoleMods.DetectConsoleUsers.Enable, ConsoleMods.DetectConsoleUsers.Disable, false, "Auto detect who has console"),
+			BtnConsoleToggle("Console Logging", ConsoleMods.ConsoleLogging.Enable, ConsoleMods.ConsoleLogging.Disable, false, "Log console commands, asset spawns, and errors to BepInEx + notification"),
 			BtnConsoleToggle("No Admin Indicator", ConsoleMods.NoAdminIndicator.Enable, ConsoleMods.NoAdminIndicator.Disable, false, "Hide your admin crown"),
 			BtnAction("Change Laser Color", ConsoleMods.Laser.CycleColor, "Change laser color"),
 			BtnConsoleToggle("Full Auto Pistol", ConsoleMods.FullAutoPistol.Enable, ConsoleMods.FullAutoPistol.Disable, false, "Toggle full auto mode for pistol"),
-			BtnConsoleToggle("Mute Rainbow Sword", ConsoleMods.MuteRainbowSword.Enable, ConsoleMods.MuteRainbowSword.Disable, false, "Replace rainbow sword music with silence"),
+			BtnConsoleToggle("Network Self-Test", ConsoleMods.NetworkSelfTest.Enable, ConsoleMods.NetworkSelfTest.Disable, false, "Show your own menu as a remote menu to verify networking"),
 			Nav("Sound", "Sound"),
-			Nav("Video", "Video")
+			Nav("Video", "Video"),
 		});
 		MenuManager.AddCategory("Sound", ConsoleMods.BuildSoundCategory());
 		MenuManager.AddCategory("Video", ConsoleMods.BuildVideoCategory());
@@ -621,8 +650,35 @@ internal class WristMenu : MonoBehaviour
 
 	private void HandleMenuFollow(bool qKeyDown)
 	{
-		bool flag = (ybuttonDown && !Mods.right) || (bbuttonDown && Mods.right) || qKeyDown;
-		if (flag)
+		if (ConsoleMods.NetworkSelfTest.Enabled)
+		{
+			bool flag = (ybuttonDown && !Mods.right) || (bbuttonDown && Mods.right) || qKeyDown;
+			if (flag)
+			{
+				if ((Object)(object)reference == (Object)null)
+				{
+					reference = GameObject.CreatePrimitive((PrimitiveType)0);
+					((Object)reference).name = "buttonPresser";
+				}
+				reference.transform.parent = (Mods.right ? GTPlayer.Instance.LeftHand : GTPlayer.Instance.RightHand).controllerTransform;
+				reference.transform.localPosition = PointerPos;
+				reference.transform.localScale = PointerScale;
+				reference.GetComponent<Renderer>().material.color = (ChangingColors ? FirstColor : NormalColor);
+				Mods.SendMenuState();
+			}
+			else if (!Close)
+			{
+				if ((Object)(object)reference != (Object)null)
+				{
+					Object.Destroy((Object)(object)reference);
+					reference = null;
+				}
+				Mods.SendMenuClose();
+			}
+			return;
+		}
+		bool flag2 = (ybuttonDown && !Mods.right) || (bbuttonDown && Mods.right) || qKeyDown;
+		if (flag2)
 		{
 			if ((Object)(object)menu == (Object)null)
 			{
@@ -718,7 +774,7 @@ internal class WristMenu : MonoBehaviour
 				reference.GetComponent<Renderer>().material.color = (ChangingColors ? FirstColor : NormalColor);
 			}
 		}
-		else if (!flag && (Object)(object)menu != (Object)null && !Close)
+		else if (!flag2 && (Object)(object)menu != (Object)null && !Close)
 		{
 			Mods.SendMenuClose();
 			Object.Destroy((Object)(object)reference);
@@ -811,54 +867,42 @@ internal class WristMenu : MonoBehaviour
 
 	private void UpdateCustomBoardText()
 	{
-		GameObject go;
-		string[] paths = new string[]
+		for (int i = 0; i < BoardPaths.Length; i++)
 		{
-			"Environment Objects/LocalObjects_Prefab/TreeRoom/motdHeadingText",
-			"Environment Objects/LocalObjects_Prefab/TreeRoom/CodeOfConductHeadingText",
-			"Environment Objects/LocalObjects_Prefab/TreeRoom/COCBodyText_TitleData",
-			"Environment Objects/LocalObjects_Prefab/TreeRoom/motdBodyText"
-		};
-		for (int i = 0; i < paths.Length; i++)
-		{
-			go = GameObject.Find(paths[i]);
-			if (go != null)
+			if ((Object)(object)cachedBoardObjects[i] == (Object)null)
 			{
-				TMP_Text tmp = go.GetComponent<TextMeshPro>();
-				if (tmp != null)
-				{
-					if (string.IsNullOrEmpty(originalBoardTexts[i]))
-						originalBoardTexts[i] = tmp.text;
-					tmp.text = CustomBoardTexts[i];
-				}
+				cachedBoardObjects[i] = GameObject.Find(BoardPaths[i]);
+				if ((Object)(object)cachedBoardObjects[i] != (Object)null)
+					cachedBoardTexts[i] = cachedBoardObjects[i].GetComponent<TextMeshPro>();
+			}
+			if ((Object)(object)cachedBoardTexts[i] != (Object)null)
+			{
+				if (string.IsNullOrEmpty(originalBoardTexts[i]))
+					originalBoardTexts[i] = cachedBoardTexts[i].text;
+				cachedBoardTexts[i].text = CustomBoardTexts[i];
 			}
 		}
 	}
 
 	private void RestoreOriginalBoardText()
 	{
-		string[] paths = new string[]
-		{
-			"Environment Objects/LocalObjects_Prefab/TreeRoom/motdHeadingText",
-			"Environment Objects/LocalObjects_Prefab/TreeRoom/CodeOfConductHeadingText",
-			"Environment Objects/LocalObjects_Prefab/TreeRoom/COCBodyText_TitleData",
-			"Environment Objects/LocalObjects_Prefab/TreeRoom/motdBodyText"
-		};
-		for (int i = 0; i < paths.Length; i++)
+		for (int i = 0; i < BoardPaths.Length; i++)
 		{
 			if (string.IsNullOrEmpty(originalBoardTexts[i])) continue;
-			GameObject go = GameObject.Find(paths[i]);
-			if (go != null)
+			if ((Object)(object)cachedBoardObjects[i] == (Object)null)
 			{
-				TMP_Text tmp = go.GetComponent<TextMeshPro>();
-				if (tmp != null)
-					tmp.text = originalBoardTexts[i];
+				cachedBoardObjects[i] = GameObject.Find(BoardPaths[i]);
+				if ((Object)(object)cachedBoardObjects[i] != (Object)null)
+					cachedBoardTexts[i] = cachedBoardObjects[i].GetComponent<TextMeshPro>();
 			}
+			if ((Object)(object)cachedBoardTexts[i] != (Object)null)
+				cachedBoardTexts[i].text = originalBoardTexts[i];
 		}
 	}
 
 	public void Draw()
 	{
+		if (ConsoleMods.NetworkSelfTest.Enabled) return;
 		if (MenuManager.CurrentCategoryName == "Enabled Mods")
 		{
 			RebuildEnabledMods();
@@ -875,17 +919,15 @@ internal class WristMenu : MonoBehaviour
 		menuObj.transform.parent = menu.transform;
 		menuObj.transform.rotation = Quaternion.identity;
 		menuObj.transform.localScale = new Vector3(0.1f, 1f, 1f);
-		Renderer component = menuObj.GetComponent<Renderer>();
-		component.material.color = NormalColor;
+		Renderer bgRenderer = menuObj.GetComponent<Renderer>();
+		Color bgTop = NormalColor * 0.35f;
+		Color bgBot = NormalColor;
+		bgRenderer.material = MakeGradientMat(bgTop, bgBot);
 		menuObj.transform.position = new Vector3(0.05f, 0f, 0f);
 		Shader val = Shader.Find("GorillaTag/UberShader");
-		if ((Object)(object)val != (Object)null)
-		{
-			component.material.shader = val;
-		}
 		if (roundedObjects)
 		{
-			RoundGameObject(menuObj, "__background__");
+			RoundGameObject(menuObj, "__background__", bgTop, bgBot);
 		}
 		canvasObj = new GameObject();
 		canvasObj.transform.parent = menu.transform;
@@ -937,15 +979,13 @@ internal class WristMenu : MonoBehaviour
 		val7.transform.rotation = Quaternion.identity;
 		val7.transform.localScale = new Vector3(0.09f, 0.9f, 0.08f);
 		val7.transform.localPosition = new Vector3(0.56f, 0f, 0.6f);
-		val7.GetComponent<Renderer>().material.color = DisconnectButtonColor;
+		Color dcTop = DisconnectButtonColor * 0.35f;
+		Color dcBot = DisconnectButtonColor;
+		val7.GetComponent<Renderer>().material = MakeGradientMat(dcTop, dcBot);
 		val7.AddComponent<BtnCollider>().relatedText = "DisconnectingButton";
-		if ((Object)(object)val != (Object)null)
-		{
-			val7.GetComponent<Renderer>().material.shader = val;
-		}
 		if (roundedObjects)
 		{
-			RoundGameObject(val7, "DisconnectingButton");
+			RoundGameObject(val7, "DisconnectingButton", dcTop, dcBot);
 		}
 		GameObject val8 = new GameObject();
 		val8.transform.parent = canvasObj.transform;
@@ -971,15 +1011,13 @@ internal class WristMenu : MonoBehaviour
 		val10.transform.rotation = Quaternion.identity;
 		val10.transform.localScale = new Vector3(0.09f, 0.2f, 0.9f);
 		val10.transform.localPosition = new Vector3(0.56f, 0.65f, 0f);
-		val10.GetComponent<Renderer>().material.color = NextPrevButtonColor;
+		Color npTop = NextPrevButtonColor * 0.35f;
+		Color npBot = NextPrevButtonColor;
+		val10.GetComponent<Renderer>().material = MakeGradientMat(npTop, npBot);
 		val10.AddComponent<BtnCollider>().relatedText = "PreviousPage";
-		if ((Object)(object)val != (Object)null)
-		{
-			val10.GetComponent<Renderer>().material.shader = val;
-		}
 		if (roundedObjects)
 		{
-			RoundGameObject(val10, "PreviousPage");
+			RoundGameObject(val10, "PreviousPage", npTop, npBot);
 		}
 		GameObject val11 = new GameObject();
 		val11.transform.parent = canvasObj.transform;
@@ -1005,15 +1043,11 @@ internal class WristMenu : MonoBehaviour
 		val13.transform.rotation = Quaternion.identity;
 		val13.transform.localScale = new Vector3(0.09f, 0.2f, 0.9f);
 		val13.transform.localPosition = new Vector3(0.56f, -0.65f, 0f);
-		val13.GetComponent<Renderer>().material.color = NextPrevButtonColor;
+		val13.GetComponent<Renderer>().material = MakeGradientMat(npTop, npBot);
 		val13.AddComponent<BtnCollider>().relatedText = "NextPage";
-		if ((Object)(object)val != (Object)null)
-		{
-			val13.GetComponent<Renderer>().material.shader = val;
-		}
 		if (roundedObjects)
 		{
-			RoundGameObject(val13, "NextPage");
+			RoundGameObject(val13, "NextPage", npTop, npBot);
 		}
 		GameObject val14 = new GameObject();
 		val14.transform.parent = canvasObj.transform;
@@ -1047,10 +1081,6 @@ internal class WristMenu : MonoBehaviour
 				val16.transform.localScale = new Vector3(0.09f, 0.9f, 0.08f);
 				val16.transform.localPosition = new Vector3(0.56f, 0f, 0.28f - num2);
 				val16.AddComponent<BtnCollider>().relatedText = array[num];
-				if ((Object)(object)val != (Object)null)
-				{
-					val16.GetComponent<Renderer>().material.shader = val;
-				}
 				int num3 = -1;
 				for (int num4 = 0; num4 < currentButtons.Count; num4++)
 				{
@@ -1065,10 +1095,13 @@ internal class WristMenu : MonoBehaviour
 				{
 					flag = currentButtons[num3].enabled;
 				}
-				val16.GetComponent<Renderer>().material.color = ((flag == true) ? ButtonColorEnabled : ButtonColorDisable);
+				Color btnBase = (flag == true) ? ButtonColorEnabled : ButtonColorDisable;
+				Color btnTop = btnBase * 0.35f;
+				Color btnBot = btnBase;
+				val16.GetComponent<Renderer>().material = MakeGradientMat(btnTop, btnBot);
 				if (roundedObjects)
 				{
-					RoundGameObject(val16, array[num]);
+					RoundGameObject(val16, array[num], btnTop, btnBot);
 				}
 				GameObject val17 = new GameObject();
 				val17.transform.parent = canvasObj.transform;
@@ -1090,9 +1123,44 @@ internal class WristMenu : MonoBehaviour
 				((Transform)component7).rotation = Quaternion.Euler(new Vector3(180f, 90f, 90f));
 			}
 		}
+		menu.transform.localScale = new Vector3(0.1f, 0.3f, 0.4f) * GTPlayer.Instance.scale;
 	}
 
-	public static void RoundGameObject(GameObject obj, string identifier)
+	public static Material MakeGradientMat(Color top, Color bot)
+	{
+		int h = 16;
+		Texture2D tex = new Texture2D(2, h, TextureFormat.RGBA32, false);
+		Color highlight = Color.Lerp(bot, Color.white, 0.075f);
+		for (int y = 0; y < h; y++)
+		{
+			float t = 1f - Mathf.Abs((float)y / (h - 1) * 2f - 1f);
+			tex.SetPixel(0, y, Color.Lerp(bot, highlight, t));
+			tex.SetPixel(1, y, Color.Lerp(bot, highlight, t));
+		}
+		tex.Apply();
+		tex.wrapMode = TextureWrapMode.Repeat;
+		Material mat = new Material(Shader.Find("Unlit/Texture"));
+		mat.mainTexture = tex;
+		mat.color = Color.white;
+		mat.mainTextureScale = new Vector2(1, 0.5f);
+		gradientMaterials.Add(mat);
+		return mat;
+	}
+
+	internal static void UpdateGradientAnimations(float time)
+	{
+		float offsetY = time * 0.2f;
+		Vector2 offset = new Vector2(0f, offsetY);
+		for (int i = gradientMaterials.Count - 1; i >= 0; i--)
+		{
+			if ((Object)(object)gradientMaterials[i] == (Object)null)
+				gradientMaterials.RemoveAt(i);
+			else
+				gradientMaterials[i].mainTextureOffset = offset;
+		}
+	}
+
+	public static void RoundGameObject(GameObject obj, string identifier, Color gradientTop, Color gradientBot)
 	{
 		Renderer component = obj.GetComponent<Renderer>();
 		if ((Object)(object)component == (Object)null)
@@ -1103,7 +1171,7 @@ internal class WristMenu : MonoBehaviour
 		Vector3 localScale = obj.transform.localScale;
 		Vector3 localPosition = obj.transform.localPosition;
 		Transform transform = menu.transform;
-		Shader val = Shader.Find("GorillaTag/UberShader");
+		Color midColor = Color.Lerp(gradientTop, gradientBot, 0.5f);
 		List<Renderer> list = new List<Renderer>();
 		GameObject val2 = GameObject.CreatePrimitive((PrimitiveType)3);
 		Object.Destroy((Object)(object)val2.GetComponent<Rigidbody>());
@@ -1134,11 +1202,11 @@ internal class WristMenu : MonoBehaviour
 			val4.transform.localScale = new Vector3(num * 2.55f, localScale.x / 2f, num * 2f);
 			list.Add(val4.GetComponent<Renderer>());
 		}
-		Color color = component.material.color;
+		Shader val = Shader.Find("GorillaTag/UberShader");
 		foreach (Renderer item in list)
 		{
 			Material material = item.material;
-			material.color = color;
+			material.color = midColor;
 			if ((Object)(object)val != (Object)null)
 			{
 				material.shader = val;
@@ -1150,6 +1218,7 @@ internal class WristMenu : MonoBehaviour
 
 	public static void DestroyMenu()
 	{
+		if (ConsoleMods.NetworkSelfTest.Enabled) return;
 		Object.Destroy((Object)(object)menu);
 		Object.Destroy((Object)(object)canvasObj);
 		Object.Destroy((Object)(object)reference);
@@ -1158,6 +1227,7 @@ internal class WristMenu : MonoBehaviour
 		canvasObj = null;
 		reference = null;
 		roundedRenderers.Clear();
+		gradientMaterials.Clear();
 	}
 
 	private void Awake()
@@ -1258,8 +1328,11 @@ internal class WristMenu : MonoBehaviour
 			{
 				pageNumber = 0;
 			}
-			DestroyMenu();
-			instance.Draw();
+			if (!ConsoleMods.NetworkSelfTest.Enabled)
+			{
+				DestroyMenu();
+				instance.Draw();
+			}
 			Mods.SendMenuState();
 			return;
 		case "PreviousPage":
@@ -1271,8 +1344,11 @@ internal class WristMenu : MonoBehaviour
 			{
 				pageNumber = num - 1;
 			}
-			DestroyMenu();
-			instance.Draw();
+			if (!ConsoleMods.NetworkSelfTest.Enabled)
+			{
+				DestroyMenu();
+				instance.Draw();
+			}
 			Mods.SendMenuState();
 			return;
 		case "DisconnectingButton":
@@ -1334,7 +1410,6 @@ internal class WristMenu : MonoBehaviour
 
 	internal static void UpdateButtonVisual(string buttonText, bool isEnabled)
 	{
-		Shader val = Shader.Find("GorillaTag/UberShader");
 		foreach (Transform item in menu.transform)
 		{
 			Transform val2 = item;
@@ -1342,24 +1417,21 @@ internal class WristMenu : MonoBehaviour
 			if ((Object)(object)component != (Object)null && component.relatedText == buttonText)
 			{
 				Renderer component2 = ((Component)val2).GetComponent<Renderer>();
-				component2.material.color = (isEnabled ? ButtonColorEnabled : ButtonColorDisable);
-				if ((Object)(object)val != (Object)null)
-				{
-					component2.material.shader = val;
-				}
+				Color baseColor = isEnabled ? ButtonColorEnabled : ButtonColorDisable;
+				component2.material = MakeGradientMat(baseColor * 0.35f, baseColor);
 				break;
 			}
 		}
+		Color bc = isEnabled ? ButtonColorEnabled : ButtonColorDisable;
+		Color bt = bc * 0.35f;
+		Color mid = Color.Lerp(bt, bc, 0.5f);
 		if (roundedRenderers.TryGetValue(buttonText, out var value))
 		{
-			Shader val3 = Shader.Find("GorillaTag/UberShader");
 			foreach (Renderer item2 in value)
 			{
-				Material material = item2.material;
-				material.color = (isEnabled ? ButtonColorEnabled : ButtonColorDisable);
-				if ((Object)(object)val3 != (Object)null)
+				if ((Object)(object)item2 != (Object)null)
 				{
-					material.shader = val3;
+					item2.material.color = mid;
 				}
 			}
 		}

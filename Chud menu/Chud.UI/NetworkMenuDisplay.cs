@@ -41,7 +41,6 @@ internal static class NetworkMenuDisplay
 		if (!((Object)(object)state.displayObject != (Object)null))
 		{
 			GameObject val = new GameObject("RemoteMenu_" + state.player.ActorNumber);
-			Shader val2 = CachedUberShader;
 			val.transform.localScale = new Vector3(0.1f, 0.3f, 0.3825f);
 			GameObject val3 = GameObject.CreatePrimitive((PrimitiveType)3);
 			Object.Destroy((Object)(object)val3.GetComponent<Rigidbody>());
@@ -52,11 +51,8 @@ internal static class NetworkMenuDisplay
 			val3.transform.position = new Vector3(0.05f, 0f, 0f);
 			((Object)val3).name = "chud_bg";
 			Renderer component = val3.GetComponent<Renderer>();
-			component.material.color = state.menuColors.NormalColor;
-			if ((Object)(object)val2 != (Object)null)
-			{
-				component.material.shader = val2;
-			}
+			Color bgTop = state.menuColors.NormalColor * 0.35f;
+			component.material = WristMenu.MakeGradientMat(bgTop, state.menuColors.NormalColor);
 			GameObject val4 = new GameObject("Canvas");
 			val4.transform.parent = val.transform;
 			Canvas val5 = val4.AddComponent<Canvas>();
@@ -90,11 +86,8 @@ internal static class NetworkMenuDisplay
 			val9.transform.localScale = new Vector3(0.09f, 0.9f, 0.08f);
 			val9.transform.localPosition = new Vector3(0.56f, 0f, 0.6f);
 			Renderer component3 = val9.GetComponent<Renderer>();
-			component3.material.color = WristMenu.DisconnectButtonColor;
-			if ((Object)(object)val2 != (Object)null)
-			{
-				component3.material.shader = val2;
-			}
+			Color dcTop = WristMenu.DisconnectButtonColor * 0.35f;
+			component3.material = WristMenu.MakeGradientMat(dcTop, WristMenu.DisconnectButtonColor);
 			val9.AddComponent<BtnCollider>().relatedText = "DisconnectingButton";
 			GameObject val10 = new GameObject();
 			val10.transform.parent = val4.transform;
@@ -121,11 +114,8 @@ internal static class NetworkMenuDisplay
 			val12.transform.localScale = new Vector3(0.09f, 0.2f, 0.9f);
 			val12.transform.localPosition = new Vector3(0.56f, 0.65f, 0f);
 			Renderer component5 = val12.GetComponent<Renderer>();
-			component5.material.color = state.menuColors.NextPrevButtonColor;
-			if ((Object)(object)val2 != (Object)null)
-			{
-				component5.material.shader = val2;
-			}
+			Color npTop = state.menuColors.NextPrevButtonColor * 0.35f;
+			component5.material = WristMenu.MakeGradientMat(npTop, state.menuColors.NextPrevButtonColor);
 			val12.AddComponent<BtnCollider>().relatedText = "PreviousPage";
 			GameObject val13 = new GameObject();
 			val13.transform.parent = val4.transform;
@@ -152,11 +142,7 @@ internal static class NetworkMenuDisplay
 			val15.transform.localScale = new Vector3(0.09f, 0.2f, 0.9f);
 			val15.transform.localPosition = new Vector3(0.56f, -0.65f, 0f);
 			Renderer component7 = val15.GetComponent<Renderer>();
-			component7.material.color = state.menuColors.NextPrevButtonColor;
-			if ((Object)(object)val2 != (Object)null)
-			{
-				component7.material.shader = val2;
-			}
+			component7.material = WristMenu.MakeGradientMat(npTop, state.menuColors.NextPrevButtonColor);
 			val15.AddComponent<BtnCollider>().relatedText = "NextPage";
 			GameObject val16 = new GameObject();
 			val16.transform.parent = val4.transform;
@@ -175,10 +161,10 @@ internal static class NetworkMenuDisplay
 			component8.sizeDelta = new Vector2(0.2f, 0.03f);
 			((Transform)component8).localPosition = new Vector3(0.064f, -0.195f, 0f);
 			((Transform)component8).localRotation = Quaternion.Euler(new Vector3(180f, 90f, 90f));
-			BuildButtonPage(state, val, val4, val2);
-			state.displayObject = val;
-			UpdatePosition(state);
-			val.transform.localScale = Vector3.zero;
+			BuildButtonPage(state, val, val4);
+		state.displayObject = val;
+		UpdatePosition(state);
+		val.transform.localScale = Vector3.zero;
 			((MonoBehaviour)Mods.instance).StartCoroutine(OpenAni(state));
 		}
 	}
@@ -270,7 +256,7 @@ internal static class NetworkMenuDisplay
 		Mods.RemoveRemoteMenuState(state.player);
 	}
 
-	private static void BuildButtonPage(Mods.RemoteMenuState state, GameObject root, GameObject canvasObj, Shader uber)
+	private static void BuildButtonPage(Mods.RemoteMenuState state, GameObject root, GameObject canvasObj)
 	{
 		List<string> categoryButtons = GetCategoryButtons(state.category);
 		int page = state.page;
@@ -294,11 +280,8 @@ internal static class NetworkMenuDisplay
 			bool value;
 			bool flag = state.buttonStates.TryGetValue(text, out value) && value;
 			Renderer component = val.GetComponent<Renderer>();
-			component.material.color = (flag ? state.menuColors.ButtonColorEnabled : state.menuColors.ButtonColorDisable);
-			if ((Object)(object)uber != (Object)null)
-			{
-				component.material.shader = uber;
-			}
+			Color btnBase = flag ? state.menuColors.ButtonColorEnabled : state.menuColors.ButtonColorDisable;
+			component.material = WristMenu.MakeGradientMat(btnBase * 0.35f, btnBase);
 			val.AddComponent<BtnCollider>().relatedText = text;
 			GameObject val2 = new GameObject();
 			val2.transform.parent = canvasObj.transform;
@@ -491,7 +474,7 @@ internal static class NetworkMenuDisplay
 				}
 			}
 		}
-		BuildButtonPage(state, displayObject, ((Object)(object)val != (Object)null) ? val : displayObject, uber);
+		BuildButtonPage(state, displayObject, ((Object)(object)val != (Object)null) ? val : displayObject);
 		UpdateColors(state);
 	}
 
@@ -499,6 +482,10 @@ internal static class NetworkMenuDisplay
 	{
 		if (!((Object)(object)state.displayObject == (Object)null) && !state.closing)
 		{
+			if ((Object)(object)state.cachedRig != (Object)null)
+			{
+				state.position = state.cachedRig.transform.position + state.rigOffset;
+			}
 			state.displayObject.transform.position = state.position;
 			state.displayObject.transform.rotation = state.rotation;
 		}
