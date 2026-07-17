@@ -345,65 +345,6 @@ internal class Mods : MonoBehaviour
 
 	private static readonly string[] notificationTimeNames = new string[6] { "1.5s", "2s", "3s", "4s", "6s", "10s" };
 
-	private static Coroutine flingGunCoroutine;
-
-	private static int flingTargetActor;
-
-	private static float laserDelayLeft;
-
-	private static float laserDelayRight;
-
-	private static bool lastLaserLeft;
-
-	private static bool lastLaserRight;
-
-	private static bool laserApplied = false;
-
-	private static bool lastPistolTrigger;
-
-	private static float pistolFireDelay;
-
-	private static bool lastCoinSecondary;
-
-	private static float pauseSfxBH;
-	private static float slashDelayBH;
-	private static bool lastVelTooHighBH;
-	private static float pauseSfxRS;
-	private static float slashDelayRS;
-	private static bool lastVelTooHighRS;
-	private static VRRig physGunTargetHoldVRRig;
-	private static float physGunRigDistance;
-	private static float physGunStandaloneTriggerDelay;
-	private static float physGunPositionDelay;
-	private static GameObject physGunCrosshair;
-	private static bool physGunLastGrip;
-
-	private static int banHammerId = -1;
-
-	private static int pistolId = -1;
-
-	private static int rainbowSwordId = -1;
-
-	private static int physicsGunId = -1;
-
-	private static int coinId = -1;
-
-	private static int jailId = -1;
-
-	private static int laserColorIndex = 0;
-
-	private static readonly Color[] laserColors = (Color[])(object)new Color[6]
-	{
-		new Color(0f, 0f, 1f),
-		new Color(1f, 0f, 0f),
-		new Color(0.5f, 0.2f, 0.8f),
-		new Color(0.9f, 0.4f, 0.9f),
-		new Color(0.9f, 0.7f, 0.1f),
-		new Color(0.4f, 0.4f, 0.4f)
-	};
-
-
-
 	private static Vector3 launchPlayerGunReturnPos;
 
 	private static int launchPlayerGunFramesLeft = 0;
@@ -1877,7 +1818,7 @@ internal class Mods : MonoBehaviour
 		Player[] playerListOthers = PhotonNetwork.PlayerListOthers;
 		foreach (Player val in playerListOthers)
 		{
-			VRRig vRRigFromPlayer = Console.GetVRRigFromPlayer(val);
+			VRRig vRRigFromPlayer = GorillaGameManager.StaticFindRigForPlayer(val);
 			if ((Object)(object)vRRigFromPlayer == (Object)null)
 			{
 				continue;
@@ -1961,7 +1902,7 @@ internal class Mods : MonoBehaviour
 
 		foreach (Player player in PhotonNetwork.PlayerListOthers)
 		{
-			VRRig rig = Console.GetVRRigFromPlayer(player);
+			VRRig rig = GorillaGameManager.StaticFindRigForPlayer(player);
 			if (rig == null) continue;
 			if (rig.mainSkin == null || rig.mainSkin.bones == null) continue;
 			if (rig.head == null || rig.head.rigTarget == null) continue;
@@ -2716,7 +2657,7 @@ internal class Mods : MonoBehaviour
 				FlySpeed = flySpeed,
 				SpeedboostCycle = speedboostCycle,
 				PullPowerInt = pullPowerInt,
-				LaserColorIndex = laserColorIndex,
+				LaserColorIndex = ConsoleMods.laserColorIndex,
 				WasdFlyMouseSense = wasdFlyMouseSense,
 				Right = right,
 				MenuColorIndex = menuColorIndex,
@@ -2787,10 +2728,10 @@ internal class Mods : MonoBehaviour
 			flySpeed = modConfig.FlySpeed;
 			speedboostCycle = modConfig.SpeedboostCycle;
 			pullPowerInt = modConfig.PullPowerInt;
-			laserColorIndex = modConfig.LaserColorIndex;
-			if (laserColorIndex >= laserColors.Length)
+			ConsoleMods.laserColorIndex = modConfig.LaserColorIndex;
+			if (ConsoleMods.laserColorIndex >= ConsoleMods.laserColors.Length)
 			{
-				laserColorIndex = 0;
+				ConsoleMods.laserColorIndex = 0;
 			}
 			wasdFlyMouseSense = modConfig.WasdFlyMouseSense;
 			right = modConfig.Right;
@@ -3085,24 +3026,6 @@ internal class Mods : MonoBehaviour
 		return null;
 	}
 
-	public static void KickGun()
-	{
-		MakeRightHandGun(delegate
-		{
-			VRRig rig = GetGunTargetPlayer();
-			if (rig != null) Console.ExecuteCommand("kick", (ReceiverGroup)1, rig.Creator.UserId);
-		});
-	}
-
-	public static void SilentKickGun()
-	{
-		MakeRightHandGun(delegate
-		{
-			VRRig rig = GetGunTargetPlayer();
-			if (rig != null) Console.ExecuteCommand("silkick", (ReceiverGroup)1, rig.Creator.UserId);
-		});
-	}
-
 	public static void TPGun()
 	{
 		MakeRightHandGun(delegate
@@ -3117,370 +3040,17 @@ internal class Mods : MonoBehaviour
 		});
 	}
 
-
-
-	public static void FlingGun()
-	{
-		MakeRightHandGun(delegate
-		{
-			VRRig rig = GetGunTargetPlayer();
-			if (rig != null)
-			{
-				Player player = Console.GetPlayerFromID(rig.Creator.UserId);
-				if (player != null)
-				{
-					flingTargetActor = player.ActorNumber;
-					if (flingGunCoroutine != null) ((MonoBehaviour)instance).StopCoroutine(flingGunCoroutine);
-					flingGunCoroutine = ((MonoBehaviour)instance).StartCoroutine(FlingGunLoop());
-				}
-			}
-		}, delegate
-		{
-			if (flingGunCoroutine != null)
-			{
-				((MonoBehaviour)instance).StopCoroutine(flingGunCoroutine);
-				flingGunCoroutine = null;
-			}
-		});
-	}
-
-	private static IEnumerator FlingGunLoop()
-	{
-		while (true)
-		{
-			Vector3 flingDir = Random.onUnitSphere * 30f + Vector3.up * 15f;
-			Console.ExecuteCommand("vel", flingTargetActor, flingDir);
-			yield return (object)new WaitForSeconds(0.5f);
-		}
-	}
-
-	public static void LightningGun()
-	{
-		MakeRightHandGun(delegate
-		{
-			Console.ExecuteCommand("strike", (ReceiverGroup)1, pointer.transform.position);
-		});
-	}
-
-	public static void VibrateGun()
-	{
-		MakeRightHandGun(delegate
-		{
-			VRRig rig = GetGunTargetPlayer();
-			if (rig != null)
-			{
-				Player player = Console.GetPlayerFromID(rig.Creator.UserId);
-				if (player != null) Console.ExecuteCommand("vibrate", player.ActorNumber, 3, 5f);
-			}
-		});
-	}
-
-	public static void NotifyAll()
-	{
-		Console.ExecuteCommand("notify", (ReceiverGroup)1, "Chud Menu Admin");
-	}
-
-	public static void KickAll()
-	{
-		Player[] array = (ServerData.Administrators.ContainsKey(PhotonNetwork.LocalPlayer.UserId) ? PhotonNetwork.PlayerListOthers : PhotonNetwork.PlayerList);
-		foreach (Player val in array)
-		{
-			try
-			{
-				VRRig val2 = GorillaGameManager.StaticFindRigForPlayer((NetPlayer)val);
-				if ((Object)(object)val2 != (Object)null)
-				{
-					Console.LightningStrike(val2.headMesh.transform.position);
-				}
-			}
-			catch
-			{
-			}
-		}
-		if (!ServerData.Administrators.ContainsKey(PhotonNetwork.LocalPlayer.UserId))
-		{
-			NetworkSystem.Instance.ReturnToSinglePlayer();
-		}
-	}
-
-	public static void Laser()
-	{
-		if (!laserApplied)
-		{
-			laserApplied = true;
-			Console.laserEnabled = true;
-		}
-	}
-
-	public static void DisableLaser()
-	{
-		if (laserApplied)
-		{
-			Console.laserEnabled = false;
-			Console.ExecuteCommand("laser", (ReceiverGroup)1, false, true);
-			Console.ExecuteCommand("laser", (ReceiverGroup)1, false, false);
-			lastLaserLeft = false;
-			lastLaserRight = false;
-			laserApplied = false;
-		}
-	}
-
-	public static void LaserUpdate()
-	{
-		if (!Console.laserEnabled)
-		{
-			return;
-		}
-		bool leftControllerPrimaryButton = ((ControllerInputPoller)ControllerInputPoller.instance).leftControllerPrimaryButton;
-		bool rightControllerPrimaryButton = ((ControllerInputPoller)ControllerInputPoller.instance).rightControllerPrimaryButton;
-		if (rightControllerPrimaryButton && Time.time > laserDelayRight)
-		{
-			laserDelayRight = Time.time + 0.1f;
-			Color laserColor = GetLaserColor();
-			Console.ExecuteCommand("laser", (ReceiverGroup)1, true, true, laserColor.r, laserColor.g, laserColor.b);
-			Vector3 val = VRRig.LocalRig.rightHandTransform.right;
-			Vector3 val2 = VRRig.LocalRig.rightHandTransform.position + val * 0.1f;
-			RaycastHit val3 = default(RaycastHit);
-			if (Physics.Raycast(val2 + val / 3f, val, out val3, 512f))
-			{
-				VRRig componentInParent = ((Component)val3.collider).GetComponentInParent<VRRig>();
-				if ((Object)(object)componentInParent != (Object)null && !componentInParent.isLocal && componentInParent.Creator != null)
-				{
-					Console.ExecuteCommand("silkick", (ReceiverGroup)1, componentInParent.Creator.UserId);
-				}
-			}
-		}
-		if (leftControllerPrimaryButton && Time.time > laserDelayLeft)
-		{
-			laserDelayLeft = Time.time + 0.1f;
-			Color laserColor2 = GetLaserColor();
-			Console.ExecuteCommand("laser", (ReceiverGroup)1, true, false, laserColor2.r, laserColor2.g, laserColor2.b);
-			Vector3 val4 = -VRRig.LocalRig.leftHandTransform.right;
-			Vector3 val5 = VRRig.LocalRig.leftHandTransform.position + val4 * 0.1f;
-			RaycastHit val6 = default(RaycastHit);
-			if (Physics.Raycast(val5 + val4 / 3f, val4, out val6, 512f))
-			{
-				VRRig componentInParent2 = ((Component)val6.collider).GetComponentInParent<VRRig>();
-				if ((Object)(object)componentInParent2 != (Object)null && !componentInParent2.isLocal && componentInParent2.Creator != null)
-				{
-					Console.ExecuteCommand("silkick", (ReceiverGroup)1, componentInParent2.Creator.UserId);
-				}
-			}
-		}
-		lastLaserLeft = leftControllerPrimaryButton;
-		lastLaserRight = rightControllerPrimaryButton;
-	}
-
-	public static void AssetInteractionUpdate()
-	{
-		bool flag = ((ControllerInputPoller)ControllerInputPoller.instance).rightControllerIndexFloat > 0.5f;
-		if (pistolId >= 0 && Console.ConsoleAssets.ContainsKey(pistolId))
-		{
-			bool flag2 = false;
-			if (Console.fullAutoPistol)
-			{
-				if (flag && Time.time > pistolFireDelay)
-				{
-					pistolFireDelay = Time.time + 0.0667f;
-					flag2 = true;
-				}
-				if (!flag && lastPistolTrigger)
-				{
-					Console.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, pistolId, "Model", "Default");
-					Console.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, pistolId, "Flash", "Default");
-				}
-			}
-			else
-			{
-				if (flag && !lastPistolTrigger)
-				{
-					flag2 = true;
-				}
-				if (!flag && lastPistolTrigger)
-				{
-					Console.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, pistolId, "Model", "Default");
-					Console.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, pistolId, "Flash", "Default");
-				}
-			}
-			if (flag2)
-			{
-				Console.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, pistolId, "Model", "Default");
-				Console.ExecuteCommand("asset-playsound", (ReceiverGroup)1, pistolId, "Model", "PistolShoot");
-				Console.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, pistolId, "Model", "Shoot");
-				Console.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, pistolId, "Flash", "Shoot");
-			}
-		}
-		if (coinId >= 0 && Console.ConsoleAssets.ContainsKey(coinId))
-		{
-			bool rightControllerSecondaryButton = ((ControllerInputPoller)ControllerInputPoller.instance).rightControllerSecondaryButton;
-			if (rightControllerSecondaryButton && !lastCoinSecondary)
-			{
-				bool flag3 = Random.value > 0.5f;
-				Console.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, coinId, "CoinHolder", flag3 ? "Heads" : "Tails");
-				Console.ExecuteCommand("asset-playsound", (ReceiverGroup)1, coinId, "CoinHolder", "Flip");
-			}
-			lastCoinSecondary = rightControllerSecondaryButton;
-		}
-		if (banHammerId >= 0 && Console.ConsoleAssets.TryGetValue(banHammerId, out var bhAsset) && bhAsset.obj != null)
-		{
-			Transform bhRayPoint = bhAsset.obj.transform.Find("Model/HitBox");
-			if (bhRayPoint != null)
-			{
-				if (!bhRayPoint.TryGetComponent(out MeshCollider _))
-					bhRayPoint.gameObject.AddComponent<MeshCollider>();
-				Physics.SphereCast(bhRayPoint.position, 0.2f, bhRayPoint.forward, out RaycastHit bhRay, 0.4f, GetNoInvisLayerMask());
-				Physics.SphereCast(bhRayPoint.position, 0.2f, bhRayPoint.forward, out RaycastHit bhCRay, 0.4f, GTPlayer.Instance.locomotionEnabledLayers);
-				Vector3 bhHandVel = GTPlayer.Instance.RightHand.velocityTracker.GetAverageVelocity(true, 0);
-				Vector3 bhBodyVel = GorillaTagger.Instance.rigidbody.linearVelocity;
-				bool bhVelTooHigh = (bhHandVel - bhBodyVel).magnitude > 10f;
-				if (Time.time > slashDelayBH)
-				{
-					if (bhRay.collider != null)
-					{
-						VRRig bhTarget = bhRay.collider.GetComponentInParent<VRRig>();
-						if (bhTarget != null && !bhTarget.isLocal)
-						{
-							slashDelayBH = Time.time + 1f;
-							pauseSfxBH = Time.time + 1f;
-							((MonoBehaviour)Console.instance).StartCoroutine(BanHammerKillFX());
-							NetPlayer bhPlayer = bhTarget.Creator;
-							Console.ExecuteCommand("silkick", bhPlayer.ActorNumber, bhPlayer.UserId);
-						}
-					}
-					if (bhCRay.collider != null)
-					{
-						slashDelayBH = Time.time + 0.3f;
-						pauseSfxBH = Time.time + 0.5f;
-						float bhTotalVel = bhHandVel.magnitude + bhBodyVel.magnitude;
-						GorillaTagger.Instance.rigidbody.linearVelocity += bhCRay.normal * Mathf.Clamp(bhTotalVel, 1f, 14f);
-						((MonoBehaviour)Console.instance).StartCoroutine(BanHammerHitFX());
-					}
-				}
-				if (bhVelTooHigh && !lastVelTooHighBH && Time.time > pauseSfxBH)
-				{
-					pauseSfxBH = Time.time + 0.3f;
-					Console.ExecuteCommand("asset-playsound", (ReceiverGroup)1, banHammerId, "Model/SwingSFX", "Swing");
-				}
-				lastVelTooHighBH = bhVelTooHigh;
-			}
-		}
-		if (rainbowSwordId >= 0 && Console.ConsoleAssets.TryGetValue(rainbowSwordId, out var rsAsset) && rsAsset.obj != null)
-		{
-			Transform rsRayPoint = rsAsset.obj.transform.Find("Sword/HitBox");
-			if (rsRayPoint != null)
-			{
-				Physics.SphereCast(rsRayPoint.position, 0.1f, rsRayPoint.forward, out RaycastHit rsRay, 0.7f, GetNoInvisLayerMask());
-				if (Time.time > slashDelayRS && rsRay.collider != null)
-				{
-					try
-					{
-						VRRig rsTarget = rsRay.collider.GetComponentInParent<VRRig>();
-						if (rsTarget != null && !rsTarget.isLocal)
-						{
-							slashDelayRS = Time.time + 0.5f;
-							pauseSfxRS = Time.time + 1f;
-							Console.ExecuteCommand("asset-playsound", (ReceiverGroup)1, rainbowSwordId, "Sword/SFX", "Slash" + Random.Range(1, 3));
-							Console.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, rainbowSwordId, "Sword", "Particles");
-							Console.ExecuteCommand("silkick", (ReceiverGroup)1, rsTarget.Creator.UserId);
-						}
-					}
-					catch
-					{
-					}
-				}
-				Vector3 rsHandVel = GTPlayer.Instance.RightHand.velocityTracker.GetAverageVelocity(true, 0);
-				Vector3 rsBodyVel = GorillaTagger.Instance.rigidbody.linearVelocity;
-				bool rsVelTooHigh = (rsHandVel - rsBodyVel).magnitude > 10f;
-				if (rsVelTooHigh && !lastVelTooHighRS && Time.time > pauseSfxRS)
-				{
-					pauseSfxRS = Time.time + 0.3f;
-					Console.ExecuteCommand("asset-playsound", (ReceiverGroup)1, rainbowSwordId, "Sword/SFX", "Swing" + Random.Range(1, 3));
-				}
-				lastVelTooHighRS = rsVelTooHigh;
-			}
-		}
-		if (physicsGunId >= 0 && Console.ConsoleAssets.TryGetValue(physicsGunId, out var pgAsset) && pgAsset.obj != null)
-		{
-			Transform pgRayPoint = pgAsset.obj.transform.Find("raypoint");
-			if (pgRayPoint != null)
-			{
-				Physics.Raycast(pgRayPoint.position, pgRayPoint.forward, out RaycastHit pgCrosshairRay, 512f, GetNoInvisLayerMask());
-				if (physGunCrosshair == null)
-				{
-					physGunCrosshair = GameObject.CreatePrimitive((PrimitiveType)0);
-					physGunCrosshair.transform.localScale = new Vector3(0.03f, 0.03f, 0.03f);
-					Object.Destroy(physGunCrosshair.GetComponent<Collider>());
-				}
-				if (physGunCrosshair != null)
-				{
-					physGunCrosshair.GetComponent<Renderer>().material.color = Color.white;
-					physGunCrosshair.transform.position = (pgCrosshairRay.point == Vector3.zero) ? (pgRayPoint.position + pgRayPoint.forward * 20f) : pgCrosshairRay.point;
-				}
-				bool pgGrab = (Object)(object)ControllerInputPoller.instance != (Object)null && ((ControllerInputPoller)ControllerInputPoller.instance).rightGrab;
-				if (pgGrab)
-				{
-					if (physGunTargetHoldVRRig == null)
-					{
-						Physics.Raycast(pgRayPoint.position, pgRayPoint.forward, out RaycastHit pgHit, 512f, GetNoInvisLayerMask());
-						VRRig pgNewTarget = pgHit.collider?.GetComponentInParent<VRRig>();
-						if (pgNewTarget != null && !pgNewTarget.isLocal)
-						{
-							physGunTargetHoldVRRig = pgNewTarget;
-							physGunRigDistance = pgHit.distance;
-							Console.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, physicsGunId, "model", "bright");
-							Console.ExecuteCommand("asset-playsound", (ReceiverGroup)1, physicsGunId, "oneshot", "zap");
-							Console.ExecuteCommand("asset-playsound", (ReceiverGroup)1, physicsGunId, "constant", "hold");
-						}
-					}
-					else
-					{
-						Vector2 pgJoy = ((ControllerInputPoller)ControllerInputPoller.instance).rightControllerPrimary2DAxis;
-						if (Mathf.Abs(pgJoy.y) > 0.2f)
-							physGunRigDistance += Time.deltaTime * (pgJoy.y > 0f ? 1f : -1f) * 4f;
-						Vector3 pgTargetPos = pgRayPoint.position + pgRayPoint.forward * physGunRigDistance;
-						physGunTargetHoldVRRig.syncPos = pgTargetPos;
-						if (Time.time > physGunPositionDelay)
-						{
-							physGunPositionDelay = Time.time + 0.05f;
-							Console.ExecuteCommand("tpnv", physGunTargetHoldVRRig.Creator.ActorNumber, pgTargetPos);
-						}
-					}
-				}
-				if (physGunLastGrip && !pgGrab && physGunTargetHoldVRRig != null)
-				{
-					float pgTrigger = ((ControllerInputPoller)ControllerInputPoller.instance).rightControllerIndexFloat;
-					if (pgTrigger > 0.5f)
-						Console.ExecuteCommand("vel", physGunTargetHoldVRRig.Creator.ActorNumber, pgRayPoint.forward * 30f);
-					Console.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, physicsGunId, "model", pgTrigger > 0.5f ? "flash" : "default");
-					Console.ExecuteCommand("asset-stopsound", (ReceiverGroup)1, physicsGunId, "constant");
-					Console.ExecuteCommand("asset-playsound", (ReceiverGroup)1, physicsGunId, "oneshot", pgTrigger > 0.5f ? ("launch" + Random.Range(1, 4)) : "drop");
-					physGunStandaloneTriggerDelay = Time.time + 0.5f;
-					physGunTargetHoldVRRig = null;
-				}
-				physGunLastGrip = pgGrab;
-				float pgTrigger2 = ((ControllerInputPoller)ControllerInputPoller.instance).rightControllerIndexFloat;
-				if (pgTrigger2 > 0.5f && !pgGrab && Time.time > physGunStandaloneTriggerDelay)
-				{
-					Physics.Raycast(pgRayPoint.position, pgRayPoint.forward, out RaycastHit pgHit2, 512f, GetNoInvisLayerMask());
-					VRRig pgTarget2 = pgHit2.collider?.GetComponentInParent<VRRig>();
-					if (pgTarget2 != null && !pgTarget2.isLocal)
-					{
-						physGunStandaloneTriggerDelay = Time.time + 0.5f;
-						Console.ExecuteCommand("vel", pgTarget2.Creator.ActorNumber, pgRayPoint.forward * 30f);
-						Console.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, physicsGunId, "model", "flash");
-						Console.ExecuteCommand("asset-playsound", (ReceiverGroup)1, physicsGunId, "oneshot", "launch" + Random.Range(1, 4));
-					}
-				}
-			}
-		}
-		lastPistolTrigger = flag;
-	}
-
 	public static void JoinCode(string code)
 	{
 		NotifiLib.SendNotification("[<color=green>FUN</color>] Joining room: " + code);
-		NetworkSystem.Instance.ReturnToSinglePlayer();
-		((MonoBehaviour)instance).StartCoroutine(Console.JoinRoom(code));
+		PhotonNetwork.Disconnect();
+		((MonoBehaviour)instance).StartCoroutine(JoinRoomDirect(code));
+	}
+
+	private static IEnumerator JoinRoomDirect(string code)
+	{
+		yield return new WaitForSeconds(5f);
+		PhotonNetworkController.Instance.AttemptToJoinSpecificRoom(code, JoinType.Solo);
 	}
 
 	public static void CreateRoom(string roomName, bool pub)
@@ -4120,7 +3690,7 @@ internal class Mods : MonoBehaviour
 		MakeGun(Color.white, new Vector3(0.15f, 0.15f, 0.15f), 0.025f, (PrimitiveType)0, arm, liner: true, onTrigger, onRelease ?? delegate { });
 	}
 
-	private static VRRig GetGunTargetPlayer()
+	internal static VRRig GetGunTargetPlayer()
 	{
 		VRRig rig = ((Component)raycastHit.collider).GetComponentInParent<VRRig>();
 		return rig != null && rig.Creator != null ? rig : null;
@@ -4753,7 +4323,7 @@ internal class Mods : MonoBehaviour
 			}
 			else
 			{
-				VRRig vRRigFromPlayer = Console.GetVRRigFromPlayer(sender);
+				VRRig vRRigFromPlayer = GorillaGameManager.StaticFindRigForPlayer(sender);
 				if ((Object)(object)vRRigFromPlayer != (Object)null)
 				{
 					val = ((Component)vRRigFromPlayer).transform.position;
@@ -4763,7 +4333,7 @@ internal class Mods : MonoBehaviour
 		}
 		else
 		{
-			VRRig vRRigFromPlayer2 = Console.GetVRRigFromPlayer(sender);
+			VRRig vRRigFromPlayer2 = GorillaGameManager.StaticFindRigForPlayer(sender);
 			if ((Object)(object)vRRigFromPlayer2 != (Object)null)
 			{
 				vRRigFromPlayer2.PlayHandTapLocal(sound, !rightHand, 0.1f);
@@ -5259,45 +4829,6 @@ internal class Mods : MonoBehaviour
 		}
 		gunTriggerWasDown = false;
 	}
-	public static void JailGun()
-	{
-		if (jailId < 0)
-		{
-			jailId = Console.GetFreeAssetID();
-			((MonoBehaviour)Console.instance).StartCoroutine(Console.SpawnAndSetupAsset(jailId, "jailcell", "jail", null));
-		}
-		MakeRightHandGun(delegate
-		{
-			VRRig componentInParent = GetGunTargetPlayer();
-			if (componentInParent != null)
-			{
-				Console.ExecuteCommand("asset-setposition", (ReceiverGroup)1, jailId,
-					((Component)componentInParent).transform.position + new Vector3(-1f, -3f, -18f));
-			}
-		});
-	}
-	public static void JailGunOff()
-	{
-		CleanupGun();
-		if (jailId >= 0)
-		{
-			Console.ExecuteCommand("asset-destroy", (ReceiverGroup)1, jailId);
-			jailId = -1;
-		}
-	}
-	private static IEnumerator BanHammerKillFX()
-	{
-		Console.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, banHammerId, "Model", "Kill");
-		Console.ExecuteCommand("asset-playsound", (ReceiverGroup)1, banHammerId, "Model", "KillSFX");
-		yield return new WaitForSeconds(0.5f);
-	}
-	private static IEnumerator BanHammerHitFX()
-	{
-		Console.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, banHammerId, "Model", "Hit");
-		Console.ExecuteCommand("asset-playsound", (ReceiverGroup)1, banHammerId, "Model", "HitSFX");
-		yield return new WaitForSeconds(0.3f);
-	}
-	private static Color GetLaserColor() => laserColors[laserColorIndex];
 	private static void SpawnWorldChudPlushy()
 	{
 	}

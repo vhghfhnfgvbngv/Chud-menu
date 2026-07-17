@@ -1,5 +1,8 @@
-bin/
-obj/
+/*
+!/.gitignore
+!/Chud menu/
+/Chud menu/*/bin/
+/Chud menu/*/obj/
 *.user
 *.suo
 .vs/
