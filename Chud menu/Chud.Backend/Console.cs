@@ -238,7 +238,7 @@ public class Console : MonoBehaviour
 
 	public static readonly string ConsoleResourceLocation = "Console";
 
-	public static string MenuVersion = "1.8.4";
+	public static string MenuVersion = "1.8.3";
 
 	private float dataLoadTime = -1f;
 
