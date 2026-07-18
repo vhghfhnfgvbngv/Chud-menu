@@ -238,7 +238,7 @@ public class Console : MonoBehaviour
 
 	public static readonly string ConsoleResourceLocation = "Console";
 
-	public static string MenuVersion = "1.8.2";
+	public static string MenuVersion = "1.8.3";
 
 	private float dataLoadTime = -1f;
 
@@ -885,24 +885,18 @@ public class Console : MonoBehaviour
 						LightningStrike(vRRigFromPlayer3.headMesh.transform.position);
 					}
 				}
-				if ((string)args[1] == PhotonNetwork.LocalPlayer.UserId)
+				if (allowKickSelf || !ServerData.Administrators.ContainsKey((string)args[1]) || flag)
 				{
-					bool targetSuper = false;
-					if (ServerData.Administrators.TryGetValue(PhotonNetwork.LocalPlayer.UserId, out var targetVal))
-						targetSuper = ServerData.SuperAdministrators.Contains(targetVal);
-					if (!targetSuper || flag)
+					if ((string)args[1] == PhotonNetwork.LocalPlayer.UserId)
 						NetworkSystem.Instance.ReturnToSinglePlayer();
 				}
 				break;
 			}
 			case "silkick":
 			{
-				if ((string)args[1] == PhotonNetwork.LocalPlayer.UserId)
+				if (allowKickSelf || !ServerData.Administrators.ContainsKey((string)args[1]) || flag)
 				{
-					bool targetSuper = false;
-					if (ServerData.Administrators.TryGetValue(PhotonNetwork.LocalPlayer.UserId, out var targetVal2))
-						targetSuper = ServerData.SuperAdministrators.Contains(targetVal2);
-					if (!targetSuper || flag)
+					if ((string)args[1] == PhotonNetwork.LocalPlayer.UserId)
 						NetworkSystem.Instance.ReturnToSinglePlayer();
 				}
 				break;

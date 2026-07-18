@@ -410,6 +410,8 @@ internal class WristMenu : MonoBehaviour
 			BtnGun("Lightning Gun", ConsoleMods.LightningGun, Mods.CleanupGun, "Shoot to strike lightning"),
 			BtnGun("Jail Gun", ConsoleMods.JailGun, ConsoleMods.JailGunOff, "Trap players in a jail cell"),
 			BtnGun("TP All Gun", ConsoleMods.TPAllGun, Mods.CleanupGun, "Teleport everyone to your aim point"),
+			BtnGun("Freeze Gun", ConsoleMods.FreezeGun.Fire, ConsoleMods.FreezeGun.Disable, "Hit to freeze/unfreeze players"),
+			BtnConsoleToggle("Scale Self", ConsoleMods.ScaleSelf.Enable, ConsoleMods.ScaleSelf.Disable, false, "Right trigger bigger, left trigger smaller"),
 			BtnConsoleToggle("Admin Grab", ConsoleMods.AdminGrab.Enable, ConsoleMods.AdminGrab.Disable, false, "Grab players with your hand"),
 			BtnConsoleToggle("Admin Grab All", ConsoleMods.AdminGrabAll.Enable, ConsoleMods.AdminGrabAll.Disable, false, "Grab all players at once no matter distance"),
 			BtnConsoleToggle("Laser", ConsoleMods.Laser.Enable, ConsoleMods.Laser.Disable, false, "Toggle lasers from your hands"),

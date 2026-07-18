@@ -4419,14 +4419,6 @@ internal class Mods : MonoBehaviour
 		}
 	}
 
-	public static void ReceiveRemoteObject(string objType, Vector3 pos, Vector3 rot, Vector3 scale, Color color)
-	{
-		if (NetworkMenuEnabled)
-		{
-			NetworkMenuDisplay.SpawnRemoteObject(objType, pos, rot, scale, color);
-		}
-	}
-
 	public static void RemoveRemoteMenu(Player player)
 	{
 		int actorNumber = player.ActorNumber;

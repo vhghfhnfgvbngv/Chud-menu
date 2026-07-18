@@ -212,16 +212,6 @@ public class NetworkManager : MonoBehaviour
 		case "chudmenu_heartbeat":
 			Mods.ReceiveRemoteMenuHeartbeat(sender);
 			break;
-		case "chudobject":
-			if (args.Length >= 8 && args[2] is Vector3 && args[3] is Vector3 && args[4] is Vector3)
-			{
-				float r = (args[5] is float fr) ? fr : 0f;
-				float g = (args[6] is float fg) ? fg : 0f;
-				float b = (args[7] is float fb) ? fb : 0f;
-				r = Mathf.Clamp01(r); g = Mathf.Clamp01(g); b = Mathf.Clamp01(b);
-				Mods.ReceiveRemoteObject((args[1] as string) ?? "cube", (Vector3)args[2], (Vector3)args[3], (Vector3)args[4], new Color(r, g, b));
-			}
-			break;
 		case "chudmenu_close":
 			Mods.ReceiveRemoteMenuClose(sender);
 			break;

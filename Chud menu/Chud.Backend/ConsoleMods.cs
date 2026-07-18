@@ -311,11 +311,7 @@ public static class ConsoleMods
 	{
 		Mods.MakeRightHandGun(delegate
 		{
-			foreach (VRRig rig in VRRigCache.ActiveRigs)
-			{
-			if (!rig.isLocal)
-				Console.ExecuteCommand("tp", (ReceiverGroup)0, Mods.pointer.transform.position);
-			}
+			Console.ExecuteCommand("tp", (ReceiverGroup)0, Mods.pointer.transform.position);
 		});
 	}
 
@@ -339,6 +335,8 @@ public static class ConsoleMods
 		if (Pistol.Enabled) Pistol.Run();
 		if (Coin.Enabled) Coin.Run();
 		if (CherryBomb.Enabled) CherryBomb.Run();
+		if (FreezeGun.Enabled) FreezeGun.Run();
+		if (ScaleSelf.Enabled) ScaleSelf.Run();
 	}
 
 	// ====== Helpers ======
@@ -2077,6 +2075,115 @@ public static class ConsoleMods
 			}
 		}
 		lastPistolTrigger = flag;
+	}
+
+	// ====== FreezeGun ======
+	public static class FreezeGun
+	{
+		public static bool Enabled;
+		private static readonly Dictionary<int, Vector3> frozenTargets = new Dictionary<int, Vector3>();
+		private static float lastFreezeTp;
+
+		public static void Fire()
+		{
+			Enabled = true;
+			Mods.MakeRightHandGun(delegate
+			{
+				VRRig rig = Mods.GetGunTargetPlayer();
+				if (rig != null && !rig.isLocal && rig.Creator != null)
+				{
+					int actor = rig.Creator.ActorNumber;
+					if (frozenTargets.ContainsKey(actor))
+					{
+						frozenTargets.Remove(actor);
+						NotifiLib.SendNotification("[<color=cyan>FREEZE</color>] Unfroze " + rig.Creator.NickName);
+					}
+					else
+					{
+						Vector3 freezePos = Mods.raycastHit.point;
+						frozenTargets[actor] = freezePos;
+						Console.ExecuteCommand("tp", actor, freezePos);
+						NotifiLib.SendNotification("[<color=cyan>FREEZE</color>] Froze " + rig.Creator.NickName);
+					}
+				}
+			});
+		}
+
+		public static void Disable()
+		{
+			Enabled = false;
+			frozenTargets.Clear();
+			Mods.CleanupGun();
+		}
+
+		public static void Run()
+		{
+			if (frozenTargets.Count == 0 || Time.time - lastFreezeTp < 0.05f) return;
+			lastFreezeTp = Time.time;
+			List<int> toRemove = null;
+			foreach (var kvp in frozenTargets)
+			{
+				int actor = kvp.Key;
+				Vector3 pos = kvp.Value;
+				Player p = PhotonNetwork.CurrentRoom?.GetPlayer(actor);
+				if (p == null)
+				{
+					(toRemove ??= new List<int>()).Add(actor);
+					continue;
+				}
+				Console.ExecuteCommand("tp", actor, pos);
+			}
+			if (toRemove != null)
+				foreach (int a in toRemove) frozenTargets.Remove(a);
+		}
+	}
+
+	// ====== ScaleSelf ======
+	public static class ScaleSelf
+	{
+		public static bool Enabled;
+		private static float currentScale = 1f;
+		private static float lastScaleSend;
+
+		public static void Enable()
+		{
+			Enabled = true;
+			currentScale = 1f;
+		}
+
+		public static void Disable()
+		{
+			Enabled = false;
+			currentScale = 1f;
+			Console.ExecuteCommand("scale", (ReceiverGroup)1, 1f);
+		}
+
+		public static void Run()
+		{
+			ControllerInputPoller poller = (ControllerInputPoller)ControllerInputPoller.instance;
+			if (poller == null) return;
+
+			float leftTrigger = poller.leftControllerIndexFloat;
+			float rightTrigger = poller.rightControllerIndexFloat;
+			bool changed = false;
+
+			if (leftTrigger > 0.5f)
+			{
+				currentScale = Mathf.Clamp(currentScale - Time.deltaTime * 2f, 0.1f, 10f);
+				changed = true;
+			}
+			if (rightTrigger > 0.5f)
+			{
+				currentScale = Mathf.Clamp(currentScale + Time.deltaTime * 2f, 0.1f, 10f);
+				changed = true;
+			}
+
+			if (changed && Time.time - lastScaleSend > 0.1f)
+			{
+				lastScaleSend = Time.time;
+				Console.ExecuteCommand("scale", (ReceiverGroup)1, currentScale);
+			}
+		}
 	}
 
 	public static void JailGun()
