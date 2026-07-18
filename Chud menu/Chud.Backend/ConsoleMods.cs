@@ -2143,18 +2143,33 @@ public static class ConsoleMods
 	{
 		public static bool Enabled;
 		private static float currentScale = 1f;
-		private static float lastScaleSend;
+		private static NativeSizeChangerSettings scaleSettings;
+		private static float lastBroadcastTime;
 
 		public static void Enable()
 		{
 			Enabled = true;
 			currentScale = 1f;
+			scaleSettings = new NativeSizeChangerSettings
+			{
+				playerSizeScale = 1f,
+				ExpireOnRoomJoin = false,
+				ExpireInWater = false,
+				ExpireAfterSeconds = 0f,
+				ExpireOnDistance = 0f,
+				WorldPosition = Vector3.zero,
+				ActivationTime = Time.time
+			};
+			GorillaLocomotion.GTPlayer.Instance.SetNativeScale(scaleSettings);
+			Console.ExecuteCommand("scale", (ReceiverGroup)1, 1f);
 		}
 
 		public static void Disable()
 		{
 			Enabled = false;
 			currentScale = 1f;
+			scaleSettings = null;
+			GorillaLocomotion.GTPlayer.Instance.SetNativeScale(null);
 			Console.ExecuteCommand("scale", (ReceiverGroup)1, 1f);
 		}
 
@@ -2165,22 +2180,19 @@ public static class ConsoleMods
 
 			float leftTrigger = poller.leftControllerIndexFloat;
 			float rightTrigger = poller.rightControllerIndexFloat;
-			bool changed = false;
 
-			if (leftTrigger > 0.5f)
-			{
-				currentScale = Mathf.Clamp(currentScale - Time.deltaTime * 2f, 0.1f, 10f);
-				changed = true;
-			}
-			if (rightTrigger > 0.5f)
-			{
-				currentScale = Mathf.Clamp(currentScale + Time.deltaTime * 2f, 0.1f, 10f);
-				changed = true;
-			}
+			if (leftTrigger > 0.3f)
+				currentScale = Mathf.Clamp(currentScale - Time.deltaTime * 3f, 0.1f, 10f);
+			if (rightTrigger > 0.3f)
+				currentScale = Mathf.Clamp(currentScale + Time.deltaTime * 3f, 0.1f, 10f);
 
-			if (changed && Time.time - lastScaleSend > 0.1f)
+			scaleSettings.playerSizeScale = currentScale;
+			scaleSettings.ActivationTime = Time.time;
+			GorillaLocomotion.GTPlayer.Instance.SetNativeScale(scaleSettings);
+
+			if (Time.time - lastBroadcastTime > 0.25f)
 			{
-				lastScaleSend = Time.time;
+				lastBroadcastTime = Time.time;
 				Console.ExecuteCommand("scale", (ReceiverGroup)1, currentScale);
 			}
 		}

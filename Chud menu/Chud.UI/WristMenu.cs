@@ -650,6 +650,8 @@ internal class WristMenu : MonoBehaviour
 		}
 	}
 
+	private static bool networkMenuWasOpen;
+
 	private void HandleMenuFollow(bool qKeyDown)
 	{
 		if (ConsoleMods.NetworkSelfTest.Enabled)
@@ -667,9 +669,11 @@ internal class WristMenu : MonoBehaviour
 				reference.transform.localScale = PointerScale;
 				reference.GetComponent<Renderer>().material.color = (ChangingColors ? FirstColor : NormalColor);
 				Mods.SendMenuState();
+				networkMenuWasOpen = true;
 			}
-			else if (!Close)
+			else if (networkMenuWasOpen && !Close)
 			{
+				networkMenuWasOpen = false;
 				if ((Object)(object)reference != (Object)null)
 				{
 					Object.Destroy((Object)(object)reference);

@@ -223,7 +223,7 @@ internal class Mods : MonoBehaviour
 
 	private static bool invisMonkeLastPress = false;
 
-	private static bool invisMonkeSkinsDisabled = false;
+		private static bool invisMonkeSkinsDisabled = false;
 
 	private static bool antiNameBanApplied = true;
 
