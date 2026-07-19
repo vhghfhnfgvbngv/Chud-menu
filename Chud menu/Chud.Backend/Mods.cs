@@ -3692,6 +3692,7 @@ internal class Mods : MonoBehaviour
 
 	internal static VRRig GetGunTargetPlayer()
 	{
+		if ((object)raycastHit.collider == null) return null;
 		VRRig rig = ((Component)raycastHit.collider).GetComponentInParent<VRRig>();
 		return rig != null && rig.Creator != null ? rig : null;
 	}
@@ -4593,20 +4594,6 @@ internal class Mods : MonoBehaviour
 		}
 	}
 
-	private static JObject JObjectFromVector3(Vector3 v)
-	{
-		JObject val = new JObject();
-		val["x"] = v.x;
-		val["y"] = v.y;
-		val["z"] = v.z;
-		return val;
-	}
-
-	private static Vector3 JObjectToVector3(JObject o)
-	{
-		return new Vector3((float)o["x"], (float)o["y"], (float)o["z"]);
-	}
-
 	private static string soundboardBasePath = Path.Combine(new string[]
 	{
 		Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "..", "..", "Chud Menu", "Sounds"
@@ -4714,21 +4701,6 @@ internal class Mods : MonoBehaviour
 			myRecorder.RestartRecording(true);
 			myRecorder.DebugEchoMode = false;
 		}
-	}
-
-	private static JObject JObjectFromQuaternion(Quaternion q)
-	{
-		JObject val = new JObject();
-		val["x"] = q.x;
-		val["y"] = q.y;
-		val["z"] = q.z;
-		val["w"] = q.w;
-		return val;
-	}
-
-	private static Quaternion JObjectToQuaternion(JObject o)
-	{
-		return new Quaternion((float)o["x"], (float)o["y"], (float)o["z"], (float)o["w"]);
 	}
 
 	public static void EnableBackflip()

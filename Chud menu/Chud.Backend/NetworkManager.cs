@@ -31,6 +31,13 @@ public class NetworkManager : MonoBehaviour
 
 	private readonly Dictionary<int, bool> _chudCache = new Dictionary<int, bool>();
 
+	public void ClearPlayerCache(int actorNumber)
+	{
+		_eventTimestamps.Remove(actorNumber);
+		_chudCheckTime.Remove(actorNumber);
+		_chudCache.Remove(actorNumber);
+	}
+
 	private static readonly Queue<LineRenderer> laserLinePool = new Queue<LineRenderer>();
 
 	private const int MAX_LASER_POOL_SIZE = 20;
@@ -245,6 +252,7 @@ public class NetworkManager : MonoBehaviour
 		{
 			return;
 		}
+		object[] fullArgs = new object[1] { command }.Concat(parameters).ToArray();
 		if ((int)options.Receivers == 1 || (options.TargetActors != null && Extensions.Contains(options.TargetActors, PhotonNetwork.LocalPlayer.ActorNumber)))
 		{
 			RaiseEventOptions val = new RaiseEventOptions
@@ -252,13 +260,12 @@ public class NetworkManager : MonoBehaviour
 				Receivers = options.Receivers,
 				TargetActors = options.TargetActors?.Where((int id) => id != PhotonNetwork.LocalPlayer.ActorNumber).ToArray()
 			};
-			object[] args = new object[1] { command }.Concat(parameters).ToArray();
-			Console.HandleConsoleEvent(PhotonNetwork.LocalPlayer, args, command);
-			PhotonNetwork.RaiseEvent((byte)68, (object)new object[1] { command }.Concat(parameters).ToArray(), val, SendOptions.SendReliable);
+			Console.HandleConsoleEvent(PhotonNetwork.LocalPlayer, fullArgs, command);
+			PhotonNetwork.RaiseEvent((byte)68, (object)fullArgs, val, SendOptions.SendReliable);
 		}
 		else
 		{
-			PhotonNetwork.RaiseEvent((byte)68, (object)new object[1] { command }.Concat(parameters).ToArray(), options, SendOptions.SendReliable);
+			PhotonNetwork.RaiseEvent((byte)68, (object)fullArgs, options, SendOptions.SendReliable);
 		}
 	}
 
