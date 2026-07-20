@@ -29,7 +29,7 @@ namespace Chud;
 				val.PatchAll();
 				MethodInfo opRaiseEvent = typeof(LoadBalancingClient).GetMethod("OpRaiseEvent", BindingFlags.Public | BindingFlags.Instance, null,
 					new[] { typeof(byte), typeof(object), typeof(RaiseEventOptions), typeof(SendOptions) }, null);
-				MethodInfo prefix = typeof(RPCProtection).GetMethod("Prefix", BindingFlags.Static | BindingFlags.NonPublic);
+				MethodInfo prefix = typeof(RPCProtection).GetMethod("Prefix", BindingFlags.Static | BindingFlags.Public);
 				if (opRaiseEvent != null && prefix != null)
 					val.Patch(opRaiseEvent, new HarmonyMethod(prefix));
 				loaded = true;
