@@ -35,13 +35,10 @@ public static class MenuManager
 			CurrentCategoryName = name;
 		}
 		WristMenu.pageNumber = 0;
-		if (!ConsoleMods.NetworkSelfTest.Enabled)
+		WristMenu.DestroyMenu();
+		if ((Object)(object)WristMenu.instance != (Object)null)
 		{
-			WristMenu.DestroyMenu();
-			if ((Object)(object)WristMenu.instance != (Object)null)
-			{
-				WristMenu.instance.Draw();
-			}
+			WristMenu.instance.Draw();
 		}
 		Mods.SendMenuState();
 	}

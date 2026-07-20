@@ -325,7 +325,6 @@ internal static class NetworkMenuDisplay
 		{
 			return;
 		}
-		Shader val = CachedUberShader;
 		foreach (Transform item in state.displayObject.transform)
 		{
 			Transform val2 = item;
@@ -334,11 +333,8 @@ internal static class NetworkMenuDisplay
 				Renderer component = ((Component)val2).GetComponent<Renderer>();
 				if ((Object)(object)component != (Object)null)
 				{
-					component.material.color = state.menuColors.NormalColor;
-				}
-				if ((Object)(object)val != (Object)null && (Object)(object)component != (Object)null)
-				{
-					component.material.shader = val;
+					Color bgTop = state.menuColors.NormalColor * 0.35f;
+					component.material = WristMenu.MakeGradientMat(bgTop, state.menuColors.NormalColor);
 				}
 				continue;
 			}
@@ -352,21 +348,21 @@ internal static class NetworkMenuDisplay
 			{
 				if (component2.relatedText == "DisconnectingButton")
 				{
-					component3.material.color = WristMenu.DisconnectButtonColor;
+					Color dcTop = WristMenu.DisconnectButtonColor * 0.35f;
+					component3.material = WristMenu.MakeGradientMat(dcTop, WristMenu.DisconnectButtonColor);
 				}
 				else if (component2.relatedText == "PreviousPage" || component2.relatedText == "NextPage")
 				{
-					component3.material.color = state.menuColors.NextPrevButtonColor;
+					Color npTop = state.menuColors.NextPrevButtonColor * 0.35f;
+					component3.material = WristMenu.MakeGradientMat(npTop, state.menuColors.NextPrevButtonColor);
 				}
 				else
 				{
 					bool value;
 					bool flag = state.buttonStates.TryGetValue(component2.relatedText, out value) && value;
-					component3.material.color = (flag ? state.menuColors.ButtonColorEnabled : state.menuColors.ButtonColorDisable);
-				}
-				if ((Object)(object)val != (Object)null)
-				{
-					component3.material.shader = val;
+					Color btnBase = flag ? state.menuColors.ButtonColorEnabled : state.menuColors.ButtonColorDisable;
+					Color btnTop = btnBase * 0.35f;
+					component3.material = WristMenu.MakeGradientMat(btnTop, btnBase);
 				}
 			}
 		}

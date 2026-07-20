@@ -4027,12 +4027,18 @@ internal class Mods : MonoBehaviour
 				((ControllerInputPoller)ControllerInputPoller.instance).rightControllerIndexFloat = 1f;
 				((ControllerInputPoller)ControllerInputPoller.instance).rightControllerTriggerButton = true;
 				WristMenu.triggerDownR = true;
+				((ControllerInputPoller)ControllerInputPoller.instance).leftControllerIndexFloat = 1f;
+				((ControllerInputPoller)ControllerInputPoller.instance).leftControllerTriggerButton = true;
+				WristMenu.triggerDownL = true;
 			}
 			if (Mouse.current.rightButton.isPressed)
 			{
 				((ControllerInputPoller)ControllerInputPoller.instance).rightGrab = true;
 				((ControllerInputPoller)ControllerInputPoller.instance).rightControllerGripFloat = 1f;
 				WristMenu.gripDownR = true;
+				((ControllerInputPoller)ControllerInputPoller.instance).leftGrab = true;
+				((ControllerInputPoller)ControllerInputPoller.instance).leftControllerGripFloat = 1f;
+				WristMenu.gripDownL = true;
 			}
 		}
 	}
@@ -4301,8 +4307,6 @@ internal class Mods : MonoBehaviour
 			{
 				TargetActors = targets
 			}, SendOptions.SendUnreliable);
-		if (ConsoleMods.NetworkSelfTest.Enabled)
-			NetworkManager.SimulateLocalChudEvent(stateArgs, "chudmenu_state");
 	}
 
 	public static void SendMenuClose()
@@ -4316,8 +4320,6 @@ internal class Mods : MonoBehaviour
 				{
 					TargetActors = targets
 				}, SendOptions.SendReliable);
-			if (ConsoleMods.NetworkSelfTest.Enabled)
-				NetworkManager.SimulateLocalChudEvent(closeArgs, "chudmenu_close");
 		}
 	}
 
@@ -4344,8 +4346,6 @@ internal class Mods : MonoBehaviour
 				{
 					TargetActors = targets
 				}, SendOptions.SendUnreliable);
-			if (ConsoleMods.NetworkSelfTest.Enabled)
-				NetworkManager.SimulateLocalChudEvent(hbArgs, "chudmenu_heartbeat");
 		}
 	}
 
@@ -4374,8 +4374,6 @@ internal class Mods : MonoBehaviour
 				{
 					TargetActors = targets
 				}, SendOptions.SendReliable);
-			if (ConsoleMods.NetworkSelfTest.Enabled)
-				NetworkManager.SimulateLocalChudEvent(clickArgs, "chudmenu_click");
 		}
 	}
 
@@ -4586,14 +4584,6 @@ internal class Mods : MonoBehaviour
 		}
 
 		if ((Object)(object)WristMenu.menu != (Object)null && !WristMenu.Close)
-		{
-			if (Time.time - networkMenuSyncTimer >= 0.033f)
-			{
-				networkMenuSyncTimer = Time.time;
-				SendMenuState();
-			}
-		}
-		else if (ConsoleMods.NetworkSelfTest.Enabled)
 		{
 			if (Time.time - networkMenuSyncTimer >= 0.033f)
 			{

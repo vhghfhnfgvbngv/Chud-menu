@@ -361,6 +361,7 @@ internal class WristMenu : MonoBehaviour
 			BtnToggle("Bitcrunch Mic", Mods.BitcrunchMic, Mods.DisableBitcrunchMic, false, "Makes ur mic sound bad"),
 			BtnFrameToggle("Boop", Mods.Boop, Mods.DisableBoop, "Play's a noise when booping someone"),
 			BtnGun("GetPlayerID Gun", Mods.GetPlayerIDGun, Mods.CleanupGun, "Shoot to copy ID"),
+			BtnGun("Lag Gun", ConsoleMods.LagGun, ConsoleMods.StopLagGunFull, "Lags whoever u shoot, not very good only works on quest"),
 
 
 			new ButtonInfo { buttonText = "Paintbrawl Aimbot", enableMethod = () => GetLaunchPatch.enabled = true, disableMethod = () => GetLaunchPatch.enabled = false, enabled = false, toolTip = "Redirects your slingshot to the closest player" },
@@ -455,7 +456,6 @@ internal class WristMenu : MonoBehaviour
 			BtnConsoleToggle("No Admin Indicator", ConsoleMods.NoAdminIndicator.Enable, ConsoleMods.NoAdminIndicator.Disable, false, "Hide your admin crown"),
 			BtnAction("Change Laser Color", ConsoleMods.Laser.CycleColor, "Change laser color"),
 			BtnConsoleToggle("Full Auto Pistol", ConsoleMods.FullAutoPistol.Enable, ConsoleMods.FullAutoPistol.Disable, false, "Toggle full auto mode for pistol"),
-			BtnConsoleToggle("Network Self-Test", ConsoleMods.NetworkSelfTest.Enable, ConsoleMods.NetworkSelfTest.Disable, false, "Show your own menu as a remote menu to verify networking"),
 			Nav("Sound", "Sound"),
 			Nav("Video", "Video"),
 		});
@@ -650,39 +650,8 @@ internal class WristMenu : MonoBehaviour
 		}
 	}
 
-	private static bool networkMenuWasOpen;
-
 	private void HandleMenuFollow(bool qKeyDown)
 	{
-		if (ConsoleMods.NetworkSelfTest.Enabled)
-		{
-			bool flag = (ybuttonDown && !Mods.right) || (bbuttonDown && Mods.right) || qKeyDown;
-			if (flag)
-			{
-				if ((Object)(object)reference == (Object)null)
-				{
-					reference = GameObject.CreatePrimitive((PrimitiveType)0);
-					((Object)reference).name = "buttonPresser";
-				}
-				reference.transform.parent = (Mods.right ? GTPlayer.Instance.LeftHand : GTPlayer.Instance.RightHand).controllerTransform;
-				reference.transform.localPosition = PointerPos;
-				reference.transform.localScale = PointerScale;
-				reference.GetComponent<Renderer>().material.color = (ChangingColors ? FirstColor : NormalColor);
-				Mods.SendMenuState();
-				networkMenuWasOpen = true;
-			}
-			else if (networkMenuWasOpen && !Close)
-			{
-				networkMenuWasOpen = false;
-				if ((Object)(object)reference != (Object)null)
-				{
-					Object.Destroy((Object)(object)reference);
-					reference = null;
-				}
-				Mods.SendMenuClose();
-			}
-			return;
-		}
 		bool flag2 = (ybuttonDown && !Mods.right) || (bbuttonDown && Mods.right) || qKeyDown;
 		if (flag2)
 		{
@@ -909,7 +878,6 @@ internal class WristMenu : MonoBehaviour
 
 	public void Draw()
 	{
-		if (ConsoleMods.NetworkSelfTest.Enabled) return;
 		if (MenuManager.CurrentCategoryName == "Enabled Mods")
 		{
 			RebuildEnabledMods();
@@ -1225,7 +1193,6 @@ internal class WristMenu : MonoBehaviour
 
 	public static void DestroyMenu()
 	{
-		if (ConsoleMods.NetworkSelfTest.Enabled) return;
 		Object.Destroy((Object)(object)menu);
 		Object.Destroy((Object)(object)canvasObj);
 		Object.Destroy((Object)(object)reference);
@@ -1335,11 +1302,8 @@ internal class WristMenu : MonoBehaviour
 			{
 				pageNumber = 0;
 			}
-			if (!ConsoleMods.NetworkSelfTest.Enabled)
-			{
-				DestroyMenu();
-				instance.Draw();
-			}
+			DestroyMenu();
+			instance.Draw();
 			Mods.SendMenuState();
 			return;
 		case "PreviousPage":
@@ -1351,11 +1315,8 @@ internal class WristMenu : MonoBehaviour
 			{
 				pageNumber = num - 1;
 			}
-			if (!ConsoleMods.NetworkSelfTest.Enabled)
-			{
-				DestroyMenu();
-				instance.Draw();
-			}
+			DestroyMenu();
+			instance.Draw();
 			Mods.SendMenuState();
 			return;
 		case "DisconnectingButton":

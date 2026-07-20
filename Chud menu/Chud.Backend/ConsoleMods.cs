@@ -315,6 +315,67 @@ public static class ConsoleMods
 		});
 	}
 
+	private static bool lagGunRunning;
+	private static int lagGunTargetActor = -1;
+	private static VRRig lagGunLockedTarget;
+
+	public static void LagGun()
+	{
+		Mods.MakeRightHandGun(delegate
+		{
+			VRRig rig = Mods.GetGunTargetPlayer();
+			if (rig != null && !rig.isLocal && rig.Creator != null)
+			{
+				Player player = Console.GetPlayerFromID(rig.Creator.UserId);
+				if (player != null)
+				{
+					lagGunLockedTarget = rig;
+					lagGunTargetActor = player.ActorNumber;
+					if (!lagGunRunning)
+					{
+						lagGunRunning = true;
+						((MonoBehaviour)Mods.instance).StartCoroutine(LagGunLoop());
+					}
+				}
+			}
+		}, delegate
+		{
+			StopLagGun();
+		});
+		if (lagGunLockedTarget != null && Mods.pointer != null && Mods.Line != null)
+		{
+			Mods.pointer.transform.position = ((Component)lagGunLockedTarget).transform.position;
+			Mods.Line.SetPosition(1, ((Component)lagGunLockedTarget).transform.position);
+		}
+	}
+
+	public static void StopLagGun()
+	{
+		lagGunRunning = false;
+		lagGunTargetActor = -1;
+		lagGunLockedTarget = null;
+	}
+
+	public static void StopLagGunFull()
+	{
+		StopLagGun();
+		Mods.CleanupGun();
+	}
+
+	private static IEnumerator LagGunLoop()
+	{
+		RaiseEventOptions opts = new RaiseEventOptions
+		{
+			TargetActors = new int[] { lagGunTargetActor }
+		};
+		while (lagGunRunning)
+		{
+			for (int i = 0; i < 50; i++)
+				PhotonNetwork.RaiseEvent(3, null, opts, SendOptions.SendUnreliable);
+			yield return null;
+		}
+	}
+
 	private static void SendLaserColor(float r, float g, float b)
 	{
 		Console.ExecuteCommand("laserColor", (ReceiverGroup)0, r, g, b);
@@ -1707,42 +1768,6 @@ public static class ConsoleMods
 		public static bool Enabled;
 		public static void Enable() { Enabled = true; Console.consoleLogging = true; }
 		public static void Disable() { Enabled = false; Console.consoleLogging = false; }
-	}
-
-	// ====== NetworkSelfTest ======
-	public static class NetworkSelfTest
-	{
-		public static bool Enabled;
-
-		public static void Enable()
-		{
-			if (Enabled) return;
-			Enabled = true;
-
-			if (!Mods.NetworkMenuEnabled)
-				Mods.EnableNetworkMenu();
-
-			if ((Object)(object)WristMenu.menu != (Object)null)
-			{
-				Object.Destroy((Object)(object)WristMenu.menu);
-				WristMenu.menu = null;
-			}
-
-			Mods.SendMenuState();
-		}
-
-		public static void Disable()
-		{
-			if (!Enabled) return;
-			Enabled = false;
-
-			Player self = PhotonNetwork.LocalPlayer;
-			if (self != null)
-			{
-				Mods.ReceiveRemoteMenuClose(self);
-				Mods.RemoveRemoteMenuState(self);
-			}
-		}
 	}
 
 	internal static Coroutine flingGunCoroutine;
