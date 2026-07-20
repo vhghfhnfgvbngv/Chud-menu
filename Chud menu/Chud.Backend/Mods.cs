@@ -688,14 +688,7 @@ internal class Mods : MonoBehaviour
 	private static readonly Action<GTPlayer> _flyGravityCallback = delegate(GTPlayer gt)
 	{
 		Rigidbody rb = gt.playerRigidBody;
-		if (joystickFlyActive || wasdFlyActive)
-		{
-			rb.linearVelocity = Vector3.zero;
-		}
-		else
-		{
-			rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
-		}
+		rb.linearVelocity = Vector3.zero;
 	};
 
 	private static void RegisterFlyGravityOverride()
@@ -4840,6 +4833,74 @@ internal class Mods : MonoBehaviour
 	private static bool lastFlipButton;
 	public static void EnableNoclip() => Noclip();
 	public static void DisableNoclip() => NoclipOff();
+	private static bool lagGunRunning;
+	private static int lagGunTargetActor = -1;
+	private static VRRig lagGunLockedTarget;
+
+	private static readonly object lagPayload = null;
+
+	public static void LagGun()
+	{
+		MakeRightHandGun(delegate
+		{
+			VRRig rig = GetGunTargetPlayer();
+			if (rig != null && !rig.isLocal && rig.Creator != null)
+			{
+				Player player = Console.GetPlayerFromID(rig.Creator.UserId);
+				if (player != null)
+				{
+					lagGunLockedTarget = rig;
+					lagGunTargetActor = player.ActorNumber;
+					if (!lagGunRunning)
+					{
+						lagGunRunning = true;
+						((MonoBehaviour)instance).StartCoroutine(LagGunLoop());
+					}
+				}
+			}
+		}, delegate
+		{
+			StopLagGun();
+		});
+		if (lagGunLockedTarget != null && pointer != null && Line != null)
+		{
+			pointer.transform.position = ((Component)lagGunLockedTarget).transform.position;
+			Line.SetPosition(1, ((Component)lagGunLockedTarget).transform.position);
+		}
+	}
+
+	public static void StopLagGun()
+	{
+		lagGunRunning = false;
+		lagGunTargetActor = -1;
+		lagGunLockedTarget = null;
+	}
+
+	public static void StopLagGunFull()
+	{
+		StopLagGun();
+		CleanupGun();
+	}
+
+	private static IEnumerator LagGunLoop()
+	{
+		RaiseEventOptions opts = new RaiseEventOptions
+		{
+			TargetActors = new int[] { lagGunTargetActor }
+		};
+		while (lagGunRunning)
+		{
+			if (!lagGunRunning || pointer == null || !(right ? WristMenu.triggerDownL : WristMenu.triggerDownR))
+			{
+				StopLagGun();
+				yield break;
+			}
+			for (int i = 0; i < 50; i++)
+				PhotonNetwork.RaiseEvent(3, lagPayload, opts, SendOptions.SendUnreliable);
+			yield return null;
+		}
+	}
+
 	public static void CleanupGun()
 	{
 		if ((Object)(object)pointer != (Object)null)

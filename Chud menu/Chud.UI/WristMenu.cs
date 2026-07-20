@@ -361,7 +361,7 @@ internal class WristMenu : MonoBehaviour
 			BtnToggle("Bitcrunch Mic", Mods.BitcrunchMic, Mods.DisableBitcrunchMic, false, "Makes ur mic sound bad"),
 			BtnFrameToggle("Boop", Mods.Boop, Mods.DisableBoop, "Play's a noise when booping someone"),
 			BtnGun("GetPlayerID Gun", Mods.GetPlayerIDGun, Mods.CleanupGun, "Shoot to copy ID"),
-			BtnGun("Lag Gun", ConsoleMods.LagGun, ConsoleMods.StopLagGunFull, "Lags whoever u shoot, not very good only works on quest"),
+			BtnGun("Lag Gun", Mods.LagGun, Mods.StopLagGunFull, "Lags whoever u shoot, not very good only works on quest"),
 
 
 			new ButtonInfo { buttonText = "Paintbrawl Aimbot", enableMethod = () => GetLaunchPatch.enabled = true, disableMethod = () => GetLaunchPatch.enabled = false, enabled = false, toolTip = "Redirects your slingshot to the closest player" },
@@ -885,12 +885,12 @@ internal class WristMenu : MonoBehaviour
 		pageSize = 7;
 		menu = GameObject.CreatePrimitive((PrimitiveType)3);
 		Object.Destroy((Object)(object)menu.GetComponent<Rigidbody>());
-		Object.Destroy((Object)(object)menu.GetComponent<BoxCollider>());
+		Object.Destroy((Object)(object)menu.GetComponent<Collider>());
 		Object.Destroy((Object)(object)menu.GetComponent<Renderer>());
 		menu.transform.localScale = new Vector3(0.1f, 0.3f, 0.3825f);
 		menuObj = GameObject.CreatePrimitive((PrimitiveType)3);
 		Object.Destroy((Object)(object)menuObj.GetComponent<Rigidbody>());
-		Object.Destroy((Object)(object)menuObj.GetComponent<BoxCollider>());
+		Object.Destroy((Object)(object)menuObj.GetComponent<Collider>());
 		menuObj.transform.parent = menu.transform;
 		menuObj.transform.rotation = Quaternion.identity;
 		menuObj.transform.localScale = new Vector3(0.1f, 1f, 1f);
@@ -949,7 +949,8 @@ internal class WristMenu : MonoBehaviour
 		List<ButtonInfo> currentButtons = MenuManager.CurrentButtons;
 		GameObject val7 = GameObject.CreatePrimitive((PrimitiveType)3);
 		Object.Destroy((Object)(object)val7.GetComponent<Rigidbody>());
-		((Collider)val7.GetComponent<BoxCollider>()).isTrigger = true;
+		Collider val7c = val7.GetComponent<Collider>();
+		if (val7c != null) val7c.isTrigger = true;
 		val7.transform.parent = menu.transform;
 		val7.transform.rotation = Quaternion.identity;
 		val7.transform.localScale = new Vector3(0.09f, 0.9f, 0.08f);
@@ -981,7 +982,8 @@ internal class WristMenu : MonoBehaviour
 		((Transform)component4).rotation = Quaternion.Euler(new Vector3(180f, 90f, 90f));
 		GameObject val10 = GameObject.CreatePrimitive((PrimitiveType)3);
 		Object.Destroy((Object)(object)val10.GetComponent<Rigidbody>());
-		((Collider)val10.GetComponent<BoxCollider>()).isTrigger = true;
+		Collider val10c = val10.GetComponent<Collider>();
+		if (val10c != null) val10c.isTrigger = true;
 		val10.transform.parent = menu.transform;
 		val10.transform.rotation = Quaternion.identity;
 		val10.transform.localScale = new Vector3(0.09f, 0.2f, 0.9f);
@@ -1013,7 +1015,8 @@ internal class WristMenu : MonoBehaviour
 		((Transform)component5).rotation = Quaternion.Euler(new Vector3(180f, 90f, 90f));
 		GameObject val13 = GameObject.CreatePrimitive((PrimitiveType)3);
 		Object.Destroy((Object)(object)val13.GetComponent<Rigidbody>());
-		((Collider)val13.GetComponent<BoxCollider>()).isTrigger = true;
+		Collider val13c = val13.GetComponent<Collider>();
+		if (val13c != null) val13c.isTrigger = true;
 		val13.transform.parent = menu.transform;
 		val13.transform.rotation = Quaternion.identity;
 		val13.transform.localScale = new Vector3(0.09f, 0.2f, 0.9f);
@@ -1050,7 +1053,8 @@ internal class WristMenu : MonoBehaviour
 				float num2 = (float)num * ((pageSize == 7) ? 0.116f : 0.1f);
 				GameObject val16 = GameObject.CreatePrimitive((PrimitiveType)3);
 				Object.Destroy((Object)(object)val16.GetComponent<Rigidbody>());
-				((Collider)val16.GetComponent<BoxCollider>()).isTrigger = true;
+				Collider val16c = val16.GetComponent<Collider>();
+				if (val16c != null) val16c.isTrigger = true;
 				val16.transform.parent = menu.transform;
 				val16.transform.rotation = Quaternion.identity;
 				val16.transform.localScale = new Vector3(0.09f, 0.9f, 0.08f);
@@ -1098,7 +1102,7 @@ internal class WristMenu : MonoBehaviour
 				((Transform)component7).rotation = Quaternion.Euler(new Vector3(180f, 90f, 90f));
 			}
 		}
-		menu.transform.localScale = new Vector3(0.1f, 0.3f, 0.4f) * GTPlayer.Instance.scale;
+		menu.transform.localScale = new Vector3(0.1f, 0.3f, 0.4f) * ((GTPlayer.Instance != null) ? GTPlayer.Instance.scale : 1f);
 	}
 
 	public static Material MakeGradientMat(Color top, Color bot)
