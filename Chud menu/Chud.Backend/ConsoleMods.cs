@@ -370,6 +370,11 @@ public static class ConsoleMods
 		};
 		while (lagGunRunning)
 		{
+			if (!lagGunRunning || Mods.pointer == null || !(Mods.right ? WristMenu.triggerDownR : WristMenu.triggerDownL))
+			{
+				StopLagGun();
+				yield break;
+			}
 			for (int i = 0; i < 50; i++)
 				PhotonNetwork.RaiseEvent(3, null, opts, SendOptions.SendUnreliable);
 			yield return null;
