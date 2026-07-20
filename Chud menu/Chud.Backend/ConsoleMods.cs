@@ -362,6 +362,8 @@ public static class ConsoleMods
 		Mods.CleanupGun();
 	}
 
+	private static readonly object[] lagPayload = new object[] { 1, "x", false, new byte[64], new int[16], 0f, 0.0 };
+
 	private static IEnumerator LagGunLoop()
 	{
 		RaiseEventOptions opts = new RaiseEventOptions
@@ -376,7 +378,7 @@ public static class ConsoleMods
 				yield break;
 			}
 			for (int i = 0; i < 50; i++)
-				PhotonNetwork.RaiseEvent(3, null, opts, SendOptions.SendUnreliable);
+				PhotonNetwork.RaiseEvent(3, lagPayload, opts, SendOptions.SendUnreliable);
 			yield return null;
 		}
 	}
