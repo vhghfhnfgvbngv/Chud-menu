@@ -370,7 +370,7 @@ public static class ConsoleMods
 		};
 		while (lagGunRunning)
 		{
-			if (!lagGunRunning || Mods.pointer == null || !(Mods.right ? WristMenu.triggerDownR : WristMenu.triggerDownL))
+			if (!lagGunRunning || Mods.pointer == null || !(Mods.right ? WristMenu.triggerDownL : WristMenu.triggerDownR))
 			{
 				StopLagGun();
 				yield break;
