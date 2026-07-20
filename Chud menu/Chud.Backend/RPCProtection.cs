@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using ExitGames.Client.Photon;
 using HarmonyLib;
 using Photon.Pun;
@@ -10,19 +11,17 @@ namespace Chud.Backend;
 public static class RPCProtection
 {
 	const int MaxRPCs = 500;
-	static float startTime = Time.unscaledTime;
-	static int rpcCount;
+	static Queue<float> eventTimes = new Queue<float>();
 
 	static bool Prefix()
 	{
-		float currentTime = Time.unscaledTime;
-		if (currentTime - startTime > 1f)
-		{
-			startTime = currentTime;
-			rpcCount = 0;
-		}
-		rpcCount++;
-		return rpcCount <= MaxRPCs;
+		float now = Time.unscaledTime;
+		while (eventTimes.Count > 0 && now - eventTimes.Peek() > 1f)
+			eventTimes.Dequeue();
+		if (eventTimes.Count >= MaxRPCs)
+			return false;
+		eventTimes.Enqueue(now);
+		return true;
 	}
 
 	[HarmonyTargetMethod]
