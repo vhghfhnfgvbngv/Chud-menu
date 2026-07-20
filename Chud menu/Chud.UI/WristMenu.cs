@@ -60,7 +60,7 @@ internal class WristMenu : MonoBehaviour
 
 	public static Color EnableTextColor = Color.white;
 
-	public static Color DIsableTextColor = new Color(0.75f, 0.75f, 0.75f);
+	public static Color DisableTextColor = new Color(0.75f, 0.75f, 0.75f);
 
 	public static Color MenuTitleColor = Color.white;
 
@@ -75,6 +75,8 @@ internal class WristMenu : MonoBehaviour
 	public static Color NextPrevTextColor = Color.white;
 
 	public static bool roundedObjects = false;
+
+	internal static List<Material> gradientMaterials = new List<Material>();
 
 	private static Dictionary<string, List<Renderer>> roundedRenderers = new Dictionary<string, List<Renderer>>();
 
@@ -140,7 +142,18 @@ internal class WristMenu : MonoBehaviour
 
 	public static int ClickCooldown = 10;
 
-	public static bool custom = true;
+	public static bool customBoardsEnabled = true;
+	private static bool customBoardsApplied = false;
+	private static string[] originalBoardTexts = new string[4];
+	private static GameObject[] cachedBoardObjects = new GameObject[4];
+	private static TMP_Text[] cachedBoardTexts = new TMP_Text[4];
+	private static readonly string[] BoardPaths = new string[]
+	{
+		"Environment Objects/LocalObjects_Prefab/TreeRoom/motdHeadingText",
+		"Environment Objects/LocalObjects_Prefab/TreeRoom/CodeOfConductHeadingText",
+		"Environment Objects/LocalObjects_Prefab/TreeRoom/COCBodyText_TitleData",
+		"Environment Objects/LocalObjects_Prefab/TreeRoom/motdBodyText"
+	};
 
 	private static int _frameCounter;
 
@@ -238,1826 +251,224 @@ internal class WristMenu : MonoBehaviour
 	{
 		MenuManager.AddCategory("Main", new List<ButtonInfo>
 		{
-			new ButtonInfo
-			{
-				buttonText = "Settings",
-				method = delegate
-				{
-					MenuManager.ToggleCategory("Settings");
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Go to Settings"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Enabled Mods",
-				method = delegate
-				{
-					MenuManager.ToggleCategory("Enabled Mods");
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "View enabled mods"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Movement Mods",
-				method = delegate
-				{
-					MenuManager.ToggleCategory("Movement Mods");
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Go to Movement Mods"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Visual Mods",
-				method = delegate
-				{
-					MenuManager.ToggleCategory("Visual Mods");
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Go to Visual Mods"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Fun Mods",
-				method = delegate
-				{
-					MenuManager.ToggleCategory("Fun Mods");
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Go to Fun Mods"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Useful Mods",
-				method = delegate
-				{
-					MenuManager.ToggleCategory("Useful Mods");
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Go to Useful Mods"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Rig Mods",
-				method = delegate
-				{
-					MenuManager.ToggleCategory("Rig Mods");
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Go to Rig Mods"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Infection Mods",
-				method = delegate
-				{
-					MenuManager.ToggleCategory("Infection Mods");
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Go to Infection Mods"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Master Mods",
-				method = delegate
-				{
-					MenuManager.ToggleCategory("Master Mods");
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Go to Master Mods"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Credits",
-				method = delegate
-				{
-					MenuManager.ToggleCategory("Credits");
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Go to Credits"
-			}
+			Nav("Settings", "Settings"),
+			BtnAction("Join Discord", () => Application.OpenURL("https://discord.gg/2J7JrpQTg4"), "Join the Chud Menu Discord"),
+			Nav("Enabled Mods", "Enabled Mods"),
+			Nav("Movement Mods", "Movement Mods"),
+			Nav("Visual Mods", "Visual Mods"),
+			Nav("Fun Mods", "Fun Mods"),
+			Nav("Useful Mods", "Useful Mods"),
+			Nav("Rig Mods", "Rig Mods"),
+			Nav("Infection Mods", "Infection Mods"),
+			Nav("Master Mods", "Master Mods"),
+			Nav("Room mods", "Room mods"),
+			Nav("Credits", "Credits"),
+			Nav("Soundboard", "Soundboard")
 		});
 		MenuManager.AddCategory("Settings", new List<ButtonInfo>
 		{
-			new ButtonInfo
-			{
-				buttonText = "Exit Settings",
-				method = delegate
-				{
-					MenuManager.ToggleCategory("Settings");
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Go to Main"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Change Menu Color",
-				method = delegate
-				{
-					Mods.CycleMenuColor();
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Cycle menu color scheme"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Menu Animations",
-				method = delegate
-				{
-					animationsEnabled = true;
-					Mods.AutoSave();
-				},
-				disableMethod = delegate
-				{
-					animationsEnabled = false;
-					Mods.AutoSave();
-				},
-				enabled = true,
-				toolTip = "Toggle menu open/close and button press animations"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Rounded Menu",
-				method = delegate
-				{
-					roundedObjects = true;
-					DestroyMenu();
-					instance.Draw();
-				},
-				disableMethod = delegate
-				{
-					roundedObjects = false;
-					DestroyMenu();
-					instance.Draw();
-				},
-				enabled = false,
-				toolTip = "Round the menu corners"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Right Hand",
-				method = delegate
-				{
-					Mods.EnableRightHand();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableRightHand();
-				},
-				enabled = false,
-				toolTip = "Move menu to right hand"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Toggle Notifications",
-				method = delegate
-				{
-					Mods.ToggleNotifications();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableNotifications();
-				},
-				enabled = true,
-				toolTip = "Show/hide notifications"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Clear Notifications",
-				method = delegate
-				{
-					Mods.ClearNotifications();
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Remove all on-screen notifications"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Notification Time",
-				method = delegate
-				{
-					Mods.CycleNotificationTime();
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Cycle how long notifications stay"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Show FPS",
-				method = delegate
-				{
-					showFPS = true;
-				},
-				disableMethod = delegate
-				{
-					showFPS = false;
-				},
-				enabled = true,
-				toolTip = "Show FPS counter"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Show Session Time",
-				method = delegate
-				{
-					showSessionTime = true;
-				},
-				disableMethod = delegate
-				{
-					showSessionTime = false;
-				},
-				enabled = true,
-				toolTip = "Show session duration"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Change Button Click Sound",
-				method = delegate
-				{
-					buttonSoundIndex = (buttonSoundIndex + 1) % 2;
-					NotifiLib.SendNotification("[<color=green>CHUD</color>] Button sound: " + ((buttonSoundIndex == 0) ? "Normal" : "Custom"), 2);
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Cycle button click sound"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Change Speed Amount",
-				method = delegate
-				{
-					Mods.ChangeSpeedBoostAmount();
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Cycle speed boost multiplier"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Change Fly Speed",
-				method = delegate
-				{
-					Mods.ChangeFlySpeed();
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Cycle fly speed (max 20)"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Change WASD Sense",
-				method = delegate
-				{
-					Mods.ChangeWASDFlyMouseSense();
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Cycle WASD fly sensitivity"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Change Pull Power",
-				method = delegate
-				{
-					Mods.ChangePullModPower();
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Cycle pull mod strength"
-			},
-			new ButtonInfo
-			{
-				buttonText = "PC Guns",
-				method = delegate
-				{
-					Mods.EnablePCGuns();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisablePCGuns();
-				},
-				enabled = false,
-				toolTip = "Use guns with mouse"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Network Menu",
-				method = delegate
-				{
-					Mods.EnableNetworkMenu();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableNetworkMenu();
-				},
-				enabled = false,
-				toolTip = "Share menu across network"
-			}
+			Nav("Exit Settings", "Settings"),
+			BtnAction("Save Mods", Mods.Save, "Save all enabled mods and settings"),
+			BtnAction("Load Mods", Mods.Load, "Load saved mods and settings"),
+			BtnAction("Change Menu Color", Mods.CycleMenuColor, "Change color of menu"),
+			BtnToggle("Menu Animations", () => { animationsEnabled = true; }, () => { animationsEnabled = false; }, false, "Toggle menu open/close and button press animations"),
+			BtnToggle("Rounded Menu", () => { roundedObjects = true; DestroyMenu(); instance.Draw(); }, () => { roundedObjects = false; DestroyMenu(); instance.Draw(); }, false, "Round the menu corners"),
+			BtnToggle("Right Hand", Mods.EnableRightHand, Mods.DisableRightHand, false, "Move menu to right hand"),
+			BtnToggle("Network Menu", Mods.EnableNetworkMenu, Mods.DisableNetworkMenu, false, "See each others menus"),
+			BtnToggle("Toggle Notifications", Mods.ToggleNotifications, Mods.DisableNotifications, false, "Show/hide notifications"),
+			BtnToggle("Custom Boards", () => { customBoardsEnabled = true; customBoardsApplied = false; }, () => { customBoardsEnabled = false; customBoardsApplied = false; if ((Object)(object)instance != (Object)null) instance.RestoreOriginalBoardText(); }, false, "Replace in-game message boards with custom text"),
+			BtnAction("Clear Notifications", Mods.ClearNotifications, "Remove all on-screen notifications"),
+			BtnAction("Notification Time", Mods.CycleNotificationTime, "how long notifications stay on screen"),
+			BtnAction("Tag Aura Range", Mods.TagAuraCycleRange, "Cycle tag aura range (0 / 1.5 / 2m)"),
+			BtnToggle("Show FPS", () => showFPS = true, () => showFPS = false, false, "Show FPS counter"),
+			BtnToggle("Show Session Time", () => showSessionTime = true, () => showSessionTime = false, false, "Show session duration"),
+			BtnAction("Change Button Click Sound", () => { buttonSoundIndex = (buttonSoundIndex + 1) % 2; NotifiLib.SendNotification("[<color=green>CHUD</color>] Button sound: " + ((buttonSoundIndex == 0) ? "Normal" : "Custom"), 2); }, "Cycle button click sound"),
+			BtnAction("Change Speed Amount", () => Mods.ChangeSpeedBoostAmount(), "Cycle speed boost multiplier"),
+			BtnAction("Change Fly Speed", () => Mods.ChangeFlySpeed(), "Cycle fly speed (max 20)"),
+			new ButtonInfo { buttonText = "No Mouse Lock", enableMethod = () => Mods.SetWASDFlyNoMouseLock(true), disableMethod = () => Mods.SetWASDFlyNoMouseLock(false), enabled = false, toolTip = "Prevent WASD fly from locking mouse on right click" },
+			BtnAction("Change WASD Sense", Mods.ChangeWASDFlyMouseSense, "Cycle WASD fly sensitivity"),
+			BtnAction("Change Pull Power", () => Mods.ChangePullModPower(), "Cycle pull mod strength"),
+			BtnToggle("PC Guns", Mods.EnablePCGuns, Mods.DisablePCGuns, false, "Use guns with mouse"),
+			BtnToggle("PC Button Click", Mods.EnablePCButtonClick, Mods.DisablePCButtonClick, false, "Click buttons with mouse"),
+			BtnToggle("see anti cheat reports", Mods.EnableSeeAntiCheatReports, Mods.DisableSeeAntiCheatReports, false, "Show anti-cheat reports")
 		});
 		MenuManager.AddCategory("Enabled Mods", new List<ButtonInfo>
 		{
-			new ButtonInfo
-			{
-				buttonText = "Exit Enabled Mods",
-				method = delegate
-				{
-					MenuManager.ToggleCategory("Enabled Mods");
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Go to Main"
-			}
+			Nav("Exit Enabled Mods", "Enabled Mods")
 		});
 		MenuManager.AddCategory("Movement Mods", new List<ButtonInfo>
 		{
-			new ButtonInfo
-			{
-				buttonText = "Exit Movement Mods",
-				method = delegate
-				{
-					MenuManager.ToggleCategory("Movement Mods");
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Go to Main"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Fly",
-				method = delegate
-				{
-					Mods.EnableFly();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableFly();
-				},
-				enabled = false,
-				toolTip = "Hold B"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Joystick Fly",
-				method = delegate
-				{
-					Mods.JoystickFly();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableJoystickFly();
-				},
-				enabled = false,
-				toolTip = "Fly with joystick"
-			},
-			new ButtonInfo
-			{
-				buttonText = "WASD Fly",
-				method = delegate
-				{
-					Mods.EnableWASDFly();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableWASDFly();
-				},
-				enabled = false,
-				toolTip = "Fly with WASD keys"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Speed Boost",
-				method = delegate
-				{
-					Mods.SpeedBoost();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableSpeedBoost();
-				},
-				isFrameCall = true,
-				enabled = false,
-				toolTip = "Faster movement"
-			},
-			new ButtonInfo
-			{
-				buttonText = "No Gravity",
-				method = delegate
-				{
-					Mods.NoGravity();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableNoGravity();
-				},
-				isFrameCall = true,
-				enabled = false,
-				toolTip = "Disable gravity"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Pull Mod",
-				method = delegate
-				{
-					Mods.PullMod();
-				},
-				isFrameCall = true,
-				enabled = false,
-				toolTip = "Pull forward while gripping"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Noclip",
-				method = delegate
-				{
-					Mods.Noclip();
-				},
-				disableMethod = delegate
-				{
-					Mods.NoclipOff();
-				},
-				isFrameCall = true,
-				enabled = false,
-				toolTip = "Hold B to noclip"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Platforms",
-				method = delegate
-				{
-					Mods.Platforms();
-				},
-				isFrameCall = true,
-				enabled = false,
-				toolTip = "Place platforms"
-			},
-			new ButtonInfo
-			{
-				buttonText = "TP Gun",
-				method = delegate
-				{
-					Mods.TPGun();
-				},
-				isGun = true,
-				enabled = false,
-				toolTip = "Shoot to teleport"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Minos Prime",
-				method = delegate
-				{
-					Mods.MinosPrime();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableMinosPrime();
-				},
-				isFrameCall = true,
-				enabled = false,
-				toolTip = "Right B to jump, then Right A to slam"
-			}
+			Nav("Exit Movement Mods", "Movement Mods"),
+			BtnToggle("Fly", Mods.EnableFly, Mods.DisableFly, false, "Hold B"),
+			BtnToggle("Joystick Fly", Mods.JoystickFly, Mods.DisableJoystickFly, false, "Fly with joystick"),
+			BtnToggle("WASD Fly", Mods.EnableWASDFly, Mods.DisableWASDFly, false, "Fly with WASD keys"),
+			BtnFrameToggle("Speed Boost", Mods.SpeedBoost, Mods.DisableSpeedBoost, "Hold grip to run fast"),
+			BtnFrameToggle("No Gravity", Mods.NoGravity, Mods.DisableNoGravity, "Disable gravity"),
+			BtnFrameToggle("Noclip", Mods.EnableNoclip, Mods.DisableNoclip, "Walk through walls"),
+			BtnFrameAction("Pull Mod", Mods.PullMod, "Pull forward while gripping"),
+			BtnFrameAction("Platforms", Mods.Platforms, "Place platforms"),
+			BtnFrameAction("Sticky Platforms", Mods.StickyPlatforms, "Sticky ver of plats"),
+			BtnGun("TP Gun", Mods.TPGun, Mods.CleanupGun, "Shoot to teleport"),
+			BtnAction("Teleport to Stump", Mods.TeleportToSpawn, "Teleport to the forest stump"),
+			BtnFrameToggle("Minos Prime", Mods.MinosPrime, Mods.DisableMinosPrime, "Right B to jump, then Right A to slam")
 		});
 		MenuManager.AddCategory("Visual Mods", new List<ButtonInfo>
 		{
-			new ButtonInfo
-			{
-				buttonText = "Exit Visual Mods",
-				method = delegate
-				{
-					MenuManager.ToggleCategory("Visual Mods");
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Go to Main"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Name Tags",
-				method = delegate
-				{
-					Mods.NameTags();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableNameTags();
-				},
-				isFrameCall = true,
-				enabled = false,
-				toolTip = "Show names above heads"
-			},
-			new ButtonInfo
-			{
-				buttonText = "ID Name Tags",
-				method = delegate
-				{
-					Mods.IDTags();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableIDTags();
-				},
-				isFrameCall = true,
-				enabled = false,
-				toolTip = "Show IDs above heads"
-			},
-			new ButtonInfo
-			{
-				buttonText = "FPS Name Tags",
-				method = delegate
-				{
-					Mods.FPSTags();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableFPSTags();
-				},
-				isFrameCall = true,
-				enabled = false,
-				toolTip = "Show FPS above heads"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Platform Name Tags",
-				method = delegate
-				{
-					Mods.PlatformTags();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisablePlatformTags();
-				},
-				isFrameCall = true,
-				enabled = false,
-				toolTip = "Show platform above heads"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Cosmetic Name Tags",
-				method = delegate
-				{
-					Mods.CosmeticNameTags();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableCosmeticNameTags();
-				},
-				isFrameCall = true,
-				enabled = false,
-				toolTip = "Show cosmetics above heads"
-			},
-			new ButtonInfo
-			{
-				buttonText = "ARS Nametags",
-				method = delegate
-				{
-					Mods.EnableARSNameTags();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableARSNameTags();
-				},
-				isFrameCall = true,
-				enabled = false,
-				toolTip = "Show ARS players"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Tracers",
-				method = delegate
-				{
-					Mods.Tracers();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableTracers();
-				},
-				isFrameCall = true,
-				enabled = false,
-				toolTip = "Lines towards everyone"
-			},
-			new ButtonInfo
-			{
-				buttonText = "2D Box ESP",
-				method = delegate
-				{
-					Mods.BoxEspRender();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableBoxEsp();
-				},
-				isFrameCall = true,
-				enabled = false,
-				toolTip = "Boxes around players"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Random Color Spaz",
-				method = delegate
-				{
-					Mods.RandomColorSpaz();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableRandomColorSpaz();
-				},
-				isFrameCall = true,
-				enabled = false,
-				toolTip = "Cycle through colors rapidly"
-			},
-			new ButtonInfo
-			{
-				buttonText = "3rd Person",
-				method = delegate
-				{
-					Mods.EnableThirdPerson();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableThirdPerson();
-				},
-				isFrameCall = true,
-				enabled = false,
-				toolTip = "Third person view"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Cosmetic Notifier",
-				method = delegate
-				{
-					Mods.CosmeticNotifier();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableCosmeticNotifier();
-				},
-				isFrameCall = true,
-				enabled = false,
-				toolTip = "Alert on tracked cosmetics"
-			}
+			Nav("Exit Visual Mods", "Visual Mods"),
+			BtnFrameToggle("Name Tags", Mods.NameTags, Mods.DisableNameTags, "Show names above heads"),
+			BtnFrameToggle("ID Name Tags", Mods.IDTags, Mods.DisableIDTags, "Show IDs above heads"),
+			BtnFrameToggle("FPS Name Tags", Mods.FPSTags, Mods.DisableFPSTags, "Show FPS above heads"),
+			BtnFrameToggle("Platform Name Tags", Mods.PlatformTags, Mods.DisablePlatformTags, "Show platform above heads"),
+			BtnFrameToggle("Cosmetic Name Tags", Mods.CosmeticNameTags, Mods.DisableCosmeticNameTags, "Show cosmetics above heads"),
+			BtnFrameToggle("ARS Nametags", Mods.EnableARSNameTags, Mods.DisableARSNameTags, "Show people on ARS"),
+			BtnFrameToggle("Tracers", Mods.Tracers, Mods.DisableTracers, "Lines towards everyone"),
+			BtnFrameToggle("2D Box ESP", Mods.BoxEspRender, Mods.DisableBoxEsp, "Boxes around players"),
+			BtnFrameToggle("Skeleton ESP", Mods.SkeletonEsp, Mods.DisableSkeletonEsp, "Draw skeleton lines on players"),
+			BtnFrameToggle("Random Color Spaz", Mods.RandomColorSpaz, Mods.DisableRandomColorSpaz, "Change colors fast"),
+			BtnFrameToggle("3rd Person", Mods.EnableThirdPerson, Mods.DisableThirdPerson, "Third person view"),
+			BtnFrameToggle("Cosmetic Notifier", Mods.CosmeticNotifier, Mods.DisableCosmeticNotifier, "The notis show who has a special cosmetics"),
+			BtnAction("lowercase name", () => { if (PhotonNetwork.LocalPlayer != null) { string n = System.Text.RegularExpressions.Regex.Replace(PhotonNetwork.LocalPlayer.NickName, "<color[^>]*>", ""); n = n.Replace("</color>", "").ToLower(); PhotonNetwork.LocalPlayer.NickName = n; if ((Object)(object)VRRig.LocalRig != null) VRRig.LocalRig.UpdateName(); } }, "Make ur name lowercase"),
+			BtnAction("Random Capital Name", () => { if (PhotonNetwork.LocalPlayer != null) { string n = System.Text.RegularExpressions.Regex.Replace(PhotonNetwork.LocalPlayer.NickName, "<color[^>]*>", ""); n = n.Replace("</color>", ""); char[] c = n.ToCharArray(); for (int i = 0; i < c.Length; i++) c[i] = (i % 2 == 0) ? char.ToUpper(c[i]) : char.ToLower(c[i]); PhotonNetwork.LocalPlayer.NickName = new string(c); if ((Object)(object)VRRig.LocalRig != null) VRRig.LocalRig.UpdateName(); } }, "make ur name alternating case")
 		});
 		MenuManager.AddCategory("Useful Mods", new List<ButtonInfo>
 		{
-			new ButtonInfo
-			{
-				buttonText = "Exit Useful Mods",
-				method = delegate
-				{
-					MenuManager.ToggleCategory("Useful Mods");
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Go to Main"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Anti Name Ban",
-				method = delegate
-				{
-					Mods.AntiNameBan();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableAntiNameBan();
-				},
-				enabled = true,
-				toolTip = "Prevent name bans"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Anti AFK",
-				method = delegate
-				{
-					Mods.AntiAFK();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableAntiAFK();
-				},
-				enabled = false,
-				toolTip = "Prevent AFK kick"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Anti Guardian Grab",
-				method = delegate
-				{
-					Mods.AntiGuardianGrab();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableAntiGuardianGrab();
-				},
-				enabled = false,
-				toolTip = "Block guardian grab"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Disable Network Triggers",
-				method = delegate
-				{
-					Mods.EnableDisableNetworkTriggers();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableDisableNetworkTriggers();
-				},
-				enabled = false,
-				toolTip = "Change maps without leaving"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Disable Quit Box",
-				method = delegate
-				{
-					Mods.EnableDisableQuitBox();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableDisableQuitBox();
-				},
-				enabled = false,
-				toolTip = "Disable quit box"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Block jman sounds",
-				method = delegate
-				{
-					Mods.BlockJmanSounds();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableBlockJmanSounds();
-				},
-				enabled = false,
-				toolTip = "Block jman sounds"
-			},
-			new ButtonInfo
-			{
-				buttonText = "PC Button Click",
-				method = delegate
-				{
-					Mods.EnablePCButtonClick();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisablePCButtonClick();
-				},
-				enabled = false,
-				toolTip = "Click buttons with mouse"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Mute Gun",
-				method = delegate
-				{
-					Mods.MuteGun();
-				},
-				isGun = true,
-				enabled = false,
-				toolTip = "Shoot to mute/unmute"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Get ID Self",
-				method = delegate
-				{
-					Mods.GetIDSelf();
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Copy your ID"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Join Code MODS",
-				method = delegate
-				{
-					Mods.JoinCode("MODS");
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Join MODS room"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Join Code MOD",
-				method = delegate
-				{
-					Mods.JoinCode("MOD");
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Join MOD room"
-			},
-			new ButtonInfo
-			{
-				buttonText = "ARS",
-				method = delegate
-				{
-					Mods.EnableARS();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableARS();
-				},
-				enabled = false,
-				toolTip = "Auto-report system"
-			}
+			Nav("Exit Useful Mods", "Useful Mods"),
+			BtnToggle("Anti Name Ban", Mods.AntiNameBan, Mods.DisableAntiNameBan, false, "Prevent name bans"),
+			BtnToggle("Anti AFK", Mods.AntiAFK, Mods.DisableAntiAFK, false, "Prevent AFK kick"),
+			BtnToggle("Anti Guardian Grab", Mods.AntiGuardianGrab, Mods.DisableAntiGuardianGrab, false, "Block guardian grab"),
+			BtnToggle("Disable Quit Box", Mods.EnableDisableQuitBox, Mods.DisableDisableQuitBox, false, "Disable quit box"),
+			BtnToggle("Disable Network Triggers", Mods.EnableDisableNetworkTriggers, Mods.DisableDisableNetworkTriggers, false, "Change maps without leaving"),
+			BtnToggle("Block jman sounds", Mods.BlockJmanSounds, Mods.DisableBlockJmanSounds, false, "Block jman sounds"),
+			BtnGun("Mute Gun", Mods.MuteGun, Mods.CleanupGun, "Shoot to mute/unmute"),
+			BtnAction("Get ID Self", Mods.GetIDSelf, "Copy your ID"),
+			BtnToggle("ARS", Mods.EnableARS, Mods.DisableARS, false, "Auto-report system"),
+		});
+		MenuManager.AddCategory("Room mods", new List<ButtonInfo>
+		{
+			Nav("Exit Room mods", "Room mods"),
+			BtnAction("Join Code MODS", () => Mods.JoinCode("MODS"), "Join MODS room"),
+			BtnAction("Join Code MOD", () => Mods.JoinCode("MOD"), "Join MOD room"),
+			BtnAction("Join Code chud", () => Mods.JoinCode("chud"), "Join chud room"),
+			BtnAction("Create pub K.K.K", () => Mods.CreateRoom("K.K.K", true), ""),
+			BtnAction("Create pub P.e.n.i.s676767", () => Mods.CreateRoom("P.e.n.i.s676767", true), ""),
+			BtnAction("Create pub FEMBOYS :3", () => Mods.CreateRoom("FEMBOYS :3", true), ""),
 		});
 		MenuManager.AddCategory("Fun Mods", new List<ButtonInfo>
 		{
-			new ButtonInfo
-			{
-				buttonText = "Exit Fun Mods",
-				method = delegate
-				{
-					MenuManager.ToggleCategory("Fun Mods");
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Go to Main"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Unlock VIM/Subscription",
-				method = delegate
-				{
-					Mods.UnlockVim();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableUnlockVim();
-				},
-				enabled = false,
-				toolTip = "Unlock VIM features"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Unlock All Cosmetics",
-				method = delegate
-				{
-					Mods.UnlockAllCosmetics();
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Unlocks every cosmetic instantly"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Bitcrunch Mic",
-				method = delegate
-				{
-					Mods.BitcrunchMic();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableBitcrunchMic();
-				},
-				enabled = false,
-				toolTip = "Makes ur mic sound bad"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Boop",
-				method = delegate
-				{
-					Mods.Boop();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableBoop();
-				},
-				isFrameCall = true,
-				enabled = false,
-				toolTip = "Play's a noise when booping someone"
-			},
-			new ButtonInfo
-			{
-				buttonText = "GetPlayerID Gun",
-				method = delegate
-				{
-					Mods.GetPlayerIDGun();
-				},
-				isGun = true,
-				enabled = false,
-				toolTip = "Shoot to copy ID"
-			}
+			Nav("Exit Fun Mods", "Fun Mods"),
+			BtnToggle("Unlock VIM/Subscription", Mods.UnlockVim, Mods.DisableUnlockVim, false, "Unlock VIM features"),
+			BtnAction("Unlock All Cosmetics", () => { Mods.UnlockAllCosmetics(); UnlockAllCosmeticsPatch.enabled = true; }, "Unlocks all cosmetics and lets you see others' Cosmetx cosmetics"),
+			BtnToggle("Bitcrunch Mic", Mods.BitcrunchMic, Mods.DisableBitcrunchMic, false, "Makes ur mic sound bad"),
+			BtnFrameToggle("Boop", Mods.Boop, Mods.DisableBoop, "Play's a noise when booping someone"),
+			BtnGun("GetPlayerID Gun", Mods.GetPlayerIDGun, Mods.CleanupGun, "Shoot to copy ID"),
+
+
+			new ButtonInfo { buttonText = "Paintbrawl Aimbot", enableMethod = () => GetLaunchPatch.enabled = true, disableMethod = () => GetLaunchPatch.enabled = false, enabled = false, toolTip = "Redirects your slingshot to the closest player" },
 		});
 		MenuManager.AddCategory("Rig Mods", new List<ButtonInfo>
 		{
-			new ButtonInfo
-			{
-				buttonText = "Exit Rig Mods",
-				method = delegate
-				{
-					MenuManager.ToggleCategory("Rig Mods");
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Go to Main"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Ghost Monke",
-				method = delegate
-				{
-					Mods.GhostMonke();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableGhostMonke();
-				},
-				isFrameCall = true,
-				enabled = false,
-				toolTip = "Press B to freeze your rig"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Invis Monke",
-				method = delegate
-				{
-					Mods.InvisMonke();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableInvisMonke();
-				},
-				isFrameCall = true,
-				enabled = false,
-				toolTip = "Press A to be invisible"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Flail Hands",
-				method = delegate
-				{
-					Mods.Flail();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableFlail();
-				},
-				enabled = false,
-				toolTip = "Hold X to flail your arms you freakin weirdo"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Spaz Body",
-				method = delegate
-				{
-					Mods.SpazBody();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableSpazBody();
-				},
-				enabled = false,
-				toolTip = "Spaz your entire body uncontrollably"
-			}
+			Nav("Exit Rig Mods", "Rig Mods"),
+		BtnFrameToggle("Ghost Monke", Mods.GhostMonke, Mods.DisableGhostMonke, "Press B to freeze your rig"),
+		BtnFrameToggle("Invis Monke", Mods.InvisMonke, Mods.DisableInvisMonke, "Press A to be invisible"),
+			BtnToggle("Backflip", Mods.EnableBackflip, Mods.DisableBackflip, false, "Press B"),
+			BtnToggle("Frontflip", Mods.EnableFrontflip, Mods.DisableFrontflip, false, "Press B"),
 		});
 		MenuManager.AddCategory("Infection Mods", new List<ButtonInfo>
 		{
-			new ButtonInfo
-			{
-				buttonText = "Exit Infection Mods",
-				method = delegate
-				{
-					MenuManager.ToggleCategory("Infection Mods");
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Go to Main"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Tag Gun",
-				method = delegate
-				{
-					Mods.TagGun();
-				},
-				isGun = true,
-				enabled = false,
-				toolTip = "Its tag gun"
-			}
+			Nav("Exit Infection Mods", "Infection Mods"),
+			BtnLockOnGun("Tag Gun", Mods.TagGun, Mods.CleanupGun, "Its tag gun"),
+			BtnFrameToggle("Tag All", Mods.TagAll, Mods.DisableTagAll, "Tags everyone"),
+			BtnFrameToggle("Tag Aura", Mods.TagAura, Mods.DisableTagAura, "Auto-tag players around you"),
+			BtnFrameToggle("Tag Aura Visual", Mods.TagAuraVisual, Mods.DisableTagAuraVisual, "Show aura range visual")
 		});
 		MenuManager.AddCategory("Master Mods", new List<ButtonInfo>
 		{
-			new ButtonInfo
-			{
-				buttonText = "Exit Master Mods",
-				method = delegate
-				{
-					MenuManager.ToggleCategory("Master Mods");
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Go to Main"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Not master client",
-				method = null,
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Your current master client status"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Tag While Not Tagged",
-				method = delegate
-				{
-					Mods.TagWhileNotTagged();
-				},
-				isFrameCall = true,
-				enabled = false,
-				toolTip = "tag while not infected"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Untag Self",
-				method = delegate
-				{
-					Mods.UntagSelf();
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Remove yourself from infected list"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Spaz Self",
-				method = delegate
-				{
-					Mods.SpazSelf();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableSpazSelf();
-				},
-				enabled = false,
-				toolTip = "Toggle self it/infected every 10 frames"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Spaz All",
-				method = delegate
-				{
-					Mods.SpazAll();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableSpazAll();
-				},
-				enabled = false,
-				toolTip = "Toggle all players it/infected every 10 frames"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Untag Gun",
-				method = delegate
-				{
-					Mods.UntagGun();
-				},
-				isGun = true,
-				enabled = false,
-				toolTip = "Shoot infected players to untag them"
-			}
+			Nav("Exit Master Mods", "Master Mods"),
+			new ButtonInfo { buttonText = "Not master client", method = null, enabled = false, nontoggleable = true, toolTip = "Your current master client status" },
+			BtnFrameAction("Tag While Not Tagged", Mods.TagWhileNotTagged, "tag while not infected"),
+			BtnAction("Untag Self", Mods.UntagSelf, "untag urself"),
+			BtnToggle("Spaz Self", Mods.SpazSelf, Mods.DisableSpazSelf, false, "Tag and untag urself"),
+			BtnToggle("Spaz All", Mods.SpazAll, Mods.DisableSpazAll, false, "Tag and untag everyone"),
+			BtnGun("Untag Gun", Mods.UntagGun, Mods.CleanupGun, "Shoot infected players to untag them"),
+			BtnFrameToggle("Grab All Bugs", Mods.GrabAllBugs, Mods.DisableGrabAllBugs, "Grab all bugs with your hand"),
+			BtnFrameToggle("Grab Green Bug", Mods.GrabGreenBug, Mods.DisableGrabGreenBug, "Grab green bugs with your hand"),
+			BtnFrameToggle("Grab Doug the Bug", Mods.GrabDougBug, Mods.DisableGrabDougBug, "Grab doug the bug with your hand"),
+			BtnFrameToggle("Grab Gold Bug", Mods.GrabGoldBug, Mods.DisableGrabGoldBug, "Grab gold bugs with your hand"),
+			BtnFrameToggle("Spaz Bugs", Mods.SpazBugs, Mods.DisableSpazBugs, "Bugs spaz between your hands with random rotation"),
+			BtnToggle("Gold Doug Cosmetic", Mods.GoldDougCosmetic, Mods.DisableGoldDougCosmetic, false, "Gold bug sits on your right arm"),
+			BtnToggle("Break Guardian", Mods.BreakGuardian, Mods.DisableBreakGuardian, false, "No Guardian??"),
+			BtnAction("Guardian Self", Mods.GuardianSelf, "Make yourself guardian"),
+			BtnFrameToggle("Guardian Grab All", Mods.GuardianGrabAll, Mods.DisableGuardianGrabAll, "Pull players toward your hand on grip")
 		});
-		MenuManager.AddCategory("Admin Mods", new List<ButtonInfo>
+		MenuManager.AddCategory("Console Mods", new List<ButtonInfo>
 		{
-			new ButtonInfo
-			{
-				buttonText = "Exit Admin Mods",
-				method = delegate
-				{
-					MenuManager.ToggleCategory("Admin Mods");
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Go to Main"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Kick Gun",
-				method = delegate
-				{
-					Mods.KickGun();
-				},
-				disableMethod = delegate
-				{
-					Mods.CleanupGun();
-				},
-				isGun = true,
-				enabled = false,
-				toolTip = "Shoot a player to kick them"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Silent Kick Gun",
-				method = delegate
-				{
-					Mods.SilentKickGun();
-				},
-				disableMethod = delegate
-				{
-					Mods.CleanupGun();
-				},
-				isGun = true,
-				enabled = false,
-				toolTip = "Shoot a player to silently kick them"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Fling Gun",
-				method = delegate
-				{
-					Mods.FlingGun();
-				},
-				disableMethod = delegate
-				{
-					Mods.CleanupGun();
-				},
-				isGun = true,
-				enabled = false,
-				toolTip = "Shoot a player to fling them"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Vibrate Gun",
-				method = delegate
-				{
-					Mods.VibrateGun();
-				},
-				disableMethod = delegate
-				{
-					Mods.CleanupGun();
-				},
-				isGun = true,
-				enabled = false,
-				toolTip = "Shoot a player to vibrate their controllers"
-			},
-			new ButtonInfo
-			{
-				buttonText = "TP All Gun",
-				method = delegate
-				{
-					Mods.TPAllGun();
-				},
-				disableMethod = delegate
-				{
-					Mods.CleanupGun();
-				},
-				isGun = true,
-				enabled = false,
-				toolTip = "Shoot to TP everyone to that spot"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Lightning Gun",
-				method = delegate
-				{
-					Mods.LightningGun();
-				},
-				disableMethod = delegate
-				{
-					Mods.CleanupGun();
-				},
-				isGun = true,
-				enabled = false,
-				toolTip = "Shoot to strike lightning"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Jail Gun",
-				method = delegate
-				{
-					Mods.JailGun();
-				},
-				disableMethod = delegate
-				{
-					Mods.JailGunOff();
-				},
-				isGun = true,
-				enabled = false,
-				toolTip = "Trap players in a jail cell"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Admin Grab",
-				method = delegate
-				{
-					Mods.AdminGrab();
-				},
-				disableMethod = delegate
-				{
-					Mods.AdminGrabOff();
-				},
-				enabled = false,
-				toolTip = "Grab players with your hand"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Laser",
-				method = delegate
-				{
-					Mods.Laser();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableLaser();
-				},
-				enabled = false,
-				toolTip = "Toggle lasers from your hands"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Kick All",
-				method = delegate
-				{
-					Mods.KickAll();
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Kick everyone from lobby"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Notify All",
-				method = delegate
-				{
-					Mods.NotifyAll();
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Send a notification to everyone"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Spawn Karambit",
-				method = delegate
-				{
-					Mods.SpawnKarambit();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableSpawnKarambit();
-				},
-				enabled = false,
-				toolTip = "Spawn/despawn karambit in right hand"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Spawn Knife",
-				method = delegate
-				{
-					Mods.SpawnKnife();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableSpawnKnife();
-				},
-				enabled = false,
-				toolTip = "Spawn/despawn knife in right hand"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Spawn Rblx Carpet",
-				method = delegate
-				{
-					Mods.SpawnRblxCarpet();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableSpawnRblxCarpet();
-				},
-				enabled = false,
-				toolTip = "Spawn/despawn rblx carpet in right hand"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Spawn MC Sword",
-				method = delegate
-				{
-					Mods.SpawnMcSword();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableSpawnMcSword();
-				},
-				enabled = false,
-				toolTip = "Spawn/despawn minecraft sword in right hand"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Spawn Ban Hammer",
-				method = delegate
-				{
-					Mods.SpawnBanHammer();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableSpawnBanHammer();
-				},
-				enabled = false,
-				toolTip = "Spawn/despawn ban hammer in right hand"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Spawn Roblox Sword",
-				method = delegate
-				{
-					Mods.SpawnRobloxSword();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableSpawnRobloxSword();
-				},
-				enabled = false,
-				toolTip = "Spawn/despawn roblox sword in right hand"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Spawn Rainbow Sword",
-				method = delegate
-				{
-					Mods.SpawnRainbowSword();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableSpawnRainbowSword();
-				},
-				enabled = false,
-				toolTip = "Spawn/despawn rainbow sword in right hand"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Spawn Pistol",
-				method = delegate
-				{
-					Mods.SpawnPistol();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableSpawnPistol();
-				},
-				enabled = false,
-				toolTip = "Spawn/despawn pistol in right hand"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Spawn Physics Gun",
-				method = delegate
-				{
-					Mods.SpawnPhysicsGun();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableSpawnPhysicsGun();
-				},
-				enabled = false,
-				toolTip = "Spawn/despawn physics gun in right hand"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Spawn Bag",
-				method = delegate
-				{
-					Mods.SpawnBag();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableSpawnBag();
-				},
-				enabled = false,
-				toolTip = "Spawn/despawn bag in right hand"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Spawn Kormakur",
-				method = delegate
-				{
-					Mods.SpawnKormakur();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableSpawnKormakur();
-				},
-				enabled = false,
-				toolTip = "Hold Kormakur sign in right hand"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Spawn Coin",
-				method = delegate
-				{
-					Mods.SpawnCoin();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableSpawnCoin();
-				},
-				enabled = false,
-				toolTip = "Spawn coin flip in right hand"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Spawn Minos Prime Plush",
-				method = delegate
-				{
-					Mods.Spawnminosprime();
-				},
-				disableMethod = delegate
-				{
-					Mods.Delminosprime();
-				},
-				enabled = false,
-				toolTip = "Spawn Minos Prime in right hand"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Spawn Boombox",
-				method = delegate
-				{
-					Mods.SpawnBoombox();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableSpawnBoombox();
-				},
-				enabled = false,
-				toolTip = "Spawn boombox (URL from clipboard)"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Spawn Samsung",
-				method = delegate
-				{
-					Mods.SpawnSamsung();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableSpawnSamsung();
-				},
-				enabled = false,
-				toolTip = "Samsung phone (video URL from clipboard)"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Spawn Video Player",
-				method = delegate
-				{
-					Mods.SpawnVideoPlayer();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableSpawnVideoPlayer();
-				},
-				enabled = false,
-				toolTip = "Hand video player (URL from clipboard)"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Spawn TV",
-				method = delegate
-				{
-					Mods.SpawnTV();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableSpawnTV();
-				},
-				enabled = false,
-				toolTip = "Spawn TV (video URL from clipboard)"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Spawn Travis",
-				method = delegate
-				{
-					Mods.SpawnTravis();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableSpawnTravis();
-				},
-				enabled = false,
-				toolTip = "Spawn Travis Scott"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Spawn Travis (Beach)",
-				method = delegate
-				{
-					Mods.SpawnTravisBeach();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableSpawnTravisBeach();
-				},
-				enabled = false,
-				toolTip = "Spawn Travis Scott at the beach"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Spawn Travis (Critters)",
-				method = delegate
-				{
-					Mods.SpawnTravisCritters();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableSpawnTravisCritters();
-				},
-				enabled = false,
-				toolTip = "Spawn Travis Scott at critters"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Spawn Travis (City)",
-				method = delegate
-				{
-					Mods.SpawnTravisCity();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableSpawnTravisCity();
-				},
-				enabled = false,
-				toolTip = "Spawn Travis Scott at city"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Spawn Shreksophone",
-				method = delegate
-				{
-					Mods.SpawnShreksophone();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableSpawnShreksophone();
-				},
-				enabled = false,
-				toolTip = "Spawn shreksophone in the map"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Spawn Carti",
-				method = delegate
-				{
-					Mods.SpawnCarti();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableSpawnCarti();
-				},
-				enabled = false,
-				toolTip = "Spawn twerking Carti in the map"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Destroy All Assets",
-				method = delegate
-				{
-					Mods.DestroyAllAssets();
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Remove all spawned assets"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Console Settings",
-				method = delegate
-				{
-					MenuManager.ToggleCategory("Console Settings");
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Console settings (laser color, protection, etc)"
-			}
+			Nav("Exit Console Mods", "Console Mods"),
+			BtnGun("Kick Gun", ConsoleMods.KickGun, Mods.CleanupGun, "Shoot a player to kick them"),
+			BtnGun("Silent Kick Gun", ConsoleMods.SilentKickGun, Mods.CleanupGun, "Shoot a player to silently kick them"),
+			BtnGun("Fling Gun", ConsoleMods.FlingGun, Mods.CleanupGun, "Shoot a player to fling them"),
+			BtnGun("Vibrate Gun", ConsoleMods.VibrateGun, Mods.CleanupGun, "Shoot a player to vibrate their controllers"),
+			BtnGun("Lightning Gun", ConsoleMods.LightningGun, Mods.CleanupGun, "Shoot to strike lightning"),
+			BtnGun("Jail Gun", ConsoleMods.JailGun, ConsoleMods.JailGunOff, "Trap players in a jail cell"),
+			BtnGun("TP All Gun", ConsoleMods.TPAllGun, Mods.CleanupGun, "Teleport everyone to your aim point"),
+			BtnGun("Freeze Gun", ConsoleMods.FreezeGun.Fire, ConsoleMods.FreezeGun.Disable, "Hit to freeze/unfreeze players"),
+			BtnConsoleToggle("Scale Self", ConsoleMods.ScaleSelf.Enable, ConsoleMods.ScaleSelf.Disable, false, "Right trigger bigger, left trigger smaller"),
+			BtnConsoleToggle("Admin Grab", ConsoleMods.AdminGrab.Enable, ConsoleMods.AdminGrab.Disable, false, "Grab players with your hand"),
+			BtnConsoleToggle("Admin Grab All", ConsoleMods.AdminGrabAll.Enable, ConsoleMods.AdminGrabAll.Disable, false, "Grab all players at once no matter distance"),
+			BtnConsoleToggle("Laser", ConsoleMods.Laser.Enable, ConsoleMods.Laser.Disable, false, "Toggle lasers from your hands"),
+			BtnAction("Kick All", ConsoleMods.KickAll, "Kick everyone from lobby"),
+			BtnConsoleToggle("Karambit", ConsoleMods.Karambit.Enable, ConsoleMods.Karambit.Disable, false, "This is Karambit"),
+			BtnConsoleToggle("Knife", ConsoleMods.Knife.Enable, ConsoleMods.Knife.Disable, false, "This is Knife"),
+			BtnConsoleToggle("Rblx Carpet", ConsoleMods.RblxCarpet.Enable, ConsoleMods.RblxCarpet.Disable, false, "This is Rblx Carpet"),
+			BtnConsoleToggle("MC Sword", ConsoleMods.McSword.Enable, ConsoleMods.McSword.Disable, false, "This is MC Sword"),
+			BtnConsoleToggle("Ban Hammer", ConsoleMods.BanHammer.Enable, ConsoleMods.BanHammer.Disable, false, "This is Ban Hammer"),
+			BtnConsoleToggle("Roblox Sword", ConsoleMods.RobloxSword.Enable, ConsoleMods.RobloxSword.Disable, false, "This is Roblox Sword"),
+			BtnConsoleToggle("Rainbow Sword", ConsoleMods.RainbowSword.Enable, ConsoleMods.RainbowSword.Disable, false, "This is Rainbow Sword"),
+			BtnConsoleToggle("Weird Ender Sword", ConsoleMods.WeirdEnderSword.Enable, ConsoleMods.WeirdEnderSword.Disable, false, "This is Weird Ender Sword"),
+			BtnConsoleToggle("Pistol", ConsoleMods.Pistol.Enable, ConsoleMods.Pistol.Disable, false, "This is Pistol"),
+			BtnConsoleToggle("Physics Gun", ConsoleMods.PhysicsGun.Enable, ConsoleMods.PhysicsGun.Disable, false, "This is Physics Gun"),
+			BtnConsoleToggle("Noli Star", ConsoleMods.NoliStar.Enable, ConsoleMods.NoliStar.Disable, false, "This is Noli Star"),
+			BtnConsoleToggle("Bag", ConsoleMods.Bag.Enable, ConsoleMods.Bag.Disable, false, "This is Bag"),
+			BtnConsoleToggle("Kormakur", ConsoleMods.Kormakur.Enable, ConsoleMods.Kormakur.Disable, false, "This is Kormakur"),
+			BtnConsoleToggle("Coin", ConsoleMods.Coin.Enable, ConsoleMods.Coin.Disable, false, "This is Coin"),
+			BtnConsoleToggle("Minos Prime Plush", ConsoleMods.MinosPrime.Enable, ConsoleMods.MinosPrime.Disable, false, "This is Minos Prime Plush"),
+			BtnConsoleToggle("Boombox", ConsoleMods.Boombox.Enable, ConsoleMods.Boombox.Disable, false, "This is Boombox"),
+			BtnConsoleToggle("Samsung", ConsoleMods.Samsung.Enable, ConsoleMods.Samsung.Disable, false, "This is Samsung"),
+			BtnConsoleToggle("TV", ConsoleMods.TV.Enable, ConsoleMods.TV.Disable, false, "This is TV"),
+			BtnConsoleToggle("Travis", ConsoleMods.Travis.Enable, ConsoleMods.Travis.Disable, false, "This is Travis"),
+			BtnConsoleToggle("Travis (Beach)", ConsoleMods.TravisBeach.Enable, ConsoleMods.TravisBeach.Disable, false, "This is Travis (Beach)"),
+			BtnConsoleToggle("Travis (Critters)", ConsoleMods.TravisCritters.Enable, ConsoleMods.TravisCritters.Disable, false, "This is Travis (Critters)"),
+			BtnConsoleToggle("Travis (City)", ConsoleMods.TravisCity.Enable, ConsoleMods.TravisCity.Disable, false, "This is Travis (City)"),
+			BtnConsoleToggle("Shreksophone", ConsoleMods.Shreksophone.Enable, ConsoleMods.Shreksophone.Disable, false, "This is Shreksophone"),
+			BtnConsoleToggle("Carti", ConsoleMods.Carti.Enable, ConsoleMods.Carti.Disable, false, "This is Carti"),
+			BtnConsoleToggle("Cherry Bomb", ConsoleMods.CherryBomb.Enable, ConsoleMods.CherryBomb.Disable, false, "This is Cherry Bomb"),
+
+			BtnAction("Destroy All Assets", ConsoleMods.DestroyAllAssets, "Remove all spawned assets"),
+			Nav("Console Settings", "Console Settings")
 		});
 		MenuManager.AddCategory("Console Settings", new List<ButtonInfo>
 		{
-			new ButtonInfo
-			{
-				buttonText = "Exit Console Settings",
-				method = delegate
-				{
-					MenuManager.ToggleCategory("Console Settings");
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Back to Admin Mods"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Allow Kick Self",
-				method = delegate
-				{
-					Mods.ToggleAllowKickSelf();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableAllowKickSelf();
-				},
-				enabled = false,
-				toolTip = "Allow other admins to kick/tp/fling you"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Allow Teleport Self",
-				method = delegate
-				{
-					Mods.ToggleAllowTpSelf();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableAllowTpSelf();
-				},
-				enabled = true,
-				toolTip = "Allow other admins to teleport you"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Detect Console Users",
-				method = delegate
-				{
-					Mods.DetectConsoleUsers();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableDetectConsoleUsers();
-				},
-				enabled = false,
-				toolTip = "Auto detect who has console"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Notify Presence",
-				method = delegate
-				{
-					Mods.NotifyPresence();
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Announce you're in the lobby"
-			},
-			new ButtonInfo
-			{
-				buttonText = "No Admin Indicator",
-				method = delegate
-				{
-					Mods.ToggleNoAdminIndicator();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableNoAdminIndicator();
-				},
-				enabled = false,
-				toolTip = "Hide your admin crown"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Change Laser Color",
-				method = delegate
-				{
-					Mods.CycleLaserColor();
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Change laser color"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Full Auto Pistol",
-				method = delegate
-				{
-					Mods.ToggleFullAutoPistol();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableFullAutoPistol();
-				},
-				enabled = false,
-				toolTip = "Toggle full auto mode for pistol"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Asset Positioner",
-				method = delegate
-				{
-					Mods.ToggleAssetPositioner();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableAssetPositioner();
-				},
-				enabled = false,
-				toolTip = "Left grip to grab nearest asset; left trigger shrink, right trigger grow"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Mute Rainbow Sword",
-				method = delegate
-				{
-					Mods.ToggleMuteRainbowSword();
-				},
-				disableMethod = delegate
-				{
-					Mods.DisableMuteRainbowSword();
-				},
-				enabled = false,
-				toolTip = "Replace rainbow sword music with silence"
-			}
+			Nav("Exit Console Settings", "Console Settings"),
+			BtnConsoleToggle("Allow Kick Self", ConsoleMods.AllowKickSelf.Enable, ConsoleMods.AllowKickSelf.Disable, false, "Allow other admins to kick/tp/fling you"),
+			BtnConsoleToggle("Allow Teleport Self", ConsoleMods.AllowTpSelf.Enable, ConsoleMods.AllowTpSelf.Disable, false, "Allow other admins to teleport you"),
+			BtnConsoleToggle("Detect Console Users", ConsoleMods.DetectConsoleUsers.Enable, ConsoleMods.DetectConsoleUsers.Disable, false, "Auto detect who has console"),
+			BtnConsoleToggle("Console Logging", ConsoleMods.ConsoleLogging.Enable, ConsoleMods.ConsoleLogging.Disable, false, "Log console commands, asset spawns, and errors to BepInEx + notification"),
+			BtnConsoleToggle("No Admin Indicator", ConsoleMods.NoAdminIndicator.Enable, ConsoleMods.NoAdminIndicator.Disable, false, "Hide your admin crown"),
+			BtnAction("Change Laser Color", ConsoleMods.Laser.CycleColor, "Change laser color"),
+			BtnConsoleToggle("Full Auto Pistol", ConsoleMods.FullAutoPistol.Enable, ConsoleMods.FullAutoPistol.Disable, false, "Toggle full auto mode for pistol"),
+			BtnConsoleToggle("Network Self-Test", ConsoleMods.NetworkSelfTest.Enable, ConsoleMods.NetworkSelfTest.Disable, false, "Show your own menu as a remote menu to verify networking"),
+			Nav("Sound", "Sound"),
+			Nav("Video", "Video"),
 		});
+		MenuManager.AddCategory("Sound", ConsoleMods.BuildSoundCategory());
+		MenuManager.AddCategory("Video", ConsoleMods.BuildVideoCategory());
+		MenuManager.AddCategory("Soundboard", Mods.BuildSoundboardCategory());
 		MenuManager.AddCategory("Credits", new List<ButtonInfo>
 		{
-			new ButtonInfo
-			{
-				buttonText = "Exit Credits",
-				method = delegate
-				{
-					MenuManager.ToggleCategory("Credits");
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Go to Main"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Jolyne",
-				method = null,
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Menu owner"
-			},
-			new ButtonInfo
-			{
-				buttonText = "DeepSeek V4",
-				method = null,
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Made most of the mods on the menu"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Seralyth",
-				method = null,
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "has skidded code from Seralyth"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Industry",
-				method = null,
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "ARS system by Industry"
-			},
-			new ButtonInfo
-			{
-				buttonText = "Tripple T",
-				method = delegate
-				{
-					MenuManager.ToggleCategory("Tripple T");
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "View Tripple T image"
-			}
-		});
-		MenuManager.AddCategory("Tripple T", new List<ButtonInfo>
-		{
-			new ButtonInfo
-			{
-				buttonText = "Exit Tripple T",
-				method = delegate
-				{
-					MenuManager.ToggleCategory("Credits");
-				},
-				enabled = false,
-				nontoggleable = true,
-				toolTip = "Go back to Credits"
-			}
+			Nav("Exit Credits", "Credits"),
+			BtnAction("Jolyne", () => NotifiLib.SendNotification("[<color=#00ccff>MOD</color>] Jolyne: Menu owner", 2), "Menu owner"),
+			BtnAction("DeepSeek V4", () => NotifiLib.SendNotification("[<color=#00ccff>MOD</color>] DeepSeek V4: Made most of the mods on the menu", 2), "Made most of the mods on the menu"),
+			BtnAction("Seralyth", () => NotifiLib.SendNotification("[<color=#00ccff>MOD</color>] Seralyth: has skidded code from Seralyth", 2), "has skidded code from Seralyth"),
+			BtnAction("Industry", () => NotifiLib.SendNotification("[<color=#00ccff>MOD</color>] Industry: ARS system by Industry", 2), "ARS system by Industry"),
 		});
 	}
 
@@ -2154,9 +565,6 @@ internal class WristMenu : MonoBehaviour
 			joy = ((ControllerInputPoller)ControllerInputPoller.instance).rightControllerPrimary2DAxis;
 			joyL = ((ControllerInputPoller)ControllerInputPoller.instance).leftControllerPrimary2DAxis;
 			bool qKeyDown = Keyboard.current != null && ((ButtonControl)Keyboard.current.qKey).isPressed;
-			Mods.UpdateAdminGrab();
-			Mods.LaserUpdate();
-			Mods.AssetInteractionUpdate();
 			if (Mods.change7 == 5 && (Object)(object)menu != (Object)null && !menu.GetComponent<Rigidbody>())
 			{
 				HandleTriggerPageNav();
@@ -2197,9 +605,14 @@ internal class WristMenu : MonoBehaviour
 			{
 				Directory.CreateDirectory(FolderName);
 			}
-			if (custom)
+			if (customBoardsEnabled && !customBoardsApplied)
 			{
 				UpdateCustomBoardText();
+				customBoardsApplied = true;
+			}
+			else if (!customBoardsEnabled)
+			{
+				customBoardsApplied = false;
 			}
 		}
 		catch
@@ -2237,10 +650,41 @@ internal class WristMenu : MonoBehaviour
 		}
 	}
 
+	private static bool networkMenuWasOpen;
+
 	private void HandleMenuFollow(bool qKeyDown)
 	{
-		bool flag = (ybuttonDown && !Mods.right) || (bbuttonDown && Mods.right) || qKeyDown;
-		if (flag)
+		if (ConsoleMods.NetworkSelfTest.Enabled)
+		{
+			bool flag = (ybuttonDown && !Mods.right) || (bbuttonDown && Mods.right) || qKeyDown;
+			if (flag)
+			{
+				if ((Object)(object)reference == (Object)null)
+				{
+					reference = GameObject.CreatePrimitive((PrimitiveType)0);
+					((Object)reference).name = "buttonPresser";
+				}
+				reference.transform.parent = (Mods.right ? GTPlayer.Instance.LeftHand : GTPlayer.Instance.RightHand).controllerTransform;
+				reference.transform.localPosition = PointerPos;
+				reference.transform.localScale = PointerScale;
+				reference.GetComponent<Renderer>().material.color = (ChangingColors ? FirstColor : NormalColor);
+				Mods.SendMenuState();
+				networkMenuWasOpen = true;
+			}
+			else if (networkMenuWasOpen && !Close)
+			{
+				networkMenuWasOpen = false;
+				if ((Object)(object)reference != (Object)null)
+				{
+					Object.Destroy((Object)(object)reference);
+					reference = null;
+				}
+				Mods.SendMenuClose();
+			}
+			return;
+		}
+		bool flag2 = (ybuttonDown && !Mods.right) || (bbuttonDown && Mods.right) || qKeyDown;
+		if (flag2)
 		{
 			if ((Object)(object)menu == (Object)null)
 			{
@@ -2263,9 +707,9 @@ internal class WristMenu : MonoBehaviour
 						if ((Object)(object)val != (Object)null)
 						{
 							_tpc = val.GetComponent<Camera>();
-						}
-					}
-				}
+			}
+		}
+	}
 				if ((Object)(object)_tpc != (Object)null)
 				{
 					menu.transform.parent = ((Component)_tpc).transform;
@@ -2336,7 +780,7 @@ internal class WristMenu : MonoBehaviour
 				reference.GetComponent<Renderer>().material.color = (ChangingColors ? FirstColor : NormalColor);
 			}
 		}
-		else if (!flag && (Object)(object)menu != (Object)null && !Close)
+		else if (!flag2 && (Object)(object)menu != (Object)null && !Close)
 		{
 			Mods.SendMenuClose();
 			Object.Destroy((Object)(object)reference);
@@ -2377,18 +821,19 @@ internal class WristMenu : MonoBehaviour
 				}
 			}
 			buttonInfo.enabled = false;
+			Mods.InvalidateActiveButtonsCache();
 		}
 	}
 
 		private void CheckAdminStatus()
 		{
 			bool flag = PhotonNetwork.LocalPlayer != null && ServerData.Administrators.ContainsKey(PhotonNetwork.LocalPlayer.UserId);
-			bool flag2 = MenuManager.Categories.Any((MenuCategory c) => c.Name == "Admin Mods");
+			bool flag2 = MenuManager.Categories.Any((MenuCategory c) => c.Name == "Console Mods");
 			bool flag3 = false;
 			MenuCategory menuCategory = MenuManager.Categories.Find((MenuCategory c) => c.Name == "Main");
 			if (menuCategory != null)
 			{
-				flag3 = menuCategory.Buttons.Any((ButtonInfo b) => b.buttonText == "Admin Mods");
+				flag3 = menuCategory.Buttons.Any((ButtonInfo b) => b.buttonText == "Console Mods");
 			}
 			if (flag && flag2 && !flag3)
 			{
@@ -2403,21 +848,21 @@ internal class WristMenu : MonoBehaviour
 				{
 					menuCategory.Buttons.Add(new ButtonInfo
 					{
-						buttonText = "Admin Mods",
+						buttonText = "Console Mods",
 						method = delegate
 						{
-							MenuManager.ToggleCategory("Admin Mods");
+							MenuManager.ToggleCategory("Console Mods");
 						},
 						enabled = false,
 						nontoggleable = true,
-						toolTip = "Go to Admin Mods!"
+						toolTip = "Go to Console Mods!"
 					});
 				}
 			}
 			else if (!flag && flag3)
 			{
-				menuCategory?.Buttons.RemoveAll((ButtonInfo b) => b.buttonText == "Admin Mods");
-				if (MenuManager.CurrentCategoryName == "Admin Mods" || MenuManager.CurrentCategoryName == "Console Settings")
+				menuCategory?.Buttons.RemoveAll((ButtonInfo b) => b.buttonText == "Console Mods");
+				if (MenuManager.CurrentCategoryName == "Console Mods" || MenuManager.CurrentCategoryName == "Console Settings")
 				{
 					MenuManager.CurrentCategoryName = "Main";
 				}
@@ -2425,22 +870,46 @@ internal class WristMenu : MonoBehaviour
 				DestroyMenu();
 				instance.Draw();
 			}
-		}
+	}
 
 	private void UpdateCustomBoardText()
 	{
-		((TMP_Text)GameObject.Find("Environment Objects/LocalObjects_Prefab/TreeRoom/motdHeadingText").GetComponent<TextMeshPro>()).text = CustomBoardTexts[0];
-		((TMP_Text)GameObject.Find("Environment Objects/LocalObjects_Prefab/TreeRoom/CodeOfConductHeadingText").GetComponent<TextMeshPro>()).text = CustomBoardTexts[1];
-		((TMP_Text)GameObject.Find("Environment Objects/LocalObjects_Prefab/TreeRoom/COCBodyText_TitleData").GetComponent<TextMeshPro>()).text = CustomBoardTexts[2];
-		if (PhotonNetwork.IsConnectedAndReady)
+		for (int i = 0; i < BoardPaths.Length; i++)
 		{
-			((TMP_Text)GameObject.Find("Environment Objects/LocalObjects_Prefab/TreeRoom/motdBodyText").GetComponent<TextMeshPro>()).text = CustomBoardTexts[3];
-			custom = false;
+			if ((Object)(object)cachedBoardObjects[i] == (Object)null)
+			{
+				cachedBoardObjects[i] = GameObject.Find(BoardPaths[i]);
+				if ((Object)(object)cachedBoardObjects[i] != (Object)null)
+					cachedBoardTexts[i] = cachedBoardObjects[i].GetComponent<TextMeshPro>();
+			}
+			if ((Object)(object)cachedBoardTexts[i] != (Object)null)
+			{
+				if (string.IsNullOrEmpty(originalBoardTexts[i]))
+					originalBoardTexts[i] = cachedBoardTexts[i].text;
+				cachedBoardTexts[i].text = CustomBoardTexts[i];
+			}
+		}
+	}
+
+	private void RestoreOriginalBoardText()
+	{
+		for (int i = 0; i < BoardPaths.Length; i++)
+		{
+			if (string.IsNullOrEmpty(originalBoardTexts[i])) continue;
+			if ((Object)(object)cachedBoardObjects[i] == (Object)null)
+			{
+				cachedBoardObjects[i] = GameObject.Find(BoardPaths[i]);
+				if ((Object)(object)cachedBoardObjects[i] != (Object)null)
+					cachedBoardTexts[i] = cachedBoardObjects[i].GetComponent<TextMeshPro>();
+			}
+			if ((Object)(object)cachedBoardTexts[i] != (Object)null)
+				cachedBoardTexts[i].text = originalBoardTexts[i];
 		}
 	}
 
 	public void Draw()
 	{
+		if (ConsoleMods.NetworkSelfTest.Enabled) return;
 		if (MenuManager.CurrentCategoryName == "Enabled Mods")
 		{
 			RebuildEnabledMods();
@@ -2457,17 +926,15 @@ internal class WristMenu : MonoBehaviour
 		menuObj.transform.parent = menu.transform;
 		menuObj.transform.rotation = Quaternion.identity;
 		menuObj.transform.localScale = new Vector3(0.1f, 1f, 1f);
-		Renderer component = menuObj.GetComponent<Renderer>();
-		component.material.color = NormalColor;
+		Renderer bgRenderer = menuObj.GetComponent<Renderer>();
+		Color bgTop = NormalColor * 0.35f;
+		Color bgBot = NormalColor;
+		bgRenderer.material = MakeGradientMat(bgTop, bgBot);
 		menuObj.transform.position = new Vector3(0.05f, 0f, 0f);
 		Shader val = Shader.Find("GorillaTag/UberShader");
-		if ((Object)(object)val != (Object)null)
-		{
-			component.material.shader = val;
-		}
 		if (roundedObjects)
 		{
-			RoundGameObject(menuObj, "__background__");
+			RoundGameObject(menuObj, "__background__", bgTop, bgBot);
 		}
 		canvasObj = new GameObject();
 		canvasObj.transform.parent = menu.transform;
@@ -2481,7 +948,7 @@ internal class WristMenu : MonoBehaviour
 		val4.transform.parent = canvasObj.transform;
 		Text val5 = (titiel = val4.AddComponent<Text>());
 		val5.font = MenuFont;
-		val5.text = ((MenuManager.CurrentCategoryName == "Tripple T") ? "Tripple T" : ((Mods.menuColorIndex == 4) ? "ii's stupid menu" : MenuTitle));
+		val5.text = MenuTitle;
 		val5.fontSize = 200;
 		((Graphic)val5).color = MenuTitleColor;
 		val5.fontStyle = (FontStyle)2;
@@ -2519,15 +986,13 @@ internal class WristMenu : MonoBehaviour
 		val7.transform.rotation = Quaternion.identity;
 		val7.transform.localScale = new Vector3(0.09f, 0.9f, 0.08f);
 		val7.transform.localPosition = new Vector3(0.56f, 0f, 0.6f);
-		val7.GetComponent<Renderer>().material.color = DisconnectButtonColor;
+		Color dcTop = DisconnectButtonColor * 0.35f;
+		Color dcBot = DisconnectButtonColor;
+		val7.GetComponent<Renderer>().material = MakeGradientMat(dcTop, dcBot);
 		val7.AddComponent<BtnCollider>().relatedText = "DisconnectingButton";
-		if ((Object)(object)val != (Object)null)
-		{
-			val7.GetComponent<Renderer>().material.shader = val;
-		}
 		if (roundedObjects)
 		{
-			RoundGameObject(val7, "DisconnectingButton");
+			RoundGameObject(val7, "DisconnectingButton", dcTop, dcBot);
 		}
 		GameObject val8 = new GameObject();
 		val8.transform.parent = canvasObj.transform;
@@ -2553,15 +1018,13 @@ internal class WristMenu : MonoBehaviour
 		val10.transform.rotation = Quaternion.identity;
 		val10.transform.localScale = new Vector3(0.09f, 0.2f, 0.9f);
 		val10.transform.localPosition = new Vector3(0.56f, 0.65f, 0f);
-		val10.GetComponent<Renderer>().material.color = NextPrevButtonColor;
+		Color npTop = NextPrevButtonColor * 0.35f;
+		Color npBot = NextPrevButtonColor;
+		val10.GetComponent<Renderer>().material = MakeGradientMat(npTop, npBot);
 		val10.AddComponent<BtnCollider>().relatedText = "PreviousPage";
-		if ((Object)(object)val != (Object)null)
-		{
-			val10.GetComponent<Renderer>().material.shader = val;
-		}
 		if (roundedObjects)
 		{
-			RoundGameObject(val10, "PreviousPage");
+			RoundGameObject(val10, "PreviousPage", npTop, npBot);
 		}
 		GameObject val11 = new GameObject();
 		val11.transform.parent = canvasObj.transform;
@@ -2587,15 +1050,11 @@ internal class WristMenu : MonoBehaviour
 		val13.transform.rotation = Quaternion.identity;
 		val13.transform.localScale = new Vector3(0.09f, 0.2f, 0.9f);
 		val13.transform.localPosition = new Vector3(0.56f, -0.65f, 0f);
-		val13.GetComponent<Renderer>().material.color = NextPrevButtonColor;
+		val13.GetComponent<Renderer>().material = MakeGradientMat(npTop, npBot);
 		val13.AddComponent<BtnCollider>().relatedText = "NextPage";
-		if ((Object)(object)val != (Object)null)
-		{
-			val13.GetComponent<Renderer>().material.shader = val;
-		}
 		if (roundedObjects)
 		{
-			RoundGameObject(val13, "NextPage");
+			RoundGameObject(val13, "NextPage", npTop, npBot);
 		}
 		GameObject val14 = new GameObject();
 		val14.transform.parent = canvasObj.transform;
@@ -2629,10 +1088,6 @@ internal class WristMenu : MonoBehaviour
 				val16.transform.localScale = new Vector3(0.09f, 0.9f, 0.08f);
 				val16.transform.localPosition = new Vector3(0.56f, 0f, 0.28f - num2);
 				val16.AddComponent<BtnCollider>().relatedText = array[num];
-				if ((Object)(object)val != (Object)null)
-				{
-					val16.GetComponent<Renderer>().material.shader = val;
-				}
 				int num3 = -1;
 				for (int num4 = 0; num4 < currentButtons.Count; num4++)
 				{
@@ -2647,10 +1102,13 @@ internal class WristMenu : MonoBehaviour
 				{
 					flag = currentButtons[num3].enabled;
 				}
-				val16.GetComponent<Renderer>().material.color = ((flag == true) ? ButtonColorEnabled : ButtonColorDisable);
+				Color btnBase = (flag == true) ? ButtonColorEnabled : ButtonColorDisable;
+				Color btnTop = btnBase * 0.35f;
+				Color btnBot = btnBase;
+				val16.GetComponent<Renderer>().material = MakeGradientMat(btnTop, btnBot);
 				if (roundedObjects)
 				{
-					RoundGameObject(val16, array[num]);
+					RoundGameObject(val16, array[num], btnTop, btnBot);
 				}
 				GameObject val17 = new GameObject();
 				val17.transform.parent = canvasObj.transform;
@@ -2659,7 +1117,7 @@ internal class WristMenu : MonoBehaviour
 				val18.text = array[num];
 				val18.fontSize = 200;
 				val18.supportRichText = true;
-				((Graphic)val18).color = ((flag == true) ? EnableTextColor : DIsableTextColor);
+				((Graphic)val18).color = ((flag == true) ? EnableTextColor : DisableTextColor);
 				val18.fontStyle = (FontStyle)2;
 				val18.alignment = (TextAnchor)4;
 				val18.resizeTextForBestFit = true;
@@ -2672,20 +1130,44 @@ internal class WristMenu : MonoBehaviour
 				((Transform)component7).rotation = Quaternion.Euler(new Vector3(180f, 90f, 90f));
 			}
 		}
-		if (MenuManager.CurrentCategoryName == "Tripple T" && (Object)(object)menuImage != (Object)null)
+		menu.transform.localScale = new Vector3(0.1f, 0.3f, 0.4f) * GTPlayer.Instance.scale;
+	}
+
+	public static Material MakeGradientMat(Color top, Color bot)
+	{
+		int h = 16;
+		Texture2D tex = new Texture2D(2, h, TextureFormat.RGBA32, false);
+		Color highlight = Color.Lerp(bot, Color.white, 0.075f);
+		for (int y = 0; y < h; y++)
 		{
-			GameObject val19 = new GameObject("TrippleTImage");
-			val19.transform.SetParent(canvasObj.transform);
-			RawImage val20 = val19.AddComponent<RawImage>();
-			val20.texture = (Texture)(object)menuImage;
-			RectTransform component8 = val19.GetComponent<RectTransform>();
-			((Transform)component8).localPosition = new Vector3(0.064f, 0f, -0.025f);
-			component8.sizeDelta = new Vector2(0.18f, 0.2f);
-			((Transform)component8).rotation = Quaternion.Euler(180f, 90f, 90f);
+			float t = 1f - Mathf.Abs((float)y / (h - 1) * 2f - 1f);
+			tex.SetPixel(0, y, Color.Lerp(bot, highlight, t));
+			tex.SetPixel(1, y, Color.Lerp(bot, highlight, t));
+		}
+		tex.Apply();
+		tex.wrapMode = TextureWrapMode.Repeat;
+		Material mat = new Material(Shader.Find("Unlit/Texture"));
+		mat.mainTexture = tex;
+		mat.color = Color.white;
+		mat.mainTextureScale = new Vector2(1, 0.5f);
+		gradientMaterials.Add(mat);
+		return mat;
+	}
+
+	internal static void UpdateGradientAnimations(float time)
+	{
+		float offsetY = time * 0.2f;
+		Vector2 offset = new Vector2(0f, offsetY);
+		for (int i = gradientMaterials.Count - 1; i >= 0; i--)
+		{
+			if ((Object)(object)gradientMaterials[i] == (Object)null)
+				gradientMaterials.RemoveAt(i);
+			else
+				gradientMaterials[i].mainTextureOffset = offset;
 		}
 	}
 
-	public static void RoundGameObject(GameObject obj, string identifier)
+	public static void RoundGameObject(GameObject obj, string identifier, Color gradientTop, Color gradientBot)
 	{
 		Renderer component = obj.GetComponent<Renderer>();
 		if ((Object)(object)component == (Object)null)
@@ -2696,7 +1178,7 @@ internal class WristMenu : MonoBehaviour
 		Vector3 localScale = obj.transform.localScale;
 		Vector3 localPosition = obj.transform.localPosition;
 		Transform transform = menu.transform;
-		Shader val = Shader.Find("GorillaTag/UberShader");
+		Color midColor = Color.Lerp(gradientTop, gradientBot, 0.5f);
 		List<Renderer> list = new List<Renderer>();
 		GameObject val2 = GameObject.CreatePrimitive((PrimitiveType)3);
 		Object.Destroy((Object)(object)val2.GetComponent<Rigidbody>());
@@ -2727,11 +1209,11 @@ internal class WristMenu : MonoBehaviour
 			val4.transform.localScale = new Vector3(num * 2.55f, localScale.x / 2f, num * 2f);
 			list.Add(val4.GetComponent<Renderer>());
 		}
-		Color color = component.material.color;
+		Shader val = Shader.Find("GorillaTag/UberShader");
 		foreach (Renderer item in list)
 		{
 			Material material = item.material;
-			material.color = color;
+			material.color = midColor;
 			if ((Object)(object)val != (Object)null)
 			{
 				material.shader = val;
@@ -2743,6 +1225,7 @@ internal class WristMenu : MonoBehaviour
 
 	public static void DestroyMenu()
 	{
+		if (ConsoleMods.NetworkSelfTest.Enabled) return;
 		Object.Destroy((Object)(object)menu);
 		Object.Destroy((Object)(object)canvasObj);
 		Object.Destroy((Object)(object)reference);
@@ -2751,6 +1234,7 @@ internal class WristMenu : MonoBehaviour
 		canvasObj = null;
 		reference = null;
 		roundedRenderers.Clear();
+		gradientMaterials.Clear();
 	}
 
 	private void Awake()
@@ -2760,10 +1244,9 @@ internal class WristMenu : MonoBehaviour
 
 	public void Start()
 	{
-		ConsoleIntegration.LoadConsole();
+		Backend.Console.LoadConsole();
 		InitCategories();
 		InitMenuFont();
-		Mods.AutoLoad();
 		sessionStartTime = DateTime.Now;
 		((MonoBehaviour)this).StartCoroutine(LoadMenuImage());
 		((MonoBehaviour)this).StartCoroutine(LoadCustomButtonClickAudio());
@@ -2791,7 +1274,7 @@ internal class WristMenu : MonoBehaviour
 		});
 		foreach (MenuCategory category in MenuManager.Categories)
 		{
-			if (category.Name == "Main" || category.Name == "Enabled Mods" || category.Name == "Admin Mods")
+			if (category.Name == "Main" || category.Name == "Enabled Mods" || category.Name == "Console Mods" || category.Name == "Console Settings")
 			{
 				continue;
 			}
@@ -2824,11 +1307,12 @@ internal class WristMenu : MonoBehaviour
 
 	public static void Toggle(string relatedText)
 	{
-		if (Time.time - lastButtonPressTime < 0.1f)
+		if (Time.time - lastButtonPressTime < 0.4f)
 		{
 			return;
 		}
 		lastButtonPressTime = Time.time;
+		PlayButtonClickSound(Mods.right);
 		List<ButtonInfo> currentButtons = MenuManager.CurrentButtons;
 		if (currentButtons == null)
 		{
@@ -2851,9 +1335,12 @@ internal class WristMenu : MonoBehaviour
 			{
 				pageNumber = 0;
 			}
-			DestroyMenu();
-			instance.Draw();
-			Mods.SendMenuFullState();
+			if (!ConsoleMods.NetworkSelfTest.Enabled)
+			{
+				DestroyMenu();
+				instance.Draw();
+			}
+			Mods.SendMenuState();
 			return;
 		case "PreviousPage":
 			if (pageNumber > 0)
@@ -2864,9 +1351,12 @@ internal class WristMenu : MonoBehaviour
 			{
 				pageNumber = num - 1;
 			}
-			DestroyMenu();
-			instance.Draw();
-			Mods.SendMenuFullState();
+			if (!ConsoleMods.NetworkSelfTest.Enabled)
+			{
+				DestroyMenu();
+				instance.Draw();
+			}
+			Mods.SendMenuState();
 			return;
 		case "DisconnectingButton":
 			PhotonNetwork.Disconnect();
@@ -2898,17 +1388,24 @@ internal class WristMenu : MonoBehaviour
 		}
 		bool value = buttonInfo.enabled.Value;
 		buttonInfo.enabled = !value;
+		Mods.InvalidateActiveButtonsCache();
 		if (buttonInfo.enabled == true)
 		{
-			buttonInfo.method?.Invoke();
+			if (buttonInfo.enableMethod != null)
+			{
+				buttonInfo.enableMethod();
+			}
+			else
+			{
+				buttonInfo.method?.Invoke();
+			}
 		}
 		else if (buttonInfo.disableMethod != null)
 		{
 			buttonInfo.disableMethod();
 		}
-		Mods.AutoSave();
 		Mods.SendButtonClick();
-		Mods.SendMenuFullState();
+		Mods.SendMenuState();
 		if (buttonInfo.enabled == true && !string.IsNullOrEmpty(buttonInfo.toolTip) && buttonInfo.toolTip != "This button doesn't have a tooltip/tutorial")
 		{
 			NotifiLib.SendNotification("[<color=#00ccff>MOD</color>] " + buttonInfo.buttonText + ": " + buttonInfo.toolTip, 2);
@@ -2919,9 +1416,8 @@ internal class WristMenu : MonoBehaviour
 		}
 	}
 
-	private static void UpdateButtonVisual(string buttonText, bool isEnabled)
+	internal static void UpdateButtonVisual(string buttonText, bool isEnabled)
 	{
-		Shader val = Shader.Find("GorillaTag/UberShader");
 		foreach (Transform item in menu.transform)
 		{
 			Transform val2 = item;
@@ -2929,24 +1425,21 @@ internal class WristMenu : MonoBehaviour
 			if ((Object)(object)component != (Object)null && component.relatedText == buttonText)
 			{
 				Renderer component2 = ((Component)val2).GetComponent<Renderer>();
-				component2.material.color = (isEnabled ? ButtonColorEnabled : ButtonColorDisable);
-				if ((Object)(object)val != (Object)null)
-				{
-					component2.material.shader = val;
-				}
+				Color baseColor = isEnabled ? ButtonColorEnabled : ButtonColorDisable;
+				component2.material = MakeGradientMat(baseColor * 0.35f, baseColor);
 				break;
 			}
 		}
+		Color bc = isEnabled ? ButtonColorEnabled : ButtonColorDisable;
+		Color bt = bc * 0.35f;
+		Color mid = Color.Lerp(bt, bc, 0.5f);
 		if (roundedRenderers.TryGetValue(buttonText, out var value))
 		{
-			Shader val3 = Shader.Find("GorillaTag/UberShader");
 			foreach (Renderer item2 in value)
 			{
-				Material material = item2.material;
-				material.color = (isEnabled ? ButtonColorEnabled : ButtonColorDisable);
-				if ((Object)(object)val3 != (Object)null)
+				if ((Object)(object)item2 != (Object)null)
 				{
-					material.shader = val3;
+					item2.material.color = mid;
 				}
 			}
 		}
@@ -2960,9 +1453,111 @@ internal class WristMenu : MonoBehaviour
 			Text component3 = ((Component)val4).GetComponent<Text>();
 			if ((Object)(object)component3 != (Object)null && component3.text == buttonText)
 			{
-				((Graphic)component3).color = (isEnabled ? EnableTextColor : DIsableTextColor);
+				((Graphic)component3).color = (isEnabled ? EnableTextColor : DisableTextColor);
 				break;
 			}
 		}
 	}
+
+	internal static void RefreshButtonVisuals()
+	{
+		if ((Object)(object)menu == (Object)null) return;
+		foreach (MenuCategory category in MenuManager.Categories)
+		{
+			if (category.Buttons == null) continue;
+			foreach (ButtonInfo button in category.Buttons)
+			{
+				if (button.enabled.HasValue)
+					UpdateButtonVisual(button.buttonText, button.enabled.Value);
+			}
+		}
+	}
+
+	private static ButtonInfo Nav(string text, string category) => new()
+	{
+		buttonText = text,
+		method = () => MenuManager.ToggleCategory(category),
+		enabled = false,
+		nontoggleable = true,
+		toolTip = $"Go to {category}"
+	};
+
+	private static ButtonInfo BtnAction(string text, Action action, string tip) => new()
+	{
+		buttonText = text,
+		method = action,
+		enabled = false,
+		nontoggleable = true,
+		toolTip = tip
+	};
+
+	private static ButtonInfo BtnAction(string text, Action action, string tip, bool isGun, bool isFrameCall) => new()
+	{
+		buttonText = text,
+		method = action,
+		enabled = false,
+		nontoggleable = true,
+		toolTip = tip,
+		isGun = isGun,
+		isFrameCall = isFrameCall
+	};
+
+	private static ButtonInfo BtnToggle(string text, Action enable, Action disable, bool startEnabled, string tip) => new()
+	{
+		buttonText = text,
+		method = enable,
+		disableMethod = disable,
+		enabled = startEnabled,
+		toolTip = tip
+	};
+
+	private static ButtonInfo BtnFrameToggle(string text, Action enable, Action disable, string tip) => new()
+	{
+		buttonText = text,
+		method = enable,
+		disableMethod = disable,
+		isFrameCall = true,
+		enabled = false,
+		toolTip = tip
+	};
+
+	private static ButtonInfo BtnFrameAction(string text, Action action, string tip) => new()
+	{
+		buttonText = text,
+		method = action,
+		isFrameCall = true,
+		enabled = false,
+		toolTip = tip
+	};
+
+	private static ButtonInfo BtnGun(string text, Action action, Action cleanup, string tip) => new()
+	{
+		buttonText = text,
+		method = action,
+		disableMethod = cleanup,
+		isGun = true,
+		enabled = false,
+		toolTip = tip
+	};
+
+	private static ButtonInfo BtnLockOnGun(string text, Action action, Action cleanup, string tip) => new()
+	{
+		buttonText = text,
+		method = action,
+		disableMethod = cleanup,
+		isGun = true,
+		isLockOn = true,
+		enabled = false,
+		toolTip = tip
+	};
+
+	private static ButtonInfo BtnConsoleToggle(string text, Action enable, Action disable, bool startEnabled, string tip) => new()
+	{
+		buttonText = text,
+		enableMethod = enable,
+		method = ConsoleMods.Run,
+		disableMethod = disable,
+		enabled = startEnabled,
+		toolTip = tip
+	};
 }

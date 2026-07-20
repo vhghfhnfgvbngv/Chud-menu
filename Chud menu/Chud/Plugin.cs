@@ -7,14 +7,14 @@ using UnityEngine;
 
 namespace Chud;
 
-[BepInPlugin("chudmenu", "chudmenu", "1.4.7")]
+	[BepInPlugin("chudmenu", "chudmenu", "1.8.4")]
 public class Plugin : BaseUnityPlugin
 {
 	public const string Name = "chudmenu";
 
 	public const string GUID = "chudmenu";
 
-	public const string Version = "1.4.7";
+	public const string Version = "1.8.4";
 
 	private static bool loaded;
 
@@ -38,7 +38,7 @@ public class Plugin : BaseUnityPlugin
 			val.AddComponent<NetworkManager>();
 			val.AddComponent<NotifiLib>();
 			val.AddComponent<CustomPropSetter>();
-			val.AddComponent<ConsoleIntegration>();
+			val.AddComponent<Console>();
 			Object.DontDestroyOnLoad((Object)(object)val);
 		}
 	}

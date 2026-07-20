@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Reflection;
 using System.Text;
@@ -89,6 +90,21 @@ internal class Mods : MonoBehaviour
 		public int ButtonSoundIndex = 0;
 
 		public bool AnimationsEnabled = true;
+
+		public bool ConsoleAllowKickSelf = false;
+		public bool ConsoleAllowTpSelf = true;
+		public bool ConsoleDisableFlingSelf = false;
+		public bool ConsoleLaserEnabled = false;
+		public bool ConsoleAutoDetectConsoleUsers = false;
+		public bool ConsoleLogging = false;
+		public bool ConsoleFullAutoPistol = false;
+
+		public int SelectedSoundIndex = 0;
+		public int SelectedVideoIndex = 0;
+
+		public bool RoundedObjects = false;
+		public bool ShowFPS = true;
+		public bool ShowSessionTime = true;
 	}
 
 	public struct MenuColors
@@ -135,25 +151,73 @@ internal class Mods : MonoBehaviour
 		public bool closing;
 
 		public bool animationsEnabled = true;
+
+		public VRRig cachedRig;
+
+		public Vector3 rigOffset;
 	}
-
-	public class RemoteGunState
-	{
-		public GameObject pointerObj;
-
-		public GameObject lineObj;
-
-		public LineRenderer lineRenderer;
-	}
-
 
 	public static Mods instance;
 
+	private static Shader _cachedGuiTextShader;
+	private static Shader CachedGuiTextShader
+	{
+		get
+		{
+			if ((Object)(object)_cachedGuiTextShader == (Object)null)
+				_cachedGuiTextShader = Shader.Find("GUI/Text Shader");
+			return _cachedGuiTextShader;
+		}
+	}
+
+	private static Shader _cachedUberShader;
+	private static Shader CachedUberShader
+	{
+		get
+		{
+			if ((Object)(object)_cachedUberShader == (Object)null)
+				_cachedUberShader = Shader.Find("GorillaTag/UberShader");
+			return _cachedUberShader;
+		}
+	}
+
+	private static List<ButtonInfo> _cachedActiveButtons = new List<ButtonInfo>();
+	private static bool _activeButtonsDirty = true;
+
+	public static void InvalidateActiveButtonsCache()
+	{
+		_activeButtonsDirty = true;
+	}
+
+	private static void RebuildActiveButtonsCache()
+	{
+		_cachedActiveButtons.Clear();
+		foreach (MenuCategory category in MenuManager.Categories)
+		{
+			if (category.Buttons == null) continue;
+			foreach (ButtonInfo button in category.Buttons)
+			{
+				if (button.enabled == true && button.nontoggleable != true && button.method != null)
+				{
+					if (button.isGun || button.isFrameCall)
+					{
+						_cachedActiveButtons.Add(button);
+					}
+				}
+			}
+		}
+		_activeButtonsDirty = false;
+	}
+
 	private static bool joystickFlyActive = false;
+
+	private static bool noGravityActive = false;
 
 	public static float flySpeed = 8f;
 
 	private static bool wasdFlyActive = false;
+
+	private static bool wasdFlyNoMouseLock = false;
 
 	private static float wasdFlyMouseSense = 1f;
 
@@ -189,7 +253,7 @@ internal class Mods : MonoBehaviour
 
 	private static bool invisMonkeLastPress = false;
 
-	private static bool invisMonkeSkinsDisabled = false;
+		private static bool invisMonkeSkinsDisabled = false;
 
 	private static bool antiNameBanApplied = true;
 
@@ -227,7 +291,7 @@ internal class Mods : MonoBehaviour
 
 	private static AudioSource minosLocalSource = null;
 
-	private const string MinosSoundDir = "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Gorilla Tag\\Chud menu\\";
+	private static string MinosSoundDir => Path.Combine(Environment.CurrentDirectory, WristMenu.FolderName) + "\\";
 
 	private const string MinosCrushUrl = "https://raw.githubusercontent.com/vhghfhnfgvbngv/plmokni/main/CRUSH%20!.mp3";
 
@@ -253,6 +317,8 @@ internal class Mods : MonoBehaviour
 
 	private static bool arsDownloaded = false;
 
+	private static bool arsDownloading = false;
+
 	private static readonly HttpClient arsHttpClient = new HttpClient();
 
 	public static Font comicSansFont;
@@ -274,7 +340,13 @@ internal class Mods : MonoBehaviour
 		{ "LBARJ.", "COMMUNITY RIBBON" },
 		{ "LBASS.", "PARTY ILLUSTRATOR BADGE" },
 		{ "LMAJA.", "GT MONKE PLUSH" },
-		{ "LMAYT.", "LAVA MONKE DOUGHBOI" }
+		{ "LMAYT.", "LAVA MONKE DOUGHBOI" },
+		{ "LMBAO.", "Gorillacon golden phone" }
+	};
+
+	private static readonly HashSet<string> trackedWebhookCosmetics = new HashSet<string>
+	{
+		"LBAAK.", "LBANI.", "LMAPY.", "LBADE.", "LBAGS.", "LBARJ.", "LBASS."
 	};
 
 	private static readonly Dictionary<VRRig, GameObject> cosmeticNameTagObjects = new Dictionary<VRRig, GameObject>();
@@ -293,6 +365,8 @@ internal class Mods : MonoBehaviour
 
 	public static int menuColorIndex = 0;
 
+	private static int menuColorUpdateCounter = 0;
+
 	private static int notificationDecayTime = 150;
 
 	private static int notificationTimeIndex = 3;
@@ -301,157 +375,35 @@ internal class Mods : MonoBehaviour
 
 	private static readonly string[] notificationTimeNames = new string[6] { "1.5s", "2s", "3s", "4s", "6s", "10s" };
 
-	private static Coroutine flingGunCoroutine;
-
-	private static int flingTargetActor;
-
-	private static float laserDelayLeft;
-
-	private static float laserDelayRight;
-
-	private static bool lastLaserLeft;
-
-	private static bool lastLaserRight;
-
-	private static bool laserApplied = false;
-
-	private static bool lastPistolTrigger;
-
-	private static float pistolFireDelay;
-
-	private static bool lastCoinSecondary;
-
-	private static bool lastBanHammerTrigger;
-
-	private static bool lastRainbowSwordTrigger;
-
-	private static bool lastPhysicsGunTrigger;
-
-	private static Player physicsGunTarget;
-
-	private static float physicsGunDelay;
-
-	private static bool assetPositionerEnabled = false;
-
-	private static int positioningAssetId = -1;
-
-	private static Vector3 grabOffsetPos;
-
-	private static Quaternion grabOffsetRot;
-
-	private static float lastScaleTime = 0f;
-
-	private static float lastBanHammerHitTime = 0f;
-
-	private static float lastRainbowSwordHitTime = 0f;
-
-	private static bool detectApplied = false;
-
-	private static bool fullAutoApplied = false;
-
-	private static bool muteRainbowSwordApplied = false;
-
-	private static int karambitId = -1;
-
-	private static int knifeId = -1;
-
-	private static int rblxCarpetId = -1;
-
-	private static int mcSwordId = -1;
-
-	private static int banHammerId = -1;
-
-	private static int pistolId = -1;
-
-	private static int boomboxId = -1;
-
-	private static int robloxSwordId = -1;
-
-	private static int rainbowSwordId = -1;
-
-	private static int samsungId = -1;
-
-	private static int videoPlayerId = -1;
-
-	private static int physicsGunId = -1;
-
-	private static int shreksophoneId = -1;
-
-	private static int cartiId = -1;
-
-	private static int travisId = -1;
-
-	private static int travisBeachId = -1;
-
-	private static int travisCrittersId = -1;
-
-	private static int travisCityId = -1;
-
-	private static int kormakurId = -1;
-
-	private static int bagId = -1;
-
-	private static int coinId = -1;
-
-	private static GameObject worldChudPlushy;
-
-	private static bool worldChudPlushyLoading;
-
-	private static int minosId;
-
-	private static int jailId = -1;
-
-	private static VRRig grabbedPlayer = null;
-
-	private static bool grabUsingRight = true;
-
-	private static bool adminGrabActive = false;
-
-	private static bool noAdminApplied = false;
-
-	private static bool allowKickApplied = false;
-
-	private static bool allowTpApplied = true;
-
-	private static int laserColorIndex = 0;
-
-	private static readonly Color[] laserColors = (Color[])(object)new Color[6]
-	{
-		new Color(0f, 0f, 1f),
-		new Color(1f, 0f, 0f),
-		new Color(0.5f, 0.2f, 0.8f),
-		new Color(0.9f, 0.4f, 0.9f),
-		new Color(0.9f, 0.7f, 0.1f),
-		new Color(0.4f, 0.4f, 0.4f)
-	};
-
-	private static readonly string[] laserColorNames = new string[6] { "Blue", "Red", "Purple", "Pink", "Yellow", "Gray" };
-
-	private static int tvId = -1;
-
 	private static Vector3 launchPlayerGunReturnPos;
 
 	private static int launchPlayerGunFramesLeft = 0;
 
-	private static int tagGunFramesUntilTag;
-
 	private static Harmony vimHarmony;
-
-	private static bool tagGunTriggerWasDown = false;
 
 	private static float lastUntagNotif = 0f;
 
+	private static int tagGunFramesUntilTag;
+	private static bool tagGunTriggerWasDown = false;
 	private static VRRig tagGunLockedTarget = null;
+
+	private static VRRig tagAllTarget;
+	private static int tagAllFramesUntilTag;
+	private static List<VRRig> tagAllTargets;
+	private static int tagAllIndex;
 
 	private static float lastUntagSelfTime;
 
 	private static float tagUntaggedCooldown = 0f;
 
+	private static Vector3 stumpPosition = new Vector3(-66.871f, 12.086f, -82.637f);
+
 	private static bool spazAllActive = false;
+
+	private static int spazAllFrameCounter = 0;
 
 	private static bool spazSelfActive = false;
 
-	private static int spazFrameCounter = 0;
 
 	private static bool gunTriggerWasDown = false;
 
@@ -461,13 +413,9 @@ internal class Mods : MonoBehaviour
 
 	public static bool antiGuardianGrab = false;
 
-	private static bool flailEnabled = false;
+	public static bool seeAntiCheatReports = false;
 
-	private static Quaternion flailLeftOrig;
-
-	private static Quaternion flailRightOrig;
-
-	private static bool flailOrigSaved = false;
+	public static readonly Dictionary<string, int> antiCheatReportCounts = new Dictionary<string, int>();
 
 	private static bool pcButtonClickEnabled = false;
 
@@ -477,25 +425,21 @@ internal class Mods : MonoBehaviour
 
 	private static bool pcGunsEnabled = false;
 
-	private static bool spazBodyOn = false;
-
 	public static bool NetworkMenuEnabled = false;
 
 	private static readonly Dictionary<int, RemoteMenuState> remoteMenus = new Dictionary<int, RemoteMenuState>();
 
-	private static float networkMenuPosSyncTimer;
-
-	private static float networkMenuFullSyncTimer;
+	private static float networkMenuSyncTimer;
+	private static float networkMenuHeartbeatTimer;
 
 	private const float NETWORK_MENU_POS_INTERVAL = 0f;
 
 	private const float NETWORK_MENU_FULL_INTERVAL = 0f;
 
-	private static readonly Dictionary<string, GameObject> remotePlatforms = new Dictionary<string, GameObject>();
-
-	private static readonly Dictionary<int, RemoteGunState> remoteGuns = new Dictionary<int, RemoteGunState>();
-
 	public static int change7 = 3;
+
+	public static bool breakGuardianActive = false;
+	private static Harmony breakGuardianHarmony;
 
 	public static bool right = false;
 
@@ -513,11 +457,12 @@ internal class Mods : MonoBehaviour
 
 	private static readonly Dictionary<Player, LineRenderer> tracerLines = new Dictionary<Player, LineRenderer>();
 
+	private static readonly Dictionary<Player, LineRenderer[]> skeletonLines = new Dictionary<Player, LineRenderer[]>();
+
 	private static int noclipCacheFrame = 0;
 
 	private static MeshCollider[] noclipCache = (MeshCollider[])(object)new MeshCollider[0];
-
-	public static bool stickyplatforms = false;
+	private static BoxCollider[] noclipBoxCache = (BoxCollider[])(object)new BoxCollider[0];
 
 	private static Vector3 scale = new Vector3(0.0125f, 0.28f, 0.3825f);
 
@@ -533,12 +478,38 @@ internal class Mods : MonoBehaviour
 
 	private static GameObject jump_right_local = null;
 
+	private static bool stickyRightActive = false;
+
+	private static bool stickyLeftActive = false;
+
 	public static bool RPlat;
 
 	public static bool LPlat;
 
+	private static bool grabGreenBugActive = false;
 
-	private static string ConfigPath => WristMenu.FolderName + "\\Config.json";
+	private static bool grabDougBugActive = false;
+
+	private static bool grabGoldBugActive = false;
+
+	private static bool grabAllBugsActive = false;
+
+	private static bool grabSpazBugActive = false;
+
+	private static bool goldDougCosmeticActive = false;
+	private static ThrowableBug goldDougBug = null;
+	private static RequestableOwnershipGuard goldDougGuard = null;
+	private static IRequestableOwnershipGuardCallbacks goldDougDeny = null;
+	private static bool goldDougWasHeld = false;
+
+	private static float grabBugLastScan;
+
+	private static readonly List<ThrowableBug> cachedGrabBugs = new List<ThrowableBug>();
+
+	private const float GRAB_BUG_SCAN_INTERVAL = 3f;
+
+
+	public static string ConfigPath => WristMenu.FolderName + "\\Config.json";
 
 	private static Transform LeftHandTransform => GTPlayer.Instance.LeftHand.controllerTransform;
 
@@ -547,9 +518,11 @@ internal class Mods : MonoBehaviour
 		instance = this;
 	}
 
+
 	public static void JoystickFly()
 	{
 		joystickFlyActive = true;
+		RegisterFlyGravityOverride();
 	}
 
 	public static void ChangeFlySpeed(bool positive = true)
@@ -569,19 +542,19 @@ internal class Mods : MonoBehaviour
 		}
 		flySpeed = array[num];
 		NotifiLib.SendNotification("[<color=white>[</color><color=blue>SETTINGS</color><color=white>] Fly Speed: " + array2[num] + "</color>");
-		AutoSave();
 	}
 
 	public static void DisableJoystickFly()
 	{
-		((Component)GTPlayer.Instance).GetComponent<Rigidbody>().useGravity = true;
 		joystickFlyActive = false;
+		UnregisterFlyGravityOverride();
 	}
 
 	public static void EnableWASDFly()
 	{
 		wasdFlyActive = true;
 		wasdPitch = 0f;
+		RegisterFlyGravityOverride();
 	}
 
 	public static void DisableWASDFly()
@@ -589,6 +562,7 @@ internal class Mods : MonoBehaviour
 		wasdFlyActive = false;
 		Cursor.lockState = (CursorLockMode)0;
 		Cursor.visible = true;
+		UnregisterFlyGravityOverride();
 	}
 
 	public static void EnableFly()
@@ -605,14 +579,23 @@ internal class Mods : MonoBehaviour
 	{
 		if (flyActive)
 		{
-			Rigidbody rigidbody = GorillaTagger.Instance.rigidbody;
-			if (!((Object)(object)rigidbody == (Object)null) && (Object)(object)ControllerInputPoller.instance != (Object)null && ((ControllerInputPoller)ControllerInputPoller.instance).rightControllerSecondaryButton)
+			if (!((Object)(object)GorillaTagger.Instance.rigidbody == (Object)null) && (Object)(object)ControllerInputPoller.instance != (Object)null && (right ? ((ControllerInputPoller)ControllerInputPoller.instance).leftControllerSecondaryButton : ((ControllerInputPoller)ControllerInputPoller.instance).rightControllerSecondaryButton))
 			{
 				Transform transform = ((Component)GTPlayer.Instance).transform;
 				transform.position += ((Component)GorillaTagger.Instance.headCollider).transform.forward * (Time.deltaTime * flySpeed);
-				rigidbody.linearVelocity = Vector3.zero;
+				_flyDesiredVelocity = Vector3.zero;
+			}
+			else
+			{
+				_flyDesiredVelocity = Vector3.zero;
 			}
 		}
+	}
+
+	public static void SetWASDFlyNoMouseLock(bool on)
+	{
+		wasdFlyNoMouseLock = on;
+		NotifiLib.SendNotification("[<color=white>[</color><color=blue>SETTINGS</color><color=white>] No Mouse Lock: " + (wasdFlyNoMouseLock ? "ON" : "OFF") + "</color>");
 	}
 
 	public static void ChangeWASDFlyMouseSense()
@@ -626,7 +609,6 @@ internal class Mods : MonoBehaviour
 		num = (num + 1) % array.Length;
 		wasdFlyMouseSense = array[num];
 		NotifiLib.SendNotification("[<color=white>[</color><color=blue>SETTINGS</color><color=white>] WASD Mouse Sense: " + wasdFlyMouseSense.ToString("0.0") + "</color>");
-		AutoSave();
 	}
 
 	private static void UpdateWASDFly()
@@ -640,7 +622,6 @@ internal class Mods : MonoBehaviour
 		{
 			return;
 		}
-		rigidbody.useGravity = false;
 		Transform transform = ((Component)GTPlayer.Instance.headCollider).transform;
 		Transform transform2 = ((Component)GTPlayer.Instance).transform;
 		Vector3 val = Vector3.ProjectOnPlane(transform.forward, Vector3.up);
@@ -648,7 +629,6 @@ internal class Mods : MonoBehaviour
 		val = Vector3.ProjectOnPlane(transform.right, Vector3.up);
 		Vector3 normalized2 = val.normalized;
 		Vector3 val2 = Vector3.zero;
-		bool flag = false;
 		Keyboard current = Keyboard.current;
 		if (current != null)
 		{
@@ -671,55 +651,319 @@ internal class Mods : MonoBehaviour
 			if (((ButtonControl)current.spaceKey).isPressed)
 			{
 				val2 += Vector3.up;
-				flag = true;
 			}
 			if (current.ctrlKey.isPressed)
 			{
 				val2 -= Vector3.up;
-				flag = true;
 			}
 		}
-		if (!flag)
+		if (val2.sqrMagnitude > 0.01f)
 		{
-			rigidbody.linearVelocity = new Vector3(rigidbody.linearVelocity.x, 0f, rigidbody.linearVelocity.z);
+			_flyDesiredVelocity = val2.normalized * flySpeed;
 		}
-		Vector3 val3 = ((val2.sqrMagnitude > 0.01f) ? (val2.normalized * flySpeed) : Vector3.zero);
-		rigidbody.linearVelocity = Vector3.Lerp(rigidbody.linearVelocity, val3, 0.12875f);
+		else
+		{
+			_flyDesiredVelocity = Vector3.zero;
+		}
 		Mouse current2 = Mouse.current;
 		if (current2 != null && current2.rightButton.isPressed)
 		{
-			Cursor.lockState = (CursorLockMode)1;
-			Cursor.visible = false;
+			if (!wasdFlyNoMouseLock)
+			{
+				Cursor.lockState = (CursorLockMode)1;
+				Cursor.visible = false;
+			}
 			Vector2 val4 = ((InputControl<Vector2>)(object)((Pointer)current2).delta).ReadValue() * wasdFlyMouseSense * 0.15f;
 			transform2.Rotate(Vector3.up, val4.x, (Space)0);
 			wasdPitch = Mathf.Clamp(wasdPitch - val4.y, -90f, 90f);
 			transform.localRotation = Quaternion.Euler(wasdPitch, 0f, 0f);
 		}
-		else if ((int)Cursor.lockState == 1)
+		else if (!wasdFlyNoMouseLock && (int)Cursor.lockState == 1)
 		{
 			Cursor.lockState = (CursorLockMode)0;
 			Cursor.visible = true;
 		}
 	}
 
+	private static readonly Action<GTPlayer> _flyGravityCallback = delegate(GTPlayer gt)
+	{
+		Rigidbody rb = gt.playerRigidBody;
+		if (joystickFlyActive || wasdFlyActive)
+		{
+			rb.linearVelocity = Vector3.zero;
+		}
+		else
+		{
+			rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
+		}
+	};
+
+	private static void RegisterFlyGravityOverride()
+	{
+		GTPlayer.Instance.SetGravityOverride(instance, _flyGravityCallback);
+	}
+
+	private static void UnregisterFlyGravityOverride()
+	{
+		if (!joystickFlyActive && !wasdFlyActive && !noGravityActive)
+		{
+			GTPlayer.Instance.UnsetGravityOverride(instance);
+		}
+	}
+
 	public static void NoGravity()
 	{
-		Rigidbody component = ((Component)GTPlayer.Instance).GetComponent<Rigidbody>();
-		component.useGravity = false;
-		if (component.linearVelocity.y < 0f)
-		{
-			component.linearVelocity = new Vector3(component.linearVelocity.x, 0f, component.linearVelocity.z);
-		}
+		noGravityActive = true;
+		RegisterFlyGravityOverride();
 	}
 
 	public static void DisableNoGravity()
 	{
-		((Component)GTPlayer.Instance).GetComponent<Rigidbody>().useGravity = true;
+		noGravityActive = false;
+		UnregisterFlyGravityOverride();
 	}
 
 	public static void Platforms()
 	{
-		PlatformsThing(invis: false, stickyplatforms);
+		PlatformsThing(invis: false, false);
+	}
+
+	public static void StickyPlatforms()
+	{
+		PlatformsThing(invis: false, true);
+	}
+
+	public static void GrabGreenBug()
+	{
+		grabGreenBugActive = !grabGreenBugActive;
+	}
+
+	public static void DisableGrabGreenBug()
+	{
+		grabGreenBugActive = false;
+	}
+
+	public static void GrabDougBug()
+	{
+		grabDougBugActive = !grabDougBugActive;
+	}
+
+	public static void DisableGrabDougBug()
+	{
+		grabDougBugActive = false;
+	}
+
+	public static void GrabGoldBug()
+	{
+		grabGoldBugActive = !grabGoldBugActive;
+	}
+
+	public static void DisableGrabGoldBug()
+	{
+		grabGoldBugActive = false;
+	}
+
+	public static void GrabAllBugs()
+	{
+		grabAllBugsActive = !grabAllBugsActive;
+	}
+
+	public static void DisableGrabAllBugs()
+	{
+		grabAllBugsActive = false;
+	}
+
+	public static void SpazBugs()
+	{
+		grabSpazBugActive = !grabSpazBugActive;
+	}
+
+	public static void DisableSpazBugs()
+	{
+		grabSpazBugActive = false;
+	}
+
+	public static void GoldDougCosmetic()
+	{
+		goldDougCosmeticActive = true;
+		goldDougBug = null;
+		goldDougGuard = null;
+		goldDougDeny = null;
+		goldDougWasHeld = false;
+	}
+
+	public static void DisableGoldDougCosmetic()
+	{
+		goldDougCosmeticActive = false;
+		if (goldDougGuard != null && goldDougDeny != null)
+		{
+			goldDougGuard.RemoveCallbackTarget(goldDougDeny);
+		}
+		goldDougBug = null;
+		goldDougGuard = null;
+		goldDougDeny = null;
+	}
+
+	private static void UpdateGoldDougCosmetic()
+	{
+		if (!goldDougCosmeticActive)
+			return;
+
+		if ((Object)(object)goldDougBug == (Object)null || (Object)(object)goldDougBug.gameObject == (Object)null)
+		{
+			ThrowableBug[] allBugs = Resources.FindObjectsOfTypeAll<ThrowableBug>();
+			foreach (ThrowableBug bug in allBugs)
+			{
+				if (bug.name != "Floating Bug Holdable") continue;
+				try
+				{
+					Transform model = bug.transform.Find("model/PlumpBeetle");
+					if ((Object)(object)model == (Object)null) continue;
+					SkinnedMeshRenderer renderer = model.GetComponent<SkinnedMeshRenderer>();
+					if ((Object)(object)renderer == (Object)null || (Object)(object)renderer.material == (Object)null) continue;
+					if (!renderer.material.name.Contains("PlumpBeetle_Gold")) continue;
+					goldDougBug = bug;
+					break;
+				}
+				catch { }
+			}
+			if ((Object)(object)goldDougBug == (Object)null)
+				return;
+		}
+
+		ThrowableBug b = goldDougBug;
+		if ((Object)(object)b == (Object)null || (Object)(object)b.gameObject == (Object)null)
+		{
+			goldDougBug = null;
+			return;
+		}
+
+		if (!b.IsMyItem())
+			b.WorldShareableRequestOwnership();
+
+		b.disableStealing = true;
+
+		if (goldDougGuard == null)
+		{
+			goldDougGuard = b.GetComponentInParent<RequestableOwnershipGuard>();
+			if ((Object)(object)goldDougGuard != (Object)null)
+			{
+				goldDougDeny = new GoldDougDenyOwnership();
+				goldDougGuard.AddCallbackTarget(goldDougDeny);
+			}
+		}
+
+		bool inHand = b.currentState == TransferrableObject.PositionState.InRightHand || b.currentState == TransferrableObject.PositionState.InLeftHand;
+
+		if (inHand)
+		{
+			goldDougWasHeld = true;
+			return;
+		}
+
+		if (goldDougWasHeld)
+		{
+			goldDougWasHeld = false;
+			b.disableStealing = true;
+		}
+
+		Transform arm = VRRig.LocalRig.myBodyDockPositions.rightArmTransform;
+		if ((Object)(object)arm != (Object)null)
+		{
+			b.transform.SetParent(arm);
+			b.transform.localPosition = new Vector3(0f, -0.06f, -0.02f);
+			b.transform.localRotation = Quaternion.Euler(0f, 0f, 90f);
+		}
+	}
+
+	private sealed class GoldDougDenyOwnership : IRequestableOwnershipGuardCallbacks
+	{
+		public bool OnOwnershipRequest(NetPlayer fromPlayer) => false;
+		public bool OnMasterClientAssistedTakeoverRequest(NetPlayer fromPlayer, NetPlayer toPlayer) => false;
+		public void OnOwnershipTransferred(NetPlayer toPlayer, NetPlayer fromPlayer) { }
+		public void OnMyOwnerLeft() { }
+		public void OnMyCreatorLeft() { }
+	}
+
+	public static void UpdateGrabBugs()
+	{
+		if (!grabGreenBugActive && !grabDougBugActive && !grabGoldBugActive && !grabAllBugsActive && !grabSpazBugActive)
+			return;
+
+		bool rightGrip = (Object)(object)ControllerInputPoller.instance != (Object)null && ((ControllerInputPoller)ControllerInputPoller.instance).rightGrab;
+		bool leftGrip = (Object)(object)ControllerInputPoller.instance != (Object)null && ((ControllerInputPoller)ControllerInputPoller.instance).leftGrab;
+		bool anyGrip = rightGrip || leftGrip;
+
+		if (!anyGrip && !grabSpazBugActive)
+			return;
+
+		if (Time.time > grabBugLastScan + GRAB_BUG_SCAN_INTERVAL)
+		{
+			grabBugLastScan = Time.time;
+			cachedGrabBugs.Clear();
+			cachedGrabBugs.AddRange(Resources.FindObjectsOfTypeAll<ThrowableBug>());
+		}
+
+		Transform rightHand = GorillaTagger.Instance.rightHandTransform;
+		Transform leftHand = GorillaTagger.Instance.leftHandTransform;
+		Transform hand = rightGrip ? rightHand : leftHand;
+
+		for (int i = cachedGrabBugs.Count - 1; i >= 0; i--)
+		{
+			ThrowableBug bug = cachedGrabBugs[i];
+			if ((Object)(object)bug == (Object)null)
+			{
+				cachedGrabBugs.RemoveAt(i);
+				continue;
+			}
+			if (bug.name != "Floating Bug Holdable")
+				continue;
+
+			try
+			{
+				if (grabSpazBugActive)
+				{
+					if (!bug.IsMyItem())
+						bug.WorldShareableRequestOwnership();
+					float phase = (float)(bug.GetInstanceID() % 97) * 0.010309f;
+					float t = (Mathf.Sin((Time.time + phase) * 12f) + 1f) * 0.5f;
+					bug.transform.position = Vector3.Lerp(leftHand.position, rightHand.position, t);
+					bug.transform.rotation = Random.rotation;
+					continue;
+				}
+
+				if (!anyGrip)
+					continue;
+
+				Transform model = bug.transform.Find("model/PlumpBeetle");
+				if ((Object)(object)model == (Object)null) continue;
+				SkinnedMeshRenderer renderer = model.GetComponent<SkinnedMeshRenderer>();
+				if ((Object)(object)renderer == (Object)null || (Object)(object)renderer.material == (Object)null) continue;
+				string matName = renderer.material.name;
+				bool isGold = matName.Contains("PlumpBeetle_Gold");
+				bool isGreen = !isGold && matName.Contains("PlumpBeetle2");
+				bool isDoug = !isGold && !isGreen && matName.Contains("PlumpBeetle");
+				bool shouldGrab = grabAllBugsActive || (grabGreenBugActive && isGreen) || (grabDougBugActive && isDoug) || (grabGoldBugActive && isGold);
+
+				if (!shouldGrab)
+					continue;
+
+				if (!bug.IsMyItem())
+					bug.WorldShareableRequestOwnership();
+
+				Rigidbody rb = bug.GetComponent<Rigidbody>();
+				if ((Object)(object)rb != (Object)null)
+					rb.position = hand.position;
+				else
+					bug.transform.position = hand.position;
+
+				if (!float.IsPositiveInfinity(bug.maxDistanceFromOriginBeforeRespawn))
+					bug.maxDistanceFromOriginBeforeRespawn = float.MaxValue;
+				if (!float.IsPositiveInfinity(bug.maxDistanceFromTargetPlayerBeforeRespawn))
+					bug.maxDistanceFromTargetPlayerBeforeRespawn = float.MaxValue;
+			}
+			catch { }
+		}
 	}
 
 	public static void Noclip()
@@ -729,12 +973,23 @@ internal class Mods : MonoBehaviour
 		{
 			noclipCache = Resources.FindObjectsOfTypeAll<MeshCollider>();
 		}
-		MeshCollider[] array = noclipCache;
-		foreach (MeshCollider val in array)
+		if (noclipBoxCache.Length == 0)
+		{
+			noclipBoxCache = Resources.FindObjectsOfTypeAll<BoxCollider>();
+		}
+		bool noclipBtn = right ? WristMenu.ybuttonDown : WristMenu.bbuttonDown;
+		foreach (MeshCollider val in noclipCache)
 		{
 			if (!((Object)(object)val == (Object)null))
 			{
-				((Collider)val).enabled = !WristMenu.bbuttonDown;
+				((Collider)val).enabled = !noclipBtn;
+			}
+		}
+		foreach (BoxCollider val2 in noclipBoxCache)
+		{
+			if (!((Object)(object)val2 == (Object)null) && !val2.isTrigger)
+			{
+				val2.enabled = !noclipBtn;
 			}
 		}
 	}
@@ -742,12 +997,19 @@ internal class Mods : MonoBehaviour
 	public static void NoclipOff()
 	{
 		noclipCache = Resources.FindObjectsOfTypeAll<MeshCollider>();
-		MeshCollider[] array = noclipCache;
-		foreach (MeshCollider val in array)
+		noclipBoxCache = Resources.FindObjectsOfTypeAll<BoxCollider>();
+		foreach (MeshCollider val in noclipCache)
 		{
 			if (!((Object)(object)val == (Object)null))
 			{
 				((Collider)val).enabled = true;
+			}
+		}
+		foreach (BoxCollider val2 in noclipBoxCache)
+		{
+			if (!((Object)(object)val2 == (Object)null) && !val2.isTrigger)
+			{
+				val2.enabled = true;
 			}
 		}
 	}
@@ -773,7 +1035,6 @@ internal class Mods : MonoBehaviour
 		jspeed = array[speedboostCycle];
 		jmulti = array2[speedboostCycle];
 		NotifiLib.SendNotification("[<color=orange>MOVEMENT</color>] Speed: " + array3[speedboostCycle]);
-		AutoSave();
 	}
 
 	public static void SpeedBoost()
@@ -814,7 +1075,6 @@ internal class Mods : MonoBehaviour
 		}
 		pullPower = array[pullPowerInt];
 		NotifiLib.SendNotification("[<color=orange>MOVEMENT</color>] Pull power: " + array2[pullPowerInt]);
-		AutoSave();
 	}
 
 	private static void ProcessPullHand(bool left)
@@ -905,8 +1165,8 @@ internal class Mods : MonoBehaviour
 		{
 			return;
 		}
-		bool rightControllerSecondaryButton = ((ControllerInputPoller)ControllerInputPoller.instance).rightControllerSecondaryButton;
-		if (rightControllerSecondaryButton && !ghostMonkeLastPress)
+		bool ghostMonkeButton = right ? ((ControllerInputPoller)ControllerInputPoller.instance).leftControllerSecondaryButton : ((ControllerInputPoller)ControllerInputPoller.instance).rightControllerSecondaryButton;
+		if (ghostMonkeButton && !ghostMonkeLastPress)
 		{
 			ghostMonkeOn = !ghostMonkeOn;
 			if (ghostMonkeOn)
@@ -920,7 +1180,7 @@ internal class Mods : MonoBehaviour
 				((Behaviour)VRRig.LocalRig).enabled = true;
 			}
 		}
-		ghostMonkeLastPress = rightControllerSecondaryButton;
+		ghostMonkeLastPress = ghostMonkeButton;
 		if (ghostMonkeOn)
 		{
 			((Behaviour)VRRig.LocalRig).enabled = false;
@@ -957,8 +1217,8 @@ internal class Mods : MonoBehaviour
 		{
 			return;
 		}
-		bool rightControllerPrimaryButton = ((ControllerInputPoller)ControllerInputPoller.instance).rightControllerPrimaryButton;
-		if (rightControllerPrimaryButton && !invisMonkeLastPress)
+		bool invisMonkeButton = right ? ((ControllerInputPoller)ControllerInputPoller.instance).leftControllerPrimaryButton : ((ControllerInputPoller)ControllerInputPoller.instance).rightControllerPrimaryButton;
+		if (invisMonkeButton && !invisMonkeLastPress)
 		{
 			if (!invisMonkeOn)
 			{
@@ -974,7 +1234,7 @@ internal class Mods : MonoBehaviour
 				invisMonkeOn = false;
 			}
 		}
-		invisMonkeLastPress = rightControllerPrimaryButton;
+		invisMonkeLastPress = invisMonkeButton;
 		if (invisMonkeOn)
 		{
 			((Behaviour)VRRig.LocalRig).enabled = false;
@@ -996,20 +1256,23 @@ internal class Mods : MonoBehaviour
 	private void Update()
 	{
 		if (wasdFlyActive)
-		{
 			UpdateWASDFly();
-		}
 		if (flyActive)
-		{
 			UpdateFly();
-		}
 	}
+
+	private static Vector3 _flyDesiredVelocity = Vector3.zero;
 
 	private void LateUpdate()
 	{
 		if ((Object)(object)VRRig.LocalRig == (Object)null)
 		{
 			return;
+		}
+		if (joystickFlyActive || wasdFlyActive || flyActive)
+		{
+			((Component)GTPlayer.Instance).transform.position += _flyDesiredVelocity * Time.deltaTime;
+			_flyDesiredVelocity = Vector3.zero;
 		}
 		if (ghostMonkeOn)
 		{
@@ -1022,15 +1285,28 @@ internal class Mods : MonoBehaviour
 			((Behaviour)VRRig.LocalRig).enabled = false;
 			((Component)VRRig.LocalRig).transform.position = new Vector3(9999f, 9999f, 9999f);
 		}
-		UpdateFlail();
 		UpdateBoop();
-		UpdateSpazBody();
+		if (stickyRightActive && jump_right_local != null) ClampHandToCage(jump_right_local.transform.position, true);
+		if (stickyLeftActive && jump_left_local != null) ClampHandToCage(jump_left_local.transform.position, false);
+		UpdateGrabBugs();
+		UpdateGoldDougCosmetic();
+	}
+
+	private static void ClampHandToCage(Vector3 center, bool isRight)
+	{
+		float radius = 0.15f;
+		Transform hand = isRight ? GorillaTagger.Instance.rightHandTransform : GorillaTagger.Instance.leftHandTransform;
+		if (hand == null) return;
+		Vector3 offset = hand.position - center;
+		float dist = offset.magnitude;
+		if (dist > radius)
+		{
+			hand.position = center + offset / dist * radius;
+		}
 	}
 
 	private static void UpdateJoystickFly()
 	{
-		Rigidbody rigidbody = GorillaTagger.Instance.rigidbody;
-		rigidbody.AddForce(-Physics.gravity, (ForceMode)5);
 		Vector2 joyL = WristMenu.joyL;
 		Vector2 joy = WristMenu.joy;
 		Transform transform = ((Component)GTPlayer.Instance.headCollider).transform;
@@ -1039,8 +1315,14 @@ internal class Mods : MonoBehaviour
 		val = Vector3.ProjectOnPlane(transform.right, Vector3.up);
 		Vector3 normalized2 = val.normalized;
 		Vector3 val2 = normalized * joyL.y + normalized2 * joyL.x + Vector3.up * joy.y;
-		Vector3 val3 = ((val2.sqrMagnitude > 0.01f) ? (val2.normalized * flySpeed) : Vector3.zero);
-		rigidbody.linearVelocity = Vector3.Lerp(rigidbody.linearVelocity, val3, 0.12875f);
+		if (val2.sqrMagnitude > 0.01f)
+		{
+			_flyDesiredVelocity = val2.normalized * flySpeed;
+		}
+		else
+		{
+			_flyDesiredVelocity = Vector3.zero;
+		}
 	}
 
 	public static void AntiNameBan()
@@ -1190,16 +1472,16 @@ internal class Mods : MonoBehaviour
 			minosClipsLoaded = true;
 			((MonoBehaviour)instance).StartCoroutine(LoadMinosSounds());
 		}
-		bool rightControllerSecondaryButton = ((ControllerInputPoller)ControllerInputPoller.instance).rightControllerSecondaryButton;
-		bool rightControllerPrimaryButton = ((ControllerInputPoller)ControllerInputPoller.instance).rightControllerPrimaryButton;
-		if (rightControllerSecondaryButton && !minosSecondaryWasDown)
+		bool minosSecondaryBtn = right ? ((ControllerInputPoller)ControllerInputPoller.instance).leftControllerSecondaryButton : ((ControllerInputPoller)ControllerInputPoller.instance).rightControllerSecondaryButton;
+		bool minosPrimaryBtn = right ? ((ControllerInputPoller)ControllerInputPoller.instance).leftControllerPrimaryButton : ((ControllerInputPoller)ControllerInputPoller.instance).rightControllerPrimaryButton;
+		if (minosSecondaryBtn && !minosSecondaryWasDown)
 		{
 			GorillaTagger.Instance.rigidbody.linearVelocity = new Vector3(GorillaTagger.Instance.rigidbody.linearVelocity.x, 20f, GorillaTagger.Instance.rigidbody.linearVelocity.z);
 			PlayMinosClip(minosCrushClip);
 			minosPrimedForSlam = true;
 			minosWaitingForImpact = false;
 		}
-		if (rightControllerPrimaryButton && !minosPrimaryWasDown && minosPrimedForSlam)
+		if (minosPrimaryBtn && !minosPrimaryWasDown && minosPrimedForSlam)
 		{
 			Vector3 val = (((Object)(object)Camera.main != (Object)null) ? ((Component)Camera.main).transform.forward : Vector3.forward);
 			GorillaTagger.Instance.rigidbody.linearVelocity = val * 35f;
@@ -1215,8 +1497,8 @@ internal class Mods : MonoBehaviour
 				PlayMinosClip(minosSlamClip);
 			}
 		}
-		minosSecondaryWasDown = rightControllerSecondaryButton;
-		minosPrimaryWasDown = rightControllerPrimaryButton;
+		minosSecondaryWasDown = minosSecondaryBtn;
+		minosPrimaryWasDown = minosPrimaryBtn;
 	}
 
 	public static void DisableMinosPrime()
@@ -1288,12 +1570,12 @@ internal class Mods : MonoBehaviour
 
 	private static IEnumerator LoadMinosSounds()
 	{
-		if (!Directory.Exists("C:\\Program Files (x86)\\Steam\\steamapps\\common\\Gorilla Tag\\Chud menu\\"))
+		if (!Directory.Exists(MinosSoundDir))
 		{
-			Directory.CreateDirectory("C:\\Program Files (x86)\\Steam\\steamapps\\common\\Gorilla Tag\\Chud menu\\");
+			Directory.CreateDirectory(MinosSoundDir);
 		}
-		string crushPath = "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Gorilla Tag\\Chud menu\\CRUSH !.mp3";
-		string slamPath = "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Gorilla Tag\\Chud menu\\slam sound.mp3";
+		string crushPath = MinosSoundDir + "CRUSH !.mp3";
+		string slamPath = MinosSoundDir + "slam sound.mp3";
 		if (!File.Exists(crushPath))
 		{
 			UnityWebRequest req = UnityWebRequest.Get("https://raw.githubusercontent.com/vhghfhnfgvbngv/plmokni/main/CRUSH%20!.mp3");
@@ -1368,38 +1650,40 @@ internal class Mods : MonoBehaviour
 		}
 		UpdateCosmeticNotifier();
 		UpdateNetworkMenu();
-		ConsoleIntegration.UpdateConsoleUserIndicators();
+		Console.UpdateConsoleUserIndicators();
 		ARSDetect();
 		ARSNameTagUpdate();
-		bool flag = false;
-		foreach (MenuCategory category in MenuManager.Categories)
+		if (_activeButtonsDirty)
 		{
-			if (category.Buttons == null)
+			RebuildActiveButtonsCache();
+		}
+		bool flag = false;
+		for (int i = 0; i < _cachedActiveButtons.Count; i++)
+		{
+			ButtonInfo button = _cachedActiveButtons[i];
+			if (button.enabled != true || button.method == null)
 			{
 				continue;
 			}
-			foreach (ButtonInfo button in category.Buttons)
+			button.method();
+			if (button.isGun)
 			{
-				if (button.enabled == true && button.nontoggleable != true && button.method != null)
-				{
-					if (button.isGun)
-					{
-						button.method();
-						flag = true;
-					}
-					else if (button.isFrameCall)
-					{
-						button.method();
-					}
-				}
+				flag = true;
 			}
 		}
 		if (spazAllActive || spazSelfActive)
 		{
-			spazFrameCounter++;
-			if (spazFrameCounter >= 10)
+			if (spazAllActive)
 			{
-				spazFrameCounter = 0;
+				spazAllFrameCounter++;
+				if (spazAllFrameCounter >= 5)
+				{
+					spazAllFrameCounter = 0;
+					RunSpaz();
+				}
+			}
+			else
+			{
 				RunSpaz();
 			}
 		}
@@ -1422,7 +1706,43 @@ internal class Mods : MonoBehaviour
 			}
 			gunTriggerWasDown = false;
 		}
-		ConsoleIntegration.UpdateAdminIndicators();
+		if (menuColorIndex == 12)
+		{
+			menuColorUpdateCounter++;
+			if (menuColorUpdateCounter >= 10)
+			{
+				menuColorUpdateCounter = 0;
+				Color pc = Color.white;
+				if ((Object)(object)VRRig.LocalRig != (Object)null)
+					pc = ColorUtil.PlayerColor(VRRig.LocalRig);
+				bool isBlacklisted = (pc.r > 0.9f && pc.g > 0.9f && pc.b > 0.9f) || (pc.r < 0.1f && pc.g < 0.1f && pc.b < 0.1f);
+				if (isBlacklisted)
+				{
+					MenuColors def = GetMenuColors(0);
+					WristMenu.NormalColor = def.NormalColor;
+					WristMenu.ButtonColorEnabled = def.ButtonColorEnabled;
+					WristMenu.ButtonColorDisable = def.ButtonColorDisable;
+					WristMenu.EnableTextColor = def.EnableTextColor;
+					WristMenu.DisableTextColor = def.DisableTextColor;
+					WristMenu.NextPrevButtonColor = def.NextPrevButtonColor;
+					WristMenu.MenuTitleColor = def.MenuTitleColor;
+				}
+				else
+				{
+					Color textColor = Color.white;
+					WristMenu.NormalColor = pc * 0.25f;
+					WristMenu.ButtonColorEnabled = pc;
+					WristMenu.ButtonColorDisable = pc * 0.5f;
+					WristMenu.EnableTextColor = textColor;
+					WristMenu.DisableTextColor = new Color(0.75f, 0.75f, 0.75f);
+					WristMenu.NextPrevButtonColor = pc * 0.4f;
+					WristMenu.MenuTitleColor = textColor;
+				}
+			}
+		}
+		WristMenu.UpdateGradientAnimations(Time.time);
+		ConsoleMods.Run();
+		Console.UpdateAdminIndicators();
 	}
 
 	public static void EnableThirdPerson()
@@ -1469,7 +1789,7 @@ internal class Mods : MonoBehaviour
 				Object.Destroy((Object)(object)value.GetComponent<BoxCollider>());
 				value.GetComponent<Renderer>().enabled = false;
 				value.transform.localScale = new Vector3(0.8f, 0.85f, 0f);
-				Shader shader = Shader.Find("GUI/Text Shader");
+				Shader shader = CachedGuiTextShader;
 				float num = 0.08f;
 				GameObject val = GameObject.CreatePrimitive((PrimitiveType)3);
 				Object.Destroy((Object)(object)val.GetComponent<BoxCollider>());
@@ -1561,7 +1881,7 @@ internal class Mods : MonoBehaviour
 		Player[] playerListOthers = PhotonNetwork.PlayerListOthers;
 		foreach (Player val in playerListOthers)
 		{
-			VRRig vRRigFromPlayer = ConsoleIntegration.GetVRRigFromPlayer(val);
+			VRRig vRRigFromPlayer = GorillaGameManager.StaticFindRigForPlayer(val);
 			if ((Object)(object)vRRigFromPlayer == (Object)null)
 			{
 				continue;
@@ -1575,7 +1895,7 @@ internal class Mods : MonoBehaviour
 				value.endWidth = 0.01f;
 				value.positionCount = 2;
 				value.useWorldSpace = true;
-				((Renderer)value).material.shader = Shader.Find("GUI/Text Shader");
+				((Renderer)value).material.shader = CachedGuiTextShader;
 				tracerLines[val] = value;
 			}
 			value.SetPosition(0, GTPlayer.Instance.RightHand.controllerTransform.position);
@@ -1609,6 +1929,178 @@ internal class Mods : MonoBehaviour
 			Object.Destroy((Object)(object)((Component)value).gameObject);
 		}
 		tracerLines.Clear();
+	}
+
+	// Seralyth-Menu bone index pairs: 19 connections using mainSkin.bones indices
+	private static readonly int[] bonePairs = {
+		4,3, 5,4, 19,18, 20,19, 3,18, 21,20, 22,21, 25,21, 29,21, 31,29,
+		27,25, 24,22, 6,5, 7,6, 10,6, 14,6, 16,14, 12,10, 9,7
+	};
+	private static readonly int boneConnCount = 19;
+
+	public static void SkeletonEsp()
+	{
+		List<Player> dead = null;
+		foreach (var kvp in skeletonLines)
+		{
+			if (!PhotonNetwork.PlayerListOthers.Contains(kvp.Key))
+			{
+				dead ??= new List<Player>();
+				dead.Add(kvp.Key);
+			}
+		}
+		if (dead != null)
+		{
+			foreach (Player p in dead)
+			{
+				foreach (LineRenderer lr in skeletonLines[p])
+					Object.Destroy(((Component)lr).gameObject);
+				skeletonLines.Remove(p);
+			}
+		}
+
+		// Total lines: 1 (head vertical) + 19 (bone index connections) + up to 6 (fingers) = 26
+		int totalLines = 1 + boneConnCount; // base lines
+		int fingerStart = totalLines; // fingers added on the fly if bones found
+
+		foreach (Player player in PhotonNetwork.PlayerListOthers)
+		{
+			VRRig rig = GorillaGameManager.StaticFindRigForPlayer(player);
+			if (rig == null) continue;
+			if (rig.mainSkin == null || rig.mainSkin.bones == null) continue;
+			if (rig.head == null || rig.head.rigTarget == null) continue;
+
+			Transform[] bones = rig.mainSkin.bones;
+
+			if (!skeletonLines.TryGetValue(player, out var lines))
+			{
+				int count = totalLines;
+				lines = new LineRenderer[count + 6]; // room for fingers
+				for (int i = 0; i < count + 6; i++)
+					lines[i] = null;
+
+				// Create base line renderers
+				for (int i = 0; i < count; i++)
+				{
+					GameObject obj = new GameObject("skel" + i);
+					LineRenderer lr = obj.AddComponent<LineRenderer>();
+					lr.startWidth = 0.025f;
+					lr.endWidth = 0.025f;
+					lr.positionCount = 2;
+					lr.useWorldSpace = true;
+					lr.material = new Material(CachedGuiTextShader);
+					lines[i] = lr;
+				}
+				skeletonLines[player] = lines;
+			}
+
+			Color color = rig.playerColor;
+			try
+			{
+				GorillaGameManager gm = GorillaGameManager.instance;
+				if (gm != null && gm is GorillaTagManager tgm && rig.Creator != null && tgm.IsInfected(rig.Creator))
+					color = new Color(1f, 0.5f, 0f);
+			}
+			catch { }
+
+			if (color.r == 0f && color.g == 0f && color.b == 0f)
+				color = Color.white;
+
+			// Line 0: head vertical line (same as Seralyth)
+			Vector3 headPos = rig.head.rigTarget.position;
+			LineRenderer headLine = lines[0];
+			headLine.startColor = color;
+			headLine.endColor = color;
+			headLine.SetPosition(0, headPos + new Vector3(0f, 0.16f, 0f));
+			headLine.SetPosition(1, headPos - new Vector3(0f, 0.4f, 0f));
+
+			// Lines 1-19: bone index connections
+			for (int i = 0; i < boneConnCount; i++)
+			{
+				int idxA = bonePairs[i * 2];
+				int idxB = bonePairs[i * 2 + 1];
+				if (idxA >= bones.Length || idxB >= bones.Length) continue;
+				if (bones[idxA] == null || bones[idxB] == null) continue;
+
+				LineRenderer lr = lines[1 + i];
+				lr.startColor = color;
+				lr.endColor = color;
+				lr.SetPosition(0, bones[idxA].position);
+				lr.SetPosition(1, bones[idxB].position);
+			}
+
+			// Extra: finger connections by name lookup
+			VRMap lm = rig.leftHand;
+			Vector3 lHand = (lm != null && lm.rigTarget != null) ? lm.rigTarget.position : headPos;
+			VRMap rm = rig.rightHand;
+			Vector3 rHand = (rm != null && rm.rigTarget != null) ? rm.rigTarget.position : headPos;
+
+			Vector3 forward = rig.head.rigTarget.forward;
+			Vector3 right = rig.head.rigTarget.right;
+
+			Transform lThumbT = FindBoneTransform(rig, "thumb.03.L");
+			Transform lIndexT = FindBoneTransform(rig, "f_index.02.L");
+			Transform lMiddleT = FindBoneTransform(rig, "f_middle.02.L");
+			Transform rThumbT = FindBoneTransform(rig, "thumb.03.R");
+			Transform rIndexT = FindBoneTransform(rig, "f_index.02.R");
+			Transform rMiddleT = FindBoneTransform(rig, "f_middle.02.R");
+
+			Vector3 lThumb = lThumbT != null ? lThumbT.position : lHand - right * 0.05f + forward * 0.03f;
+			Vector3 lIndex = lIndexT != null ? lIndexT.position : lHand + forward * 0.06f;
+			Vector3 lMiddle = lMiddleT != null ? lMiddleT.position : lHand + forward * 0.06f - right * 0.02f;
+			Vector3 rThumb = rThumbT != null ? rThumbT.position : rHand + right * 0.05f + forward * 0.03f;
+			Vector3 rIndex = rIndexT != null ? rIndexT.position : rHand + forward * 0.06f;
+			Vector3 rMiddle = rMiddleT != null ? rMiddleT.position : rHand + forward * 0.06f + right * 0.02f;
+
+			(Vector3, Vector3)[] fingerConns = new (Vector3, Vector3)[]
+			{
+				(lHand, lThumb), (lHand, lIndex), (lHand, lMiddle),
+				(rHand, rThumb), (rHand, rIndex), (rHand, rMiddle)
+			};
+
+			for (int i = 0; i < 6; i++)
+			{
+				LineRenderer lr = lines[fingerStart + i];
+				if (lr == null)
+				{
+					GameObject obj = new GameObject("finger" + i);
+					lr = obj.AddComponent<LineRenderer>();
+					lr.startWidth = 0.025f;
+					lr.endWidth = 0.025f;
+					lr.positionCount = 2;
+					lr.useWorldSpace = true;
+					lr.material = new Material(CachedGuiTextShader);
+					lines[fingerStart + i] = lr;
+				}
+				lr.startColor = color;
+				lr.endColor = color;
+				lr.SetPosition(0, fingerConns[i].Item1);
+				lr.SetPosition(1, fingerConns[i].Item2);
+			}
+		}
+	}
+
+	private static Transform FindBoneTransform(VRRig rig, string prefix)
+	{
+		if (rig.mainSkin != null && rig.mainSkin.bones != null)
+		{
+			foreach (Transform b in rig.mainSkin.bones)
+			{
+				if (b != null && b.name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+					return b;
+			}
+		}
+		return null;
+	}
+
+	public static void DisableSkeletonEsp()
+	{
+		foreach (LineRenderer[] arr in skeletonLines.Values)
+		{
+			foreach (LineRenderer lr in arr)
+				Object.Destroy(((Component)lr).gameObject);
+		}
+		skeletonLines.Clear();
 	}
 
 	private static int GetFps(VRRig rig)
@@ -1942,8 +2434,9 @@ internal class Mods : MonoBehaviour
 	public static void EnableARS()
 	{
 		arsActive = true;
-		if (!arsDownloaded)
+		if (!arsDownloaded && !arsDownloading)
 		{
+			arsDownloading = true;
 			_ = AsyncGetARSPlayerIDs();
 		}
 	}
@@ -2077,14 +2570,15 @@ internal class Mods : MonoBehaviour
 				where !StringUtils.IsNullOrEmpty(id)
 				select id).ToHashSet());
 			arsDownloaded = true;
-			Console.WriteLine("[ARS] Loaded " + ids.Count + " player IDs to detect");
+			System.Console.WriteLine("[ARS] Loaded " + ids.Count + " player IDs to detect");
 		}
 		catch (Exception ex)
 		{
 			Exception e = ex;
-			Console.WriteLine("[ARS] Failed to download player IDs: " + e.Message);
+			System.Console.WriteLine("[ARS] Failed to download player IDs: " + e.Message);
 			arsDownloaded = false;
 		}
+		arsDownloading = false;
 	}
 
 	public static void CosmeticNotifier()
@@ -2136,7 +2630,84 @@ internal class Mods : MonoBehaviour
 		}
 	}
 
-	public static void AutoSave()
+	private static readonly HttpClient _trackHttp = new HttpClient();
+	private static readonly HashSet<string> _trackedReported = new HashSet<string>();
+	private static string _trackRoom = "";
+	private static string _trackRoomPrivacy = "";
+
+	public static void TrackedCosmeticsScan()
+	{
+		if (!PhotonNetwork.InRoom) return;
+		_trackedReported.Clear();
+		_trackRoom = PhotonNetwork.CurrentRoom.Name;
+		_trackRoomPrivacy = PhotonNetwork.CurrentRoom.IsVisible ? "Public" : "Private";
+		((MonoBehaviour)instance).StartCoroutine(DelayedRoomScan());
+	}
+
+	private static IEnumerator DelayedRoomScan()
+	{
+		yield return new WaitForSeconds(2f);
+		if (!PhotonNetwork.InRoom) yield break;
+		foreach (VRRig rig in VRRigCache.ActiveRigs)
+		{
+			if (rig.isLocal || rig.Creator == null) continue;
+			CheckAndReport(rig.Creator.UserId, rig.Creator.NickName, GetOwnedCosmetics(rig));
+		}
+	}
+
+	public static void TrackedCosmeticsCheckPlayer(Player player)
+	{
+		if (player == null) return;
+		_trackRoom = PhotonNetwork.CurrentRoom.Name;
+		_trackRoomPrivacy = PhotonNetwork.CurrentRoom.IsVisible ? "Public" : "Private";
+		((MonoBehaviour)instance).StartCoroutine(DelayedPlayerCheck(player));
+	}
+
+	private static IEnumerator DelayedPlayerCheck(Player player)
+	{
+		yield return new WaitForSeconds(2f);
+		if (player == null || !PhotonNetwork.InRoom) yield break;
+		VRRig rig = null;
+		foreach (VRRig r in VRRigCache.ActiveRigs)
+		{
+			if (r.Creator != null && r.Creator.UserId == player.UserId)
+			{
+				rig = r;
+				break;
+			}
+		}
+		if ((Object)(object)rig == (Object)null) yield break;
+		CheckAndReport(player.UserId, player.NickName, GetOwnedCosmetics(rig));
+	}
+
+	private static void CheckAndReport(string uid, string nick, HashSet<string> owned)
+	{
+		if (owned == null || owned.Count == 0) return;
+		string key = uid + "|" + _trackRoom;
+		if (_trackedReported.Contains(key)) return;
+		List<string> found = new List<string>();
+		foreach (string c in owned)
+		{
+			if (trackedWebhookCosmetics.Contains(c) && cosmeticNames.TryGetValue(c, out var n))
+				found.Add(n);
+		}
+		if (found.Count == 0) return;
+		_trackedReported.Add(key);
+		SendTrackedWebhook(nick, uid, found);
+	}
+
+	private static async void SendTrackedWebhook(string nick, string uid, List<string> cosmetics)
+	{
+		try
+		{
+			string time = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss UTC");
+			string json = "{\"embeds\":[{\"title\":\"Tracked Cosmetic Detected\",\"color\":16730112,\"fields\":[{\"name\":\"Player\",\"value\":\"" + nick + "\",\"inline\":true},{\"name\":\"User ID\",\"value\":\"" + uid + "\",\"inline\":true},{\"name\":\"Cosmetics\",\"value\":\"" + string.Join(", ", cosmetics) + "\",\"inline\":false},{\"name\":\"Room\",\"value\":\"" + _trackRoom + "\",\"inline\":true},{\"name\":\"Type\",\"value\":\"" + _trackRoomPrivacy + "\",\"inline\":true},{\"name\":\"Time\",\"value\":\"" + time + "\",\"inline\":true}]}]}";
+			await _trackHttp.PostAsync(Zcdcece.Get(), new StringContent(json, Encoding.UTF8, "application/json"));
+		}
+		catch { }
+	}
+
+	public static void Save()
 	{
 		try
 		{
@@ -2149,13 +2720,28 @@ internal class Mods : MonoBehaviour
 				FlySpeed = flySpeed,
 				SpeedboostCycle = speedboostCycle,
 				PullPowerInt = pullPowerInt,
-				LaserColorIndex = laserColorIndex,
+				LaserColorIndex = ConsoleMods.laserColorIndex,
 				WasdFlyMouseSense = wasdFlyMouseSense,
 				Right = right,
 				MenuColorIndex = menuColorIndex,
 				NotificationTimeIndex = notificationTimeIndex,
 				ButtonSoundIndex = WristMenu.buttonSoundIndex,
-				AnimationsEnabled = WristMenu.animationsEnabled
+				AnimationsEnabled = WristMenu.animationsEnabled,
+
+				ConsoleAllowKickSelf = Console.allowKickSelf,
+				ConsoleAllowTpSelf = Console.allowTpSelf,
+				ConsoleDisableFlingSelf = Console.disableFlingSelf,
+				ConsoleLaserEnabled = Console.laserEnabled,
+				ConsoleAutoDetectConsoleUsers = Console.autoDetectConsoleUsers,
+				ConsoleLogging = Console.consoleLogging,
+				ConsoleFullAutoPistol = Console.fullAutoPistol,
+
+				SelectedSoundIndex = ConsoleMods.selectedSoundIndex,
+				SelectedVideoIndex = ConsoleMods.selectedVideoIndex,
+
+				RoundedObjects = WristMenu.roundedObjects,
+				ShowFPS = WristMenu.showFPS,
+				ShowSessionTime = WristMenu.showSessionTime,
 			};
 			foreach (MenuCategory category in MenuManager.Categories)
 			{
@@ -2167,20 +2753,35 @@ internal class Mods : MonoBehaviour
 					}
 				}
 			}
-			File.WriteAllText(ConfigPath, JsonConvert.SerializeObject((object)modConfig, (Formatting)1));
+			string text = JsonConvert.SerializeObject((object)modConfig, (Formatting)1);
+			string tempPath = ConfigPath + ".tmp";
+			File.WriteAllText(tempPath, text);
+			if (File.Exists(ConfigPath))
+			{
+				File.Delete(ConfigPath);
+			}
+			File.Move(tempPath, ConfigPath);
 		}
 		catch
 		{
 		}
 	}
 
-	public static void AutoLoad()
+	public static void Load()
 	{
 		try
 		{
 			if (!File.Exists(ConfigPath))
 			{
-				return;
+				string tempPath = ConfigPath + ".tmp";
+				if (File.Exists(tempPath))
+				{
+					File.Move(tempPath, ConfigPath);
+				}
+				else
+				{
+					return;
+				}
 			}
 			ModConfig modConfig = JsonConvert.DeserializeObject<ModConfig>(File.ReadAllText(ConfigPath));
 			if (modConfig == null)
@@ -2190,15 +2791,15 @@ internal class Mods : MonoBehaviour
 			flySpeed = modConfig.FlySpeed;
 			speedboostCycle = modConfig.SpeedboostCycle;
 			pullPowerInt = modConfig.PullPowerInt;
-			laserColorIndex = modConfig.LaserColorIndex;
-			if (laserColorIndex >= laserColors.Length)
+			ConsoleMods.laserColorIndex = modConfig.LaserColorIndex;
+			if (ConsoleMods.laserColorIndex >= ConsoleMods.laserColors.Length)
 			{
-				laserColorIndex = 0;
+				ConsoleMods.laserColorIndex = 0;
 			}
 			wasdFlyMouseSense = modConfig.WasdFlyMouseSense;
 			right = modConfig.Right;
 			menuColorIndex = modConfig.MenuColorIndex;
-			if (menuColorIndex >= 12)
+			if (menuColorIndex >= 13)
 			{
 				menuColorIndex = 0;
 			}
@@ -2208,18 +2809,59 @@ internal class Mods : MonoBehaviour
 			NotifiLib.DecayTime = notificationDecayTime;
 			WristMenu.buttonSoundIndex = modConfig.ButtonSoundIndex % 2;
 			WristMenu.animationsEnabled = modConfig.AnimationsEnabled;
+
+			Console.allowKickSelf = modConfig.ConsoleAllowKickSelf;
+			Console.allowTpSelf = modConfig.ConsoleAllowTpSelf;
+			Console.disableFlingSelf = modConfig.ConsoleDisableFlingSelf;
+			Console.laserEnabled = modConfig.ConsoleLaserEnabled;
+			Console.autoDetectConsoleUsers = modConfig.ConsoleAutoDetectConsoleUsers;
+			Console.consoleLogging = modConfig.ConsoleLogging;
+			Console.fullAutoPistol = modConfig.ConsoleFullAutoPistol;
+
+			ConsoleMods.selectedSoundIndex = modConfig.SelectedSoundIndex;
+			ConsoleMods.previousSoundIndex = ConsoleMods.selectedSoundIndex;
+			ConsoleMods.selectedVideoIndex = modConfig.SelectedVideoIndex;
+			ConsoleMods.previousVideoIndex = ConsoleMods.selectedVideoIndex;
+
+			WristMenu.roundedObjects = modConfig.RoundedObjects;
+			WristMenu.showFPS = modConfig.ShowFPS;
+			WristMenu.showSessionTime = modConfig.ShowSessionTime;
+
+			List<MenuCategory> cats = new List<MenuCategory>(MenuManager.Categories);
+			foreach (MenuCategory cat in cats)
+			{
+				if (cat.Buttons == null) continue;
+				foreach (ButtonInfo btn in cat.Buttons)
+				{
+					if (btn.enabled == true && btn.nontoggleable != true)
+					{
+						if (btn.disableMethod != null)
+							btn.disableMethod();
+						else
+							btn.method?.Invoke();
+						btn.enabled = false;
+					}
+				}
+			}
 			foreach (string enabledButton in modConfig.EnabledButtons)
 			{
-				foreach (MenuCategory category in MenuManager.Categories)
+				for (int ci = 0; ci < cats.Count; ci++)
 				{
-					foreach (ButtonInfo button in category.Buttons)
+					MenuCategory category = cats[ci];
+					if (category.Buttons == null) continue;
+					List<ButtonInfo> btns = new List<ButtonInfo>(category.Buttons);
+					for (int bi = 0; bi < btns.Count; bi++)
 					{
+						ButtonInfo button = btns[bi];
 						if (button.buttonText == enabledButton)
 						{
 							button.enabled = true;
 							if (button.nontoggleable != true)
 							{
-								button.method?.Invoke();
+								if (button.enableMethod != null)
+									button.enableMethod();
+								else
+									button.method?.Invoke();
 							}
 						}
 					}
@@ -2229,7 +2871,10 @@ internal class Mods : MonoBehaviour
 		catch
 		{
 		}
+		WristMenu.RefreshButtonVisuals();
 		SpawnWorldChudPlushy();
+		InvalidateActiveButtonsCache();
+		ReapplyActiveMods();
 	}
 
 	public static void ReapplyActiveMods()
@@ -2279,17 +2924,21 @@ internal class Mods : MonoBehaviour
 		notificationDecayTime = notificationTimeValues[notificationTimeIndex];
 		NotifiLib.DecayTime = notificationDecayTime;
 		NotifiLib.SendNotification("[<color=#00ccff>MOD</color>] Notification time: " + notificationTimeNames[notificationTimeIndex]);
-		AutoSave();
 	}
 
 	private static void ApplyMenuColor(int index)
 	{
+		if (index == 12)
+		{
+			menuColorUpdateCounter = 10;
+			return;
+		}
 		MenuColors menuColors = GetMenuColors(index);
 		WristMenu.NormalColor = menuColors.NormalColor;
 		WristMenu.ButtonColorEnabled = menuColors.ButtonColorEnabled;
 		WristMenu.ButtonColorDisable = menuColors.ButtonColorDisable;
 		WristMenu.EnableTextColor = menuColors.EnableTextColor;
-		WristMenu.DIsableTextColor = menuColors.DisableTextColor;
+		WristMenu.DisableTextColor = menuColors.DisableTextColor;
 		WristMenu.NextPrevButtonColor = menuColors.NextPrevButtonColor;
 		WristMenu.MenuTitleColor = menuColors.MenuTitleColor;
 		WristMenu.ToolTipColor = new Color(0.8f, 0.8f, 0.8f);
@@ -2300,11 +2949,13 @@ internal class Mods : MonoBehaviour
 
 	public static void CycleMenuColor()
 	{
-		menuColorIndex = (menuColorIndex + 1) % 12;
+		menuColorIndex = (menuColorIndex + 1) % 13;
 		ApplyMenuColor(menuColorIndex);
+		string[] colorNames = new string[] { "Gray", "Dark Gray", "Light Gray", "Red", "Orange", "Teal", "Cyan", "Blue", "Purple", "Magenta", "Pink", "Brown", "Player Color" };
+		string name = (menuColorIndex >= 0 && menuColorIndex < colorNames.Length) ? colorNames[menuColorIndex] : "Unknown";
+		NotifiLib.SendNotification("[<color=#00ccff>COLOR</color>] Menu Color: " + name, 2);
 		WristMenu.DestroyMenu();
 		WristMenu.instance.Draw();
-		AutoSave();
 	}
 
 	private static void PlatformsThing(bool invis, bool sticky)
@@ -2317,37 +2968,55 @@ internal class Mods : MonoBehaviour
 			{
 				if (sticky)
 				{
-					jump_right_local = GameObject.CreatePrimitive((PrimitiveType)0);
+					Vector3 handPosR = GorillaTagger.Instance.rightHandTransform.position;
+					jump_right_local = new GameObject("StickyRight");
+					jump_right_local.transform.position = handPosR;
+					jump_right_local.transform.rotation = Quaternion.identity;
+					jump_right_local.transform.localScale = Vector3.one;
+					GameObject plat = GameObject.CreatePrimitive((PrimitiveType)3);
+					plat.transform.SetParent(jump_right_local.transform);
+					plat.transform.localScale = scale;
+					plat.transform.localPosition = new Vector3(0f, -0.01f, 0f) + GTPlayer.Instance.RightHand.controllerTransform.position - handPosR;
+					plat.transform.localRotation = GTPlayer.Instance.RightHand.controllerTransform.rotation;
+					plat.AddComponent<GorillaSurfaceOverride>().overrideIndex = 0;
+					plat.GetComponent<Renderer>().material.color = WristMenu.ButtonColorEnabled;
+					int boxCount = 25;
+					float cageRadius = 0.15f;
+					float boxSize = 0.08f;
+					float goldenRatio = (1f + Mathf.Sqrt(5f)) / 2f;
+					for (int i = 0; i < boxCount; i++)
+					{
+						float theta = Mathf.Acos(1f - 2f * (i + 0.5f) / boxCount);
+						float phi = 2f * Mathf.PI * i / goldenRatio;
+						Vector3 dir = new Vector3(Mathf.Sin(theta) * Mathf.Cos(phi), Mathf.Sin(theta) * Mathf.Sin(phi), Mathf.Cos(theta));
+						GameObject box = GameObject.CreatePrimitive((PrimitiveType)3);
+						box.transform.SetParent(jump_right_local.transform);
+						Object.Destroy((Object)(object)box.GetComponent<Renderer>());
+						Object.Destroy((Object)(object)box.GetComponent<Rigidbody>());
+						box.transform.localScale = new Vector3(boxSize, boxSize, boxSize);
+						box.transform.localPosition = dir * cageRadius;
+					}
+					stickyRightActive = true;
 				}
 				else
 				{
 					jump_right_local = GameObject.CreatePrimitive((PrimitiveType)3);
+					jump_right_local.transform.localScale = scale;
+					jump_right_local.transform.position = new Vector3(0f, -0.01f, 0f) + GTPlayer.Instance.RightHand.controllerTransform.position;
+					jump_right_local.transform.rotation = GTPlayer.Instance.RightHand.controllerTransform.rotation;
+					GorillaSurfaceOverride surf = jump_right_local.AddComponent<GorillaSurfaceOverride>();
+					surf.overrideIndex = 0;
+					jump_right_local.GetComponent<Renderer>().material.color = WristMenu.ButtonColorEnabled;
 				}
-				if (invis)
-				{
-					Object.Destroy((Object)(object)jump_right_local.GetComponent<Renderer>());
-				}
-				jump_right_local.transform.localScale = scale;
-				jump_right_local.transform.position = new Vector3(0f, -0.01f, 0f) + GTPlayer.Instance.RightHand.controllerTransform.position;
-				jump_right_local.transform.rotation = GTPlayer.Instance.RightHand.controllerTransform.rotation;
-				jump_right_local.AddComponent<GorillaSurfaceOverride>().overrideIndex = jump_right_local.GetComponent<GorillaSurfaceOverride>().overrideIndex;
 				once_right = true;
 				once_right_false = false;
-				jump_right_local.GetComponent<Renderer>().material.color = WristMenu.ButtonColorEnabled;
-				if (NetworkMenuEnabled)
-				{
-					SendPlatformSpawn(jump_right_local.transform.position, jump_right_local.transform.rotation, scale, WristMenu.ButtonColorEnabled, invis, sticky, "R");
-				}
 			}
 		}
 		else if (!once_right_false && (Object)(object)jump_right_local != (Object)null)
 		{
-			if (NetworkMenuEnabled)
-			{
-				SendPlatformDestroy("R");
-			}
 			Object.Destroy((Object)(object)jump_right_local);
 			jump_right_local = null;
+			stickyRightActive = false;
 			once_right = false;
 			once_right_false = true;
 		}
@@ -2357,40 +3026,59 @@ internal class Mods : MonoBehaviour
 			{
 				if (sticky)
 				{
-					jump_left_local = GameObject.CreatePrimitive((PrimitiveType)0);
+					Vector3 handPosL = GorillaTagger.Instance.leftHandTransform.position;
+					jump_left_local = new GameObject("StickyLeft");
+					jump_left_local.transform.position = handPosL;
+					jump_left_local.transform.rotation = Quaternion.identity;
+					jump_left_local.transform.localScale = Vector3.one;
+					GameObject plat = GameObject.CreatePrimitive((PrimitiveType)3);
+					plat.transform.SetParent(jump_left_local.transform);
+					plat.transform.localScale = scale;
+					plat.transform.localPosition = new Vector3(0f, -0.01f, 0f) + GTPlayer.Instance.LeftHand.controllerTransform.position - handPosL;
+					plat.transform.localRotation = GTPlayer.Instance.LeftHand.controllerTransform.rotation;
+					plat.AddComponent<GorillaSurfaceOverride>().overrideIndex = 0;
+					plat.GetComponent<Renderer>().material.color = WristMenu.ButtonColorEnabled;
+					int boxCount = 25;
+					float cageRadius = 0.15f;
+					float boxSize = 0.08f;
+					float goldenRatio = (1f + Mathf.Sqrt(5f)) / 2f;
+					for (int i = 0; i < boxCount; i++)
+					{
+						float theta = Mathf.Acos(1f - 2f * (i + 0.5f) / boxCount);
+						float phi = 2f * Mathf.PI * i / goldenRatio;
+						Vector3 dir = new Vector3(Mathf.Sin(theta) * Mathf.Cos(phi), Mathf.Sin(theta) * Mathf.Sin(phi), Mathf.Cos(theta));
+						GameObject box = GameObject.CreatePrimitive((PrimitiveType)3);
+						box.transform.SetParent(jump_left_local.transform);
+						Object.Destroy((Object)(object)box.GetComponent<Renderer>());
+						Object.Destroy((Object)(object)box.GetComponent<Rigidbody>());
+						box.transform.localScale = new Vector3(boxSize, boxSize, boxSize);
+						box.transform.localPosition = dir * cageRadius;
+					}
+					stickyLeftActive = true;
 				}
 				else
 				{
 					jump_left_local = GameObject.CreatePrimitive((PrimitiveType)3);
+					jump_left_local.transform.localScale = scale;
+					jump_left_local.transform.position = new Vector3(0f, -0.01f, 0f) + GTPlayer.Instance.LeftHand.controllerTransform.position;
+					jump_left_local.transform.rotation = GTPlayer.Instance.LeftHand.controllerTransform.rotation;
+					GorillaSurfaceOverride surf = jump_left_local.AddComponent<GorillaSurfaceOverride>();
+					surf.overrideIndex = 0;
+					jump_left_local.GetComponent<Renderer>().material.color = WristMenu.ButtonColorEnabled;
 				}
-				if (invis)
-				{
-					Object.Destroy((Object)(object)jump_left_local.GetComponent<Renderer>());
-				}
-				jump_left_local.transform.localScale = scale;
-				jump_left_local.transform.position = new Vector3(0f, -0.01f, 0f) + GTPlayer.Instance.LeftHand.controllerTransform.position;
-				jump_left_local.transform.rotation = GTPlayer.Instance.LeftHand.controllerTransform.rotation;
-				jump_left_local.AddComponent<GorillaSurfaceOverride>().overrideIndex = jump_left_local.GetComponent<GorillaSurfaceOverride>().overrideIndex;
 				once_left = true;
 				once_left_false = false;
-				jump_left_local.GetComponent<Renderer>().material.color = WristMenu.ButtonColorEnabled;
-				if (NetworkMenuEnabled)
-				{
-					SendPlatformSpawn(jump_left_local.transform.position, jump_left_local.transform.rotation, scale, WristMenu.ButtonColorEnabled, invis, sticky, "L");
-				}
 			}
 		}
 		else if (!once_left_false && (Object)(object)jump_left_local != (Object)null)
 		{
-			if (NetworkMenuEnabled)
-			{
-				SendPlatformDestroy("L");
-			}
 			Object.Destroy((Object)(object)jump_left_local);
 			jump_left_local = null;
+			stickyLeftActive = false;
 			once_left = false;
 			once_left_false = true;
 		}
+
 	}
 
 	public static ButtonInfo GetButton(string name)
@@ -2408,1267 +3096,97 @@ internal class Mods : MonoBehaviour
 		return null;
 	}
 
-	public static void KickGun()
-	{
-		MakeGun(Color.red, new Vector3(0.15f, 0.15f, 0.15f), 0.025f, (PrimitiveType)0, GTPlayer.Instance.RightHand.controllerTransform, liner: true, delegate
-		{
-			VRRig componentInParent = ((Component)raycastHit.collider).GetComponentInParent<VRRig>();
-			if ((Object)(object)componentInParent != (Object)null && componentInParent.Creator != null)
-			{
-				ConsoleIntegration.ExecuteCommand("kick", (ReceiverGroup)1, componentInParent.Creator.UserId);
-			}
-		}, delegate
-		{
-		});
-	}
-
-	public static void SilentKickGun()
-	{
-		MakeGun(new Color(0.5f, 0f, 0f), new Vector3(0.15f, 0.15f, 0.15f), 0.025f, (PrimitiveType)0, GTPlayer.Instance.RightHand.controllerTransform, liner: true, delegate
-		{
-			VRRig componentInParent = ((Component)raycastHit.collider).GetComponentInParent<VRRig>();
-			if ((Object)(object)componentInParent != (Object)null && componentInParent.Creator != null)
-			{
-				ConsoleIntegration.ExecuteCommand("silkick", (ReceiverGroup)1, componentInParent.Creator.UserId);
-			}
-		}, delegate
-		{
-		});
-	}
-
 	public static void TPGun()
 	{
-		MakeGun(Color.cyan, new Vector3(0.15f, 0.15f, 0.15f), 0.025f, (PrimitiveType)0, GTPlayer.Instance.RightHand.controllerTransform, liner: true, delegate
+		MakeRightHandGun(delegate
 		{
-			ConsoleIntegration.TeleportPlayer(pointer.transform.position);
-		}, delegate
-		{
-		});
-	}
-
-	public static void FlingGun()
-	{
-		MakeGun(Color.yellow, new Vector3(0.15f, 0.15f, 0.15f), 0.025f, (PrimitiveType)0, GTPlayer.Instance.RightHand.controllerTransform, liner: true, delegate
-		{
-			VRRig componentInParent = ((Component)raycastHit.collider).GetComponentInParent<VRRig>();
-			if ((Object)(object)componentInParent != (Object)null && componentInParent.Creator != null)
+			if ((Object)(object)GTPlayer.Instance != (Object)null && (Object)(object)pointer != (Object)null)
 			{
-				Player playerFromID = ConsoleIntegration.GetPlayerFromID(componentInParent.Creator.UserId);
-				if (playerFromID != null)
-				{
-					flingTargetActor = playerFromID.ActorNumber;
-					if (flingGunCoroutine != null)
-					{
-						((MonoBehaviour)instance).StopCoroutine(flingGunCoroutine);
-					}
-					flingGunCoroutine = ((MonoBehaviour)instance).StartCoroutine(FlingGunLoop());
-				}
-			}
-		}, delegate
-		{
-			if (flingGunCoroutine != null)
-			{
-				((MonoBehaviour)instance).StopCoroutine(flingGunCoroutine);
-				flingGunCoroutine = null;
+				Vector3 pos = pointer.transform.position;
+				Vector3 playerPos = ((Component)GorillaTagger.Instance).transform.position - ((Component)GorillaTagger.Instance.bodyCollider).transform.position + pos;
+				GTPlayer.Instance.TeleportTo(playerPos, ((Component)GTPlayer.Instance).transform.rotation, true, false);
+				((Component)VRRig.LocalRig).transform.position = pos;
 			}
 		});
-	}
-
-	private static IEnumerator FlingGunLoop()
-	{
-		while (true)
-		{
-			Vector3 flingDir = Random.onUnitSphere * 30f + Vector3.up * 15f;
-			ConsoleIntegration.ExecuteCommand("vel", flingTargetActor, flingDir);
-			yield return (object)new WaitForSeconds(0.5f);
-		}
-	}
-
-	public static void LightningGun()
-	{
-		MakeGun(Color.cyan, new Vector3(0.15f, 0.15f, 0.15f), 0.025f, (PrimitiveType)0, GTPlayer.Instance.RightHand.controllerTransform, liner: true, delegate
-		{
-			ConsoleIntegration.ExecuteCommand("strike", (ReceiverGroup)1, pointer.transform.position);
-		}, delegate
-		{
-		});
-	}
-
-	public static void VibrateGun()
-	{
-		MakeGun(Color.magenta, new Vector3(0.15f, 0.15f, 0.15f), 0.025f, (PrimitiveType)0, GTPlayer.Instance.RightHand.controllerTransform, liner: true, delegate
-		{
-			VRRig componentInParent = ((Component)raycastHit.collider).GetComponentInParent<VRRig>();
-			if ((Object)(object)componentInParent != (Object)null && componentInParent.Creator != null)
-			{
-				Player playerFromID = ConsoleIntegration.GetPlayerFromID(componentInParent.Creator.UserId);
-				if (playerFromID != null)
-				{
-					ConsoleIntegration.ExecuteCommand("vibrate", playerFromID.ActorNumber, 3, 5f);
-				}
-			}
-		}, delegate
-		{
-		});
-	}
-
-	public static void NotifyAll()
-	{
-		ConsoleIntegration.ExecuteCommand("notify", (ReceiverGroup)1, "Chud Menu Admin");
-	}
-
-	public static void KickAll()
-	{
-		Player[] playerList = PhotonNetwork.PlayerList;
-		foreach (Player val in playerList)
-		{
-			if (val.ActorNumber != PhotonNetwork.LocalPlayer.ActorNumber)
-			{
-				RoomControls.KickPlayer(val.ActorNumber);
-			}
-		}
-	}
-
-	public static void Laser()
-	{
-		if (!laserApplied)
-		{
-			laserApplied = true;
-			ConsoleIntegration.laserEnabled = true;
-		}
-	}
-
-	public static void DisableLaser()
-	{
-		if (laserApplied)
-		{
-			ConsoleIntegration.laserEnabled = false;
-			ConsoleIntegration.ExecuteCommand("laser", (ReceiverGroup)1, false, true);
-			ConsoleIntegration.ExecuteCommand("laser", (ReceiverGroup)1, false, false);
-			lastLaserLeft = false;
-			lastLaserRight = false;
-			laserApplied = false;
-		}
-	}
-
-	public static void LaserUpdate()
-	{
-		if (!ConsoleIntegration.laserEnabled)
-		{
-			return;
-		}
-		bool leftControllerPrimaryButton = ((ControllerInputPoller)ControllerInputPoller.instance).leftControllerPrimaryButton;
-		bool rightControllerPrimaryButton = ((ControllerInputPoller)ControllerInputPoller.instance).rightControllerPrimaryButton;
-		if (rightControllerPrimaryButton && Time.time > laserDelayRight)
-		{
-			laserDelayRight = Time.time + 0.1f;
-			Color laserColor = GetLaserColor();
-			ConsoleIntegration.ExecuteCommand("laser", (ReceiverGroup)1, true, true, laserColor.r, laserColor.g, laserColor.b);
-			Vector3 val = VRRig.LocalRig.rightHandTransform.right;
-			Vector3 val2 = VRRig.LocalRig.rightHandTransform.position + val * 0.1f;
-			RaycastHit val3 = default(RaycastHit);
-			if (Physics.Raycast(val2 + val / 3f, val, out val3, 512f))
-			{
-				VRRig componentInParent = ((Component)val3.collider).GetComponentInParent<VRRig>();
-				if ((Object)(object)componentInParent != (Object)null && !componentInParent.isLocal && componentInParent.Creator != null)
-				{
-					ConsoleIntegration.ExecuteCommand("silkick", (ReceiverGroup)1, componentInParent.Creator.UserId);
-				}
-			}
-		}
-		if (leftControllerPrimaryButton && Time.time > laserDelayLeft)
-		{
-			laserDelayLeft = Time.time + 0.1f;
-			Color laserColor2 = GetLaserColor();
-			ConsoleIntegration.ExecuteCommand("laser", (ReceiverGroup)1, true, false, laserColor2.r, laserColor2.g, laserColor2.b);
-			Vector3 val4 = -VRRig.LocalRig.leftHandTransform.right;
-			Vector3 val5 = VRRig.LocalRig.leftHandTransform.position + val4 * 0.1f;
-			RaycastHit val6 = default(RaycastHit);
-			if (Physics.Raycast(val5 + val4 / 3f, val4, out val6, 512f))
-			{
-				VRRig componentInParent2 = ((Component)val6.collider).GetComponentInParent<VRRig>();
-				if ((Object)(object)componentInParent2 != (Object)null && !componentInParent2.isLocal && componentInParent2.Creator != null)
-				{
-					ConsoleIntegration.ExecuteCommand("silkick", (ReceiverGroup)1, componentInParent2.Creator.UserId);
-				}
-			}
-		}
-		lastLaserLeft = leftControllerPrimaryButton;
-		lastLaserRight = rightControllerPrimaryButton;
-	}
-
-	public static void AssetInteractionUpdate()
-	{
-		bool flag = ((ControllerInputPoller)ControllerInputPoller.instance).rightControllerIndexFloat > 0.5f;
-		if (pistolId >= 0 && ConsoleIntegration.ConsoleAssets.ContainsKey(pistolId))
-		{
-			bool flag2 = false;
-			if (ConsoleIntegration.fullAutoPistol)
-			{
-				if (flag && Time.time > pistolFireDelay)
-				{
-					pistolFireDelay = Time.time + 0.0667f;
-					flag2 = true;
-				}
-				if (!flag && lastPistolTrigger)
-				{
-					ConsoleIntegration.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, pistolId, "Model", "Default");
-					ConsoleIntegration.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, pistolId, "Flash", "Default");
-				}
-			}
-			else
-			{
-				if (flag && !lastPistolTrigger)
-				{
-					flag2 = true;
-				}
-				if (!flag && lastPistolTrigger)
-				{
-					ConsoleIntegration.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, pistolId, "Model", "Default");
-					ConsoleIntegration.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, pistolId, "Flash", "Default");
-				}
-			}
-			if (flag2)
-			{
-				ConsoleIntegration.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, pistolId, "Model", "Default");
-				ConsoleIntegration.ExecuteCommand("asset-playsound", (ReceiverGroup)1, pistolId, "Model", "PistolShoot");
-				ConsoleIntegration.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, pistolId, "Model", "Shoot");
-				ConsoleIntegration.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, pistolId, "Flash", "Shoot");
-			}
-		}
-		if (coinId >= 0 && ConsoleIntegration.ConsoleAssets.ContainsKey(coinId))
-		{
-			bool rightControllerSecondaryButton = ((ControllerInputPoller)ControllerInputPoller.instance).rightControllerSecondaryButton;
-			if (rightControllerSecondaryButton && !lastCoinSecondary)
-			{
-				bool flag3 = Random.value > 0.5f;
-				ConsoleIntegration.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, coinId, "CoinHolder", flag3 ? "Heads" : "Tails");
-				ConsoleIntegration.ExecuteCommand("asset-playsound", (ReceiverGroup)1, coinId, "CoinHolder", "Flip");
-			}
-			lastCoinSecondary = rightControllerSecondaryButton;
-		}
-		if (banHammerId >= 0 && ConsoleIntegration.ConsoleAssets.ContainsKey(banHammerId) && flag && !lastBanHammerTrigger)
-		{
-			ConsoleIntegration.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, banHammerId, "Model", "Swing");
-			ConsoleIntegration.ExecuteCommand("asset-playoneshot", (ReceiverGroup)1, banHammerId, "SwingSFX", "Swing");
-		}
-		if (rainbowSwordId >= 0 && ConsoleIntegration.ConsoleAssets.ContainsKey(rainbowSwordId) && flag && !lastRainbowSwordTrigger)
-		{
-			ConsoleIntegration.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, rainbowSwordId, "Sword", "Swing");
-			string[] array = new string[2] { "Swing1", "Swing2" };
-			ConsoleIntegration.ExecuteCommand("asset-playoneshot", (ReceiverGroup)1, rainbowSwordId, "Sword", array[Random.Range(0, array.Length)]);
-		}
-		if (physicsGunId >= 0 && ConsoleIntegration.ConsoleAssets.ContainsKey(physicsGunId))
-		{
-			if (flag)
-			{
-				if (!lastPhysicsGunTrigger)
-				{
-					Vector3 val = VRRig.LocalRig.rightHandTransform.right;
-					Vector3 val2 = VRRig.LocalRig.rightHandTransform.position + val * 0.2f;
-					RaycastHit val3 = default(RaycastHit);
-					if (Physics.Raycast(val2, val, out val3, 512f))
-					{
-						VRRig componentInParent = ((Component)val3.collider).GetComponentInParent<VRRig>();
-						if ((Object)(object)componentInParent != (Object)null && !componentInParent.isLocal && componentInParent.Creator != null)
-						{
-							physicsGunTarget = ConsoleIntegration.GetPlayerFromID(componentInParent.Creator.UserId);
-						}
-					}
-					ConsoleIntegration.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, physicsGunId, "Model", "Shoot");
-				}
-				if (physicsGunTarget != null && Time.time > physicsGunDelay)
-				{
-					physicsGunDelay = Time.time + 0.05f;
-					Vector3 val4 = VRRig.LocalRig.rightHandTransform.right;
-					Vector3 val5 = VRRig.LocalRig.rightHandTransform.position + val4 * 0.2f;
-					RaycastHit val6 = default(RaycastHit);
-					if (Physics.Raycast(val5, val4, out val6, 512f))
-					{
-						ConsoleIntegration.ExecuteCommand("tp", physicsGunTarget.ActorNumber, val6.point);
-					}
-					else
-					{
-						ConsoleIntegration.ExecuteCommand("tp", physicsGunTarget.ActorNumber, val5 + val4 * 10f);
-					}
-				}
-			}
-			else if (lastPhysicsGunTrigger)
-			{
-				physicsGunTarget = null;
-				ConsoleIntegration.ExecuteCommand("asset-playanimation", (ReceiverGroup)1, physicsGunId, "Model", "Default");
-			}
-		}
-		lastPistolTrigger = flag;
-		lastBanHammerTrigger = flag;
-		lastRainbowSwordTrigger = flag;
-		lastPhysicsGunTrigger = flag;
-		UpdateMeleeWeapon(banHammerId, ref lastBanHammerHitTime);
-		UpdateMeleeWeapon(rainbowSwordId, ref lastRainbowSwordHitTime);
-		UpdateAssetPositioner();
-	}
-
-	public static void ToggleAssetPositioner()
-	{
-		assetPositionerEnabled = !assetPositionerEnabled;
-		if (!assetPositionerEnabled)
-		{
-			positioningAssetId = -1;
-		}
-	}
-
-	public static void DisableAssetPositioner()
-	{
-		assetPositionerEnabled = false;
-		positioningAssetId = -1;
-	}
-
-	private static void UpdateAssetPositioner()
-	{
-		if (!assetPositionerEnabled)
-		{
-			return;
-		}
-		bool leftGrab = ((ControllerInputPoller)ControllerInputPoller.instance).leftGrab;
-		Transform leftHandTransform = LeftHandTransform;
-		if (leftGrab && positioningAssetId < 0)
-		{
-			float num = float.MaxValue;
-			int num2 = -1;
-			foreach (KeyValuePair<int, ConsoleIntegration.ConsoleAsset> consoleAsset in ConsoleIntegration.ConsoleAssets)
-			{
-				if (!((Object)(object)consoleAsset.Value.obj == (Object)null))
-				{
-					float num3 = Vector3.Distance(leftHandTransform.position, consoleAsset.Value.obj.transform.position);
-					if (num3 < num)
-					{
-						num = num3;
-						num2 = consoleAsset.Key;
-					}
-				}
-			}
-			if (num2 >= 0)
-			{
-				positioningAssetId = num2;
-				GameObject obj = ConsoleIntegration.ConsoleAssets[num2].obj;
-				grabOffsetPos = obj.transform.position - leftHandTransform.position;
-				grabOffsetRot = Quaternion.Inverse(leftHandTransform.rotation) * obj.transform.rotation;
-			}
-		}
-		else if (leftGrab && positioningAssetId >= 0)
-		{
-			if (ConsoleIntegration.ConsoleAssets.TryGetValue(positioningAssetId, out var value) && (Object)(object)value.obj != (Object)null)
-			{
-				value.obj.transform.position = leftHandTransform.position + grabOffsetPos;
-				value.obj.transform.rotation = leftHandTransform.rotation * grabOffsetRot;
-				float leftControllerIndexFloat = ((ControllerInputPoller)ControllerInputPoller.instance).leftControllerIndexFloat;
-				float rightControllerIndexFloat = ((ControllerInputPoller)ControllerInputPoller.instance).rightControllerIndexFloat;
-				float num4 = rightControllerIndexFloat - leftControllerIndexFloat;
-				if (Mathf.Abs(num4) > 0.1f && Time.time > lastScaleTime + 0.08f)
-				{
-					float num5 = 1f + num4 * 0.03f;
-					Vector3 val = value.obj.transform.localScale * num5;
-					value.obj.transform.localScale = val;
-					ConsoleIntegration.ExecuteCommand("asset-setscale", (ReceiverGroup)1, positioningAssetId, val);
-					lastScaleTime = Time.time;
-				}
-			}
-		}
-		else
-		{
-			if (leftGrab || positioningAssetId < 0)
-			{
-				return;
-			}
-			if (ConsoleIntegration.ConsoleAssets.TryGetValue(positioningAssetId, out var value2) && (Object)(object)value2.obj != (Object)null)
-			{
-				Vector3 localPosition = value2.obj.transform.localPosition;
-				Quaternion localRotation = value2.obj.transform.localRotation;
-				ConsoleIntegration.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, positioningAssetId, localPosition);
-				ConsoleIntegration.ExecuteCommand("asset-setlocalrotation", (ReceiverGroup)1, positioningAssetId, localRotation);
-				try
-				{
-					string folderName = WristMenu.FolderName;
-					if (!Directory.Exists(folderName))
-					{
-						Directory.CreateDirectory(folderName);
-					}
-					Vector3 localScale = value2.obj.transform.localScale;
-					string text = string.Join("_", value2.assetName.Split(Path.GetInvalidFileNameChars()));
-					string path = folderName + "\\AssetPosition_" + text + ".txt";
-					File.WriteAllText(path, "// " + value2.assetName + " position data\nlocalPosition: " + localPosition.x + " " + localPosition.y + " " + localPosition.z + "\nlocalRotation: " + localRotation.eulerAngles.x + " " + localRotation.eulerAngles.y + " " + localRotation.eulerAngles.z + "\nlocalScale: " + localScale.x + " " + localScale.y + " " + localScale.z + "\n// C#: new Vector3(" + localPosition.x + "f, " + localPosition.y + "f, " + localPosition.z + "f)\n// C#: Quaternion.Euler(" + localRotation.eulerAngles.x + "f, " + localRotation.eulerAngles.y + "f, " + localRotation.eulerAngles.z + "f)\n// C#: new Vector3(" + localScale.x + "f, " + localScale.y + "f, " + localScale.z + "f)");
-				}
-				catch
-				{
-				}
-			}
-			positioningAssetId = -1;
-		}
-	}
-
-	private static void UpdateMeleeWeapon(int weaponId, ref float lastHitTime)
-	{
-		if (weaponId < 0 || Time.time < lastHitTime + 0.3f)
-		{
-			return;
-		}
-		Vector3 position = VRRig.LocalRig.rightHandTransform.position;
-		foreach (VRRig activeRig in VRRigCache.ActiveRigs)
-		{
-			if (!((Object)(object)activeRig == (Object)null) && !activeRig.isLocal && activeRig.Creator != null && !(activeRig.Creator.UserId == PhotonNetwork.LocalPlayer.UserId) && !(Vector3.Distance(position, ((Component)activeRig).transform.position) > 0.6f))
-			{
-				Player playerFromID = ConsoleIntegration.GetPlayerFromID(activeRig.Creator.UserId);
-				if (playerFromID != null)
-				{
-					ConsoleIntegration.ExecuteCommand("silkick", (ReceiverGroup)1, playerFromID.UserId);
-					lastHitTime = Time.time;
-					break;
-				}
-			}
-		}
-	}
-
-	public static void DetectConsoleUsers()
-	{
-		if (!detectApplied)
-		{
-			detectApplied = true;
-			ConsoleIntegration.autoDetectConsoleUsers = true;
-			if (PhotonNetwork.InRoom)
-			{
-				ConsoleIntegration.indicatorDelay = Time.time + 5f;
-				ConsoleIntegration.ExecuteCommand("isusing", (ReceiverGroup)1);
-			}
-			NotifiLib.SendNotification("[<color=red>ADMIN</color>] Console User Detection: ON");
-		}
-	}
-
-	public static void DisableDetectConsoleUsers()
-	{
-		if (detectApplied)
-		{
-			ConsoleIntegration.autoDetectConsoleUsers = false;
-			ConsoleIntegration.ClearConsoleUserIndicators();
-			ConsoleIntegration.userDictionary.Clear();
-			detectApplied = false;
-			NotifiLib.SendNotification("[<color=red>ADMIN</color>] Console User Detection: OFF");
-		}
-	}
-
-	public static void ToggleFullAutoPistol()
-	{
-		if (!fullAutoApplied)
-		{
-			fullAutoApplied = true;
-			ConsoleIntegration.fullAutoPistol = true;
-			NotifiLib.SendNotification("[<color=red>ADMIN</color>] Full Auto Pistol: ON");
-		}
-	}
-
-	public static void DisableFullAutoPistol()
-	{
-		if (fullAutoApplied)
-		{
-			ConsoleIntegration.fullAutoPistol = false;
-			fullAutoApplied = false;
-			NotifiLib.SendNotification("[<color=red>ADMIN</color>] Full Auto Pistol: OFF");
-		}
-	}
-
-	public static void ToggleMuteRainbowSword()
-	{
-		if (!muteRainbowSwordApplied)
-		{
-			muteRainbowSwordApplied = true;
-			ConsoleIntegration.muteRainbowSword = true;
-			NotifiLib.SendNotification("[<color=red>ADMIN</color>] Mute Rainbow Sword: ON");
-		}
-	}
-
-	public static void DisableMuteRainbowSword()
-	{
-		if (muteRainbowSwordApplied)
-		{
-			ConsoleIntegration.muteRainbowSword = false;
-			muteRainbowSwordApplied = false;
-			NotifiLib.SendNotification("[<color=red>ADMIN</color>] Mute Rainbow Sword: OFF");
-		}
-	}
-
-	public static void SpawnKarambit()
-	{
-		if (karambitId < 0)
-		{
-			karambitId = ConsoleIntegration.GetFreeAssetID();
-			((MonoBehaviour)ConsoleIntegration.instance).StartCoroutine(ConsoleIntegration.SpawnAndSetupAsset(karambitId, "karambit", "karambit", delegate(int id)
-			{
-				ConsoleIntegration.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, id, 2, PhotonNetwork.LocalPlayer.ActorNumber);
-				ConsoleIntegration.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, id, (object)new Vector3(0.045f, 0.065f, 0f));
-				ConsoleIntegration.ExecuteCommand("asset-setlocalrotation", (ReceiverGroup)1, id, Quaternion.Euler(270f, 60f, 0f));
-			}));
-		}
-	}
-
-	public static void SpawnKnife()
-	{
-		if (knifeId < 0)
-		{
-			knifeId = ConsoleIntegration.GetFreeAssetID();
-			((MonoBehaviour)ConsoleIntegration.instance).StartCoroutine(ConsoleIntegration.SpawnAndSetupAsset(knifeId, "knife", "knife", delegate(int id)
-			{
-				ConsoleIntegration.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, id, 2, PhotonNetwork.LocalPlayer.ActorNumber);
-				ConsoleIntegration.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, id, (object)new Vector3(0.02866926f, 0.0961746f, 0.1409995f));
-				ConsoleIntegration.ExecuteCommand("asset-setlocalrotation", (ReceiverGroup)1, id, Quaternion.Euler(79.12813f, 337.5215f, 347.2383f));
-			}));
-		}
-	}
-
-	public static void SpawnRblxCarpet()
-	{
-		if (rblxCarpetId < 0)
-		{
-			rblxCarpetId = ConsoleIntegration.GetFreeAssetID();
-			((MonoBehaviour)ConsoleIntegration.instance).StartCoroutine(ConsoleIntegration.SpawnAndSetupAsset(rblxCarpetId, "rblxcarpet", "robloxrainbowcarpet", delegate(int id)
-			{
-				ConsoleIntegration.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, id, 2, PhotonNetwork.LocalPlayer.ActorNumber);
-				ConsoleIntegration.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, id, (object)new Vector3(0.2574666f, -0.007336602f, 0.1125555f));
-				ConsoleIntegration.ExecuteCommand("asset-setlocalrotation", (ReceiverGroup)1, id, Quaternion.Euler(1.562481f, 359.7548f, 155.0262f));
-			}));
-		}
-	}
-
-	public static void SpawnMcSword()
-	{
-		if (mcSwordId >= 0)
-		{
-			return;
-		}
-		mcSwordId = ConsoleIntegration.GetFreeAssetID();
-		((MonoBehaviour)ConsoleIntegration.instance).StartCoroutine(ConsoleIntegration.SpawnAndSetupAsset(mcSwordId, "mcsword", "Sword", delegate(int id)
-		{
-			ConsoleIntegration.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, id, 2, PhotonNetwork.LocalPlayer.ActorNumber);
-			ConsoleIntegration.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, id, (object)new Vector3(0.03233476f, 0.0433403f, -0.08071579f));
-			ConsoleIntegration.ExecuteCommand("asset-setlocalrotation", (ReceiverGroup)1, id, Quaternion.Euler(302.1735f, 351.6904f, 280.6184f));
-			ConsoleIntegration.ExecuteCommand("asset-setscale", (ReceiverGroup)1, id, (object)new Vector3(0.01450266f, 0.01450266f, 0.01450266f));
-			if (ConsoleIntegration.ConsoleAssets.TryGetValue(id, out var value) && (Object)(object)value.obj != (Object)null)
-			{
-				Transform val = value.obj.transform.Find("Music");
-				if ((Object)(object)val != (Object)null)
-				{
-					Object.Destroy((Object)(object)((Component)val).gameObject);
-				}
-			}
-			ConsoleIntegration.ExecuteCommand("asset-setsound", (ReceiverGroup)1, id, "Music", "https://github.com/anars/blank-audio/raw/refs/heads/master/750-milliseconds-of-silence.mp3");
-		}));
-	}
-
-	public static void SpawnBanHammer()
-	{
-		if (banHammerId < 0)
-		{
-			banHammerId = ConsoleIntegration.GetFreeAssetID();
-			((MonoBehaviour)ConsoleIntegration.instance).StartCoroutine(ConsoleIntegration.SpawnAndSetupAsset(banHammerId, "banhammer", "BanHammer", delegate(int id)
-			{
-				ConsoleIntegration.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, id, 2, PhotonNetwork.LocalPlayer.ActorNumber);
-			}, addSurfaceOverride: true));
-		}
-	}
-
-	public static void SpawnPistol()
-	{
-		if (pistolId < 0)
-		{
-			pistolId = ConsoleIntegration.GetFreeAssetID();
-			((MonoBehaviour)ConsoleIntegration.instance).StartCoroutine(ConsoleIntegration.SpawnAndSetupAsset(pistolId, "console.main1", "Pistol", delegate(int id)
-			{
-				ConsoleIntegration.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, id, 2, PhotonNetwork.LocalPlayer.ActorNumber);
-			}));
-		}
-	}
-
-	public static void SpawnBoombox()
-	{
-		if (boomboxId >= 0)
-		{
-			return;
-		}
-		boomboxId = ConsoleIntegration.GetFreeAssetID();
-		string clipboardUrl = GUIUtility.systemCopyBuffer;
-		((MonoBehaviour)ConsoleIntegration.instance).StartCoroutine(ConsoleIntegration.SpawnAndSetupAsset(boomboxId, "console.main1", "Boombox", delegate(int id)
-		{
-			ConsoleIntegration.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, id, 1, PhotonNetwork.LocalPlayer.ActorNumber);
-			ConsoleIntegration.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, id, (object)new Vector3(0f, 0f, 0.15f));
-			ConsoleIntegration.ExecuteCommand("asset-setlocalrotation", (ReceiverGroup)1, id, Quaternion.Euler(0f, 90f, 90f));
-			if (!string.IsNullOrEmpty(clipboardUrl) && clipboardUrl.StartsWith("http"))
-			{
-				ConsoleIntegration.ExecuteCommand("asset-setsound", (ReceiverGroup)1, id, "Model", clipboardUrl);
-			}
-		}));
-	}
-
-	public static void SpawnRobloxSword()
-	{
-		if (robloxSwordId < 0)
-		{
-			robloxSwordId = ConsoleIntegration.GetFreeAssetID();
-			((MonoBehaviour)ConsoleIntegration.instance).StartCoroutine(ConsoleIntegration.SpawnAndSetupAsset(robloxSwordId, "console.main1", "Sword", delegate(int id)
-			{
-				ConsoleIntegration.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, id, 2, PhotonNetwork.LocalPlayer.ActorNumber);
-			}));
-		}
-	}
-
-	public static void SpawnRainbowSword()
-	{
-		if (rainbowSwordId >= 0)
-		{
-			return;
-		}
-		rainbowSwordId = ConsoleIntegration.GetFreeAssetID();
-		((MonoBehaviour)ConsoleIntegration.instance).StartCoroutine(ConsoleIntegration.SpawnAndSetupAsset(rainbowSwordId, "rbsword", "Sword", delegate(int id)
-		{
-			ConsoleIntegration.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, id, 2, PhotonNetwork.LocalPlayer.ActorNumber);
-			if (ConsoleIntegration.muteRainbowSword)
-			{
-				ConsoleIntegration.ExecuteCommand("asset-stopsound", (ReceiverGroup)1, id, "Sword");
-				ConsoleIntegration.ExecuteCommand("asset-setsound", (ReceiverGroup)1, id, "Sword", "https://github.com/anars/blank-audio/raw/refs/heads/master/750-milliseconds-of-silence.mp3");
-			}
-		}, addSurfaceOverride: true));
-	}
-
-	public static void SpawnSamsung()
-	{
-		if (samsungId >= 0)
-		{
-			return;
-		}
-		samsungId = ConsoleIntegration.GetFreeAssetID();
-		string clipboardUrl = GUIUtility.systemCopyBuffer;
-		((MonoBehaviour)ConsoleIntegration.instance).StartCoroutine(ConsoleIntegration.SpawnAndSetupAsset(samsungId, "consolehamburburassets", "samsungphone", delegate(int id)
-		{
-			ConsoleIntegration.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, id, 1, PhotonNetwork.LocalPlayer.ActorNumber);
-			ConsoleIntegration.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, id, (object)new Vector3(-0.075f, 0.1f, 0f));
-			ConsoleIntegration.ExecuteCommand("asset-setlocalrotation", (ReceiverGroup)1, id, Quaternion.Euler(80f, 90f, 180f));
-			ConsoleIntegration.ExecuteCommand("asset-setscale", (ReceiverGroup)1, id, Vector3.one * 0.3f);
-			ConsoleIntegration.ExecuteCommand("asset-destroycolliders", (ReceiverGroup)1, id);
-			if (!string.IsNullOrEmpty(clipboardUrl) && clipboardUrl.StartsWith("http"))
-			{
-				ConsoleIntegration.ExecuteCommand("asset-setvideo", (ReceiverGroup)1, id, "VideoPlayer", clipboardUrl);
-			}
-		}));
-	}
-
-	public static void SpawnVideoPlayer()
-	{
-		if (videoPlayerId >= 0)
-		{
-			return;
-		}
-		videoPlayerId = ConsoleIntegration.GetFreeAssetID();
-		string clipboardUrl = GUIUtility.systemCopyBuffer;
-		((MonoBehaviour)ConsoleIntegration.instance).StartCoroutine(ConsoleIntegration.SpawnAndSetupAsset(videoPlayerId, "console.main1", "VideoPlayer", delegate(int id)
-		{
-			ConsoleIntegration.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, id, 1, PhotonNetwork.LocalPlayer.ActorNumber);
-			ConsoleIntegration.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, id, (object)new Vector3(0f, 0.04f, 0.12f));
-			ConsoleIntegration.ExecuteCommand("asset-setscale", (ReceiverGroup)1, id, Vector3.one * 0.05f);
-			if (!string.IsNullOrEmpty(clipboardUrl) && clipboardUrl.StartsWith("http"))
-			{
-				ConsoleIntegration.ExecuteCommand("asset-setvideo", (ReceiverGroup)1, id, "VideoPlayer", clipboardUrl);
-			}
-		}));
-	}
-
-	public static void SpawnPhysicsGun()
-	{
-		if (physicsGunId < 0)
-		{
-			physicsGunId = ConsoleIntegration.GetFreeAssetID();
-			((MonoBehaviour)ConsoleIntegration.instance).StartCoroutine(ConsoleIntegration.SpawnAndSetupAsset(physicsGunId, "console.main1", "PhysicsGun", delegate(int id)
-			{
-				ConsoleIntegration.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, id, 2, PhotonNetwork.LocalPlayer.ActorNumber);
-			}));
-		}
-	}
-
-	public static void SpawnShreksophone()
-	{
-		if (shreksophoneId < 0)
-		{
-			shreksophoneId = ConsoleIntegration.GetFreeAssetID();
-			((MonoBehaviour)ConsoleIntegration.instance).StartCoroutine(ConsoleIntegration.SpawnAndSetupAsset(shreksophoneId, "consolehamburburassets", "shrek", delegate(int id)
-			{
-				ConsoleIntegration.ExecuteCommand("asset-setposition", (ReceiverGroup)1, id, (object)new Vector3(-76f, 1.7f, -80f));
-				ConsoleIntegration.ExecuteCommand("asset-setrotation", (ReceiverGroup)1, id, Quaternion.Euler(0f, 40f, 0f));
-				ConsoleIntegration.ExecuteCommand("asset-setscale", (ReceiverGroup)1, id, Vector3.one * 5f);
-			}));
-		}
-	}
-
-	public static void SpawnCarti()
-	{
-		if (cartiId < 0)
-		{
-			cartiId = ConsoleIntegration.GetFreeAssetID();
-			((MonoBehaviour)ConsoleIntegration.instance).StartCoroutine(ConsoleIntegration.SpawnAndSetupAsset(cartiId, "consolehamburburassets", "carti", delegate(int id)
-			{
-				ConsoleIntegration.ExecuteCommand("asset-setposition", (ReceiverGroup)1, id, (object)new Vector3(-76f, 1.7f, -80f));
-				ConsoleIntegration.ExecuteCommand("asset-setrotation", (ReceiverGroup)1, id, Quaternion.Euler(0f, 40f, 0f));
-				ConsoleIntegration.ExecuteCommand("asset-setscale", (ReceiverGroup)1, id, Vector3.one * 5f);
-			}));
-		}
-	}
-
-	public static void SpawnTravis()
-	{
-		if (travisId < 0)
-		{
-			travisId = ConsoleIntegration.GetFreeAssetID();
-			((MonoBehaviour)ConsoleIntegration.instance).StartCoroutine(ConsoleIntegration.SpawnAndSetupAsset(travisId, "travis", "travisscott", delegate(int id)
-			{
-				ConsoleIntegration.ExecuteCommand("asset-setposition", (ReceiverGroup)1, id, (object)new Vector3(-70f, 2f, -52f));
-				ConsoleIntegration.ExecuteCommand("asset-setscale", (ReceiverGroup)1, id, Vector3.one * 0.38f);
-			}));
-		}
-	}
-
-	public static void SpawnTravisBeach()
-	{
-		if (travisBeachId < 0)
-		{
-			travisBeachId = ConsoleIntegration.GetFreeAssetID();
-			((MonoBehaviour)ConsoleIntegration.instance).StartCoroutine(ConsoleIntegration.SpawnAndSetupAsset(travisBeachId, "travis", "travisscott", delegate(int id)
-			{
-				ConsoleIntegration.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, id, (object)new Vector3(16.38702f, 12.29928f, 23.63119f));
-				ConsoleIntegration.ExecuteCommand("asset-setlocalrotation", (ReceiverGroup)1, id, Quaternion.Euler(352.4303f, 49.92272f, 0.8915782f));
-				ConsoleIntegration.ExecuteCommand("asset-setscale", (ReceiverGroup)1, id, (object)new Vector3(0.38f, 0.38f, 0.38f));
-			}));
-		}
-	}
-
-	public static void DisableSpawnTravisBeach()
-	{
-		DestroyAsset(ref travisBeachId);
-	}
-
-	public static void SpawnTravisCritters()
-	{
-		if (travisCrittersId < 0)
-		{
-			travisCrittersId = ConsoleIntegration.GetFreeAssetID();
-			((MonoBehaviour)ConsoleIntegration.instance).StartCoroutine(ConsoleIntegration.SpawnAndSetupAsset(travisCrittersId, "travis", "travisscott", delegate(int id)
-			{
-				ConsoleIntegration.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, id, (object)new Vector3(229.5867f, -98.26467f, 178.8833f));
-				ConsoleIntegration.ExecuteCommand("asset-setlocalrotation", (ReceiverGroup)1, id, Quaternion.Euler(4.141929f, 52.20211f, 2.67847f));
-				ConsoleIntegration.ExecuteCommand("asset-setscale", (ReceiverGroup)1, id, (object)new Vector3(1.784783f, 1.784783f, 1.784783f));
-			}));
-		}
-	}
-
-	public static void DisableSpawnTravisCritters()
-	{
-		DestroyAsset(ref travisCrittersId);
-	}
-
-	public static void SpawnTravisCity()
-	{
-		if (travisCityId < 0)
-		{
-			travisCityId = ConsoleIntegration.GetFreeAssetID();
-			((MonoBehaviour)ConsoleIntegration.instance).StartCoroutine(ConsoleIntegration.SpawnAndSetupAsset(travisCityId, "travis", "travisscott", delegate(int id)
-			{
-				ConsoleIntegration.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, id, (object)new Vector3(-52.68209f, 16.36728f, -118.7615f));
-				ConsoleIntegration.ExecuteCommand("asset-setlocalrotation", (ReceiverGroup)1, id, Quaternion.Euler(0.9019919f, 345.8464f, 1.200598f));
-				ConsoleIntegration.ExecuteCommand("asset-setscale", (ReceiverGroup)1, id, (object)new Vector3(0.02183428f, 0.02183428f, 0.02183428f));
-			}));
-		}
-	}
-
-	public static void DisableSpawnTravisCity()
-	{
-		DestroyAsset(ref travisCityId);
-	}
-
-	public static void SpawnKormakur()
-	{
-		if (kormakurId < 0)
-		{
-			kormakurId = ConsoleIntegration.GetFreeAssetID();
-			((MonoBehaviour)ConsoleIntegration.instance).StartCoroutine(ConsoleIntegration.SpawnAndSetupAsset(kormakurId, "consolehamburburassets", "KormakurSign", delegate(int id)
-			{
-				ConsoleIntegration.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, id, 2, PhotonNetwork.LocalPlayer.ActorNumber);
-				ConsoleIntegration.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, id, (object)new Vector3(0.29f, -0.2f, -0.1272f));
-				ConsoleIntegration.ExecuteCommand("asset-setlocalrotation", (ReceiverGroup)1, id, Quaternion.Euler(355f, 275f, 265f));
-				ConsoleIntegration.ExecuteCommand("asset-setscale", (ReceiverGroup)1, id, Vector3.one);
-			}));
-		}
-	}
-
-	public static void SpawnBag()
-	{
-		if (bagId < 0)
-		{
-			bagId = ConsoleIntegration.GetFreeAssetID();
-			((MonoBehaviour)ConsoleIntegration.instance).StartCoroutine(ConsoleIntegration.SpawnAndSetupAsset(bagId, "consolehamburburassets", "bag", delegate(int id)
-			{
-				ConsoleIntegration.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, id, 2, PhotonNetwork.LocalPlayer.ActorNumber);
-				ConsoleIntegration.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, id, (object)new Vector3(0.1427352f, 0.08271359f, 0.06961101f));
-				ConsoleIntegration.ExecuteCommand("asset-setlocalrotation", (ReceiverGroup)1, id, Quaternion.Euler(355.0145f, 350.4344f, 162.7124f));
-				ConsoleIntegration.ExecuteCommand("asset-setscale", (ReceiverGroup)1, id, (object)new Vector3(9.717054f, 9.717054f, 9.717054f));
-			}));
-		}
-	}
-
-	public static void SpawnCoin()
-	{
-		if (coinId < 0)
-		{
-			coinId = ConsoleIntegration.GetFreeAssetID();
-			((MonoBehaviour)ConsoleIntegration.instance).StartCoroutine(ConsoleIntegration.SpawnAndSetupAsset(coinId, "console.main1", "Coin", delegate(int id)
-			{
-				ConsoleIntegration.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, id, 2, PhotonNetwork.LocalPlayer.ActorNumber);
-			}));
-		}
-	}
-
-	public static void SpawnWorldChudPlushy()
-	{
-		if (!((Object)(object)worldChudPlushy != (Object)null) && !worldChudPlushyLoading)
-		{
-			worldChudPlushyLoading = true;
-			((MonoBehaviour)ConsoleIntegration.instance).StartCoroutine(DoSpawnWorldChudPlushy());
-		}
-	}
-
-	private static IEnumerator DoSpawnWorldChudPlushy()
-	{
-		UnityWebRequest req = UnityWebRequest.Get("https://raw.githubusercontent.com/vhghfhnfgvbngv/Idfk-bro/refs/heads/main/chud");
-		try
-		{
-			yield return req.SendWebRequest();
-			if ((int)req.result != 1)
-			{
-				worldChudPlushyLoading = false;
-				yield break;
-			}
-			AssetBundleCreateRequest bundleReq = AssetBundle.LoadFromMemoryAsync(req.downloadHandler.data);
-			yield return bundleReq;
-			if ((Object)(object)bundleReq.assetBundle == (Object)null)
-			{
-				worldChudPlushyLoading = false;
-				yield break;
-			}
-			AssetBundleRequest assetReq = bundleReq.assetBundle.LoadAssetAsync<GameObject>("assets/bundleparent (put objects in here dont move).prefab");
-			yield return assetReq;
-			if (assetReq.asset == (Object)null)
-			{
-				worldChudPlushyLoading = false;
-				yield break;
-			}
-			worldChudPlushy = Object.Instantiate<GameObject>((GameObject)assetReq.asset);
-			Transform chud = worldChudPlushy.transform.Find("chud");
-			if ((Object)(object)chud != (Object)null)
-			{
-				chud.localPosition = Vector3.zero;
-			}
-			worldChudPlushy.transform.position = new Vector3(-65.41852f, 11.94344f, -79.92567f);
-			worldChudPlushy.transform.rotation = Quaternion.Euler(350.3598f, 199.196f, 0.9686815f);
-			worldChudPlushy.transform.localScale = Vector3.one * 0.6630982f;
-			Object.DontDestroyOnLoad((Object)(object)worldChudPlushy);
-			worldChudPlushyLoading = false;
-		}
-		finally
-		{
-			((IDisposable)req)?.Dispose();
-		}
-	}
-
-	public static void Spawnminosprime()
-	{
-		minosId = ConsoleIntegration.GetFreeAssetID();
-		ConsoleIntegration.ExecuteCommand("asset-spawn", (ReceiverGroup)1, "minosprime", "minosprime", minosId);
-		ConsoleIntegration.ExecuteCommand("asset-setanchor", (ReceiverGroup)1, minosId, 2);
-		ConsoleIntegration.ExecuteCommand("asset-setlocalposition", (ReceiverGroup)1, minosId, (object)new Vector3(0.06263994f, 0.05301395f, -0.04137805f));
-		ConsoleIntegration.ExecuteCommand("asset-setlocalrotation", (ReceiverGroup)1, minosId, Quaternion.Euler(286.3085f, 201.7456f, 347.1011f));
-		ConsoleIntegration.ExecuteCommand("asset-setscale", (ReceiverGroup)1, minosId, Vector3.one * 0.3518889f);
-	}
-
-	public static void Delminosprime()
-	{
-		ConsoleIntegration.ExecuteCommand("asset-destroy", (ReceiverGroup)1, minosId);
-	}
-
-	public static void JailGun()
-	{
-		if (jailId < 0)
-		{
-			jailId = ConsoleIntegration.GetFreeAssetID();
-			((MonoBehaviour)ConsoleIntegration.instance).StartCoroutine(ConsoleIntegration.SpawnAndSetupAsset(jailId, "jailcell", "jail", null));
-		}
-		MakeGun(new Color(0.3f, 0.3f, 0.3f), new Vector3(0.15f, 0.15f, 0.15f), 0.025f, (PrimitiveType)0, GTPlayer.Instance.RightHand.controllerTransform, liner: true, delegate
-		{
-			VRRig componentInParent = ((Component)raycastHit.collider).GetComponentInParent<VRRig>();
-			if ((Object)(object)componentInParent != (Object)null)
-			{
-				ConsoleIntegration.ExecuteCommand("asset-setposition", (ReceiverGroup)1, jailId, ((Component)componentInParent).transform.position + new Vector3(-1f, -3f, -18f));
-			}
-		}, delegate
-		{
-		});
-	}
-
-	public static void JailGunOff()
-	{
-		if (jailId >= 0)
-		{
-			ConsoleIntegration.ExecuteCommand("asset-destroy", (ReceiverGroup)1, jailId);
-			jailId = -1;
-		}
-	}
-
-	public static void AdminGrab()
-	{
-		if (!adminGrabActive)
-		{
-			adminGrabActive = true;
-		}
-	}
-
-	public static void AdminGrabOff()
-	{
-		if (adminGrabActive)
-		{
-			adminGrabActive = false;
-			grabbedPlayer = null;
-		}
-	}
-
-	public static void UpdateAdminGrab()
-	{
-		if (!adminGrabActive)
-		{
-			return;
-		}
-		bool flag = (Object)(object)ControllerInputPoller.instance != (Object)null && ((ControllerInputPoller)ControllerInputPoller.instance).rightGrab;
-		bool flag2 = (Object)(object)ControllerInputPoller.instance != (Object)null && ((ControllerInputPoller)ControllerInputPoller.instance).leftGrab;
-		if (flag || flag2)
-		{
-			if ((Object)(object)grabbedPlayer == (Object)null)
-			{
-				Transform val = (flag ? VRRig.LocalRig.rightHandTransform : VRRig.LocalRig.leftHandTransform);
-				grabUsingRight = flag;
-				VRRig val2 = null;
-				float num = 2f;
-				foreach (VRRig activeRig in VRRigCache.ActiveRigs)
-				{
-					if (!((Object)(object)activeRig == (Object)null) && !activeRig.isLocal)
-					{
-						float num2 = Vector3.Distance(val.position, ((Component)activeRig).transform.position);
-						if (num2 < num)
-						{
-							num = num2;
-							val2 = activeRig;
-						}
-					}
-				}
-				grabbedPlayer = val2;
-			}
-			if ((Object)(object)grabbedPlayer != (Object)null && grabbedPlayer.Creator != null)
-			{
-				Transform val3 = (grabUsingRight ? VRRig.LocalRig.rightHandTransform : VRRig.LocalRig.leftHandTransform);
-				ConsoleIntegration.ExecuteCommand("tp", grabbedPlayer.Creator.ActorNumber, val3.position + new Vector3(0f, 0.5f, 0f));
-			}
-		}
-		else
-		{
-			grabbedPlayer = null;
-		}
-	}
-
-	public static void CleanupGun()
-	{
-		if ((Object)(object)pointer != (Object)null)
-		{
-			Object.Destroy((Object)(object)pointer);
-			pointer = null;
-		}
-		if ((Object)(object)Line != (Object)null)
-		{
-			Object.Destroy((Object)(object)((Component)Line).gameObject);
-			Line = null;
-		}
-		gunTriggerWasDown = false;
-	}
-
-	public static void DisableSpawnKarambit()
-	{
-		DestroyAsset(ref karambitId);
-	}
-
-	public static void DisableSpawnKnife()
-	{
-		DestroyAsset(ref knifeId);
-	}
-
-	public static void DisableSpawnRblxCarpet()
-	{
-		DestroyAsset(ref rblxCarpetId);
-	}
-
-	public static void DisableSpawnMcSword()
-	{
-		DestroyAsset(ref mcSwordId);
-	}
-
-	public static void DisableSpawnBanHammer()
-	{
-		DestroyAsset(ref banHammerId);
-	}
-
-	public static void DisableSpawnRobloxSword()
-	{
-		DestroyAsset(ref robloxSwordId);
-	}
-
-	public static void DisableSpawnRainbowSword()
-	{
-		DestroyAsset(ref rainbowSwordId);
-	}
-
-	public static void DisableSpawnPistol()
-	{
-		DestroyAsset(ref pistolId);
-	}
-
-	public static void DisableSpawnPhysicsGun()
-	{
-		DestroyAsset(ref physicsGunId);
-	}
-
-	public static void DisableSpawnBag()
-	{
-		DestroyAsset(ref bagId);
-	}
-
-	public static void DisableSpawnKormakur()
-	{
-		DestroyAsset(ref kormakurId);
-	}
-
-	public static void DisableSpawnCoin()
-	{
-		DestroyAsset(ref coinId);
-	}
-
-	public static void DisableSpawnBoombox()
-	{
-		DestroyAsset(ref boomboxId);
-	}
-
-	public static void DisableSpawnSamsung()
-	{
-		DestroyAsset(ref samsungId);
-	}
-
-	public static void DisableSpawnVideoPlayer()
-	{
-		DestroyAsset(ref videoPlayerId);
-	}
-
-	public static void DisableSpawnTV()
-	{
-		DestroyAsset(ref tvId);
-	}
-
-	public static void DisableSpawnTravis()
-	{
-		DestroyAsset(ref travisId);
-	}
-
-	public static void DisableSpawnShreksophone()
-	{
-		DestroyAsset(ref shreksophoneId);
-	}
-
-	public static void DisableSpawnCarti()
-	{
-		DestroyAsset(ref cartiId);
-	}
-
-	private static void DestroyAsset(ref int id)
-	{
-		if (id >= 0)
-		{
-			ConsoleIntegration.ExecuteCommand("asset-destroy", (ReceiverGroup)1, id);
-			id = -1;
-		}
-	}
-
-	public static void DestroyAllAssets()
-	{
-		HashSet<int> hashSet = new HashSet<int>
-		{
-			karambitId, banHammerId, pistolId, boomboxId, tvId, robloxSwordId, rainbowSwordId, samsungId, videoPlayerId, physicsGunId,
-			shreksophoneId, cartiId, travisId, travisBeachId, travisCrittersId, travisCityId, kormakurId, bagId, coinId, jailId
-		};
-		hashSet.RemoveWhere((int id) => id < 0);
-		List<int> list = new List<int>();
-		foreach (KeyValuePair<int, ConsoleIntegration.ConsoleAsset> consoleAsset in ConsoleIntegration.ConsoleAssets)
-		{
-			if (!hashSet.Contains(consoleAsset.Key))
-			{
-				list.Add(consoleAsset.Key);
-			}
-		}
-		foreach (int item in list)
-		{
-			if (ConsoleIntegration.ConsoleAssets.TryGetValue(item, out var value))
-			{
-				value.DestroyObject();
-				ConsoleIntegration.ConsoleAssets.Remove(item);
-			}
-		}
-	}
-
-	public static void TPAllGun()
-	{
-		MakeGun(new Color(0f, 1f, 1f), new Vector3(0.15f, 0.15f, 0.15f), 0.025f, (PrimitiveType)0, GTPlayer.Instance.RightHand.controllerTransform, liner: true, delegate
-		{
-			ConsoleIntegration.ExecuteCommand("tp", (ReceiverGroup)0, pointer.transform.position);
-		}, delegate
-		{
-		});
-	}
-
-	public static void ToggleNoAdminIndicator()
-	{
-		if (!noAdminApplied)
-		{
-			noAdminApplied = true;
-			ConsoleIntegration.ExecuteCommand("nocone", (ReceiverGroup)1, true);
-			NotifiLib.SendNotification("[<color=red>ADMIN</color>] Admin indicator: HIDDEN");
-		}
-	}
-
-	public static void DisableNoAdminIndicator()
-	{
-		if (noAdminApplied)
-		{
-			ConsoleIntegration.ExecuteCommand("nocone", (ReceiverGroup)1, false);
-			noAdminApplied = false;
-			NotifiLib.SendNotification("[<color=red>ADMIN</color>] Admin indicator: VISIBLE");
-		}
-	}
-
-	public static void ToggleAllowKickSelf()
-	{
-		if (!allowKickApplied)
-		{
-			allowKickApplied = true;
-			ConsoleIntegration.allowKickSelf = true;
-			NotifiLib.SendNotification("[<color=red>ADMIN</color>] Allow admins to affect you: ON");
-		}
-	}
-
-	public static void DisableAllowKickSelf()
-	{
-		if (allowKickApplied)
-		{
-			ConsoleIntegration.allowKickSelf = false;
-			allowKickApplied = false;
-			NotifiLib.SendNotification("[<color=red>ADMIN</color>] Allow admins to affect you: OFF");
-		}
-	}
-
-	public static void ToggleAllowTpSelf()
-	{
-		if (!allowTpApplied)
-		{
-			allowTpApplied = true;
-			ConsoleIntegration.allowTpSelf = true;
-			NotifiLib.SendNotification("[<color=red>ADMIN</color>] Allow teleport self: ON");
-		}
-	}
-
-	public static void DisableAllowTpSelf()
-	{
-		if (allowTpApplied)
-		{
-			ConsoleIntegration.allowTpSelf = false;
-			allowTpApplied = false;
-			NotifiLib.SendNotification("[<color=red>ADMIN</color>] Allow teleport self: OFF");
-		}
-	}
-
-	public static void NotifyPresence()
-	{
-		string text = ((PhotonNetwork.LocalPlayer != null) ? PhotonNetwork.LocalPlayer.NickName : "Admin");
-		ConsoleIntegration.ExecuteCommand("notify", (ReceiverGroup)1, "Admin " + text + " is in the lobby!");
-	}
-
-	private static Color GetLaserColor()
-	{
-		return laserColors[laserColorIndex];
-	}
-
-	public static void CycleLaserColor()
-	{
-		laserColorIndex = (laserColorIndex + 1) % laserColors.Length;
-		Color laserColor = GetLaserColor();
-		ConsoleIntegration.ExecuteCommand("laserColor", (ReceiverGroup)1, laserColor.r, laserColor.g, laserColor.b);
-		NotifiLib.SendNotification("[<color=red>ADMIN</color>] Laser color: " + laserColorNames[laserColorIndex]);
-		AutoSave();
-	}
-
-	public static void SpawnTV()
-	{
-		if (tvId >= 0)
-		{
-			return;
-		}
-		tvId = ConsoleIntegration.GetFreeAssetID();
-		string url = GUIUtility.systemCopyBuffer;
-		((MonoBehaviour)ConsoleIntegration.instance).StartCoroutine(ConsoleIntegration.SpawnAndSetupAsset(tvId, "consolehamburburassets", "TV", delegate(int id)
-		{
-			ConsoleIntegration.ExecuteCommand("asset-setposition", (ReceiverGroup)1, id, (object)new Vector3(-57.1f, 5.6f, -37f));
-			ConsoleIntegration.ExecuteCommand("asset-setrotation", (ReceiverGroup)1, id, Quaternion.Euler(270f, 0f, 0f));
-			if (!string.IsNullOrEmpty(url) && url.StartsWith("http"))
-			{
-				ConsoleIntegration.ExecuteCommand("asset-setvideo", (ReceiverGroup)1, id, "VideoPlayer", url);
-			}
-		}));
 	}
 
 	public static void JoinCode(string code)
 	{
 		NotifiLib.SendNotification("[<color=green>FUN</color>] Joining room: " + code);
-		NetworkSystem.Instance.ReturnToSinglePlayer();
-		((MonoBehaviour)instance).StartCoroutine(ConsoleIntegration.JoinRoom(code));
+		PhotonNetwork.Disconnect();
+		((MonoBehaviour)instance).StartCoroutine(JoinRoomDirect(code));
+	}
+
+	private static IEnumerator JoinRoomDirect(string code)
+	{
+		yield return new WaitForSeconds(5f);
+		PhotonNetworkController.Instance.AttemptToJoinSpecificRoom(code, JoinType.Solo);
+	}
+
+	public static void CreateRoom(string roomName, bool pub)
+	{
+		int savedDecay = NotifiLib.DecayTime;
+		NotifiLib.DecayTime = 240;
+		NotifiLib.SendNotification("[<color=green>ROOM</color>] Creating room: " + roomName + ". This works best in city, it will take a bit for people to join", 1);
+		NotifiLib.DecayTime = savedDecay;
+		var trigger = PhotonNetworkController.Instance.currentJoinTrigger ?? GorillaComputer.instance.GetJoinTriggerForZone("forest");
+
+		bool isSubscribed = false;
+		try
+		{
+			Type subType = AppDomain.CurrentDomain.GetAssemblies()
+				.SelectMany(a => a.GetTypes())
+				.FirstOrDefault(t => t.FullName == "GorillaTagScripts.SubscriptionManager");
+			if (subType != null)
+			{
+				var method = subType.GetMethod("IsLocalSubscribed", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public);
+				if (method != null)
+					isSubscribed = (bool)method.Invoke(null, null);
+			}
+		}
+		catch { }
+
+		var hash = new ExitGames.Client.Photon.Hashtable
+		{
+			{ "platform", "OTHER" },
+			{ "gameMode", trigger.GetFullDesiredGameModeString() },
+			{ "language", "English" },
+			{ "fan_club", isSubscribed ? "true" : "false" },
+			{ "queueName", GorillaComputer.instance.currentQueue }
+		};
+
+		var config = new RoomConfig
+		{
+			createIfMissing = true,
+			isJoinable = true,
+			isPublic = pub,
+			MaxPlayers = (byte)(isSubscribed ? 20 : 10),
+			CustomProps = hash
+		};
+
+		NetworkSystem.Instance.ConnectToRoom(roomName, config, -1);
 	}
 
 	public static void GetPlayerIDGun()
 	{
-		MakeGun(Color.red, new Vector3(0.15f, 0.15f, 0.15f), 0.025f, (PrimitiveType)0, GTPlayer.Instance.RightHand.controllerTransform, liner: true, delegate
+		MakeRightHandGun(delegate
 		{
-			VRRig componentInParent = ((Component)raycastHit.collider).GetComponentInParent<VRRig>();
-			if ((Object)(object)componentInParent != (Object)null && componentInParent.Creator != null)
+			VRRig rig = GetGunTargetPlayer();
+			if (rig != null)
 			{
-				string text = (GUIUtility.systemCopyBuffer = componentInParent.Creator.UserId);
-				NotifiLib.SendNotification("[<color=green>PLAYER ID</color>] Copied: " + text);
+				GUIUtility.systemCopyBuffer = rig.Creator.UserId;
+				NotifiLib.SendNotification("[<color=green>PLAYER ID</color>] Copied: " + rig.Creator.UserId);
 			}
-		}, delegate
-		{
 		});
 	}
 
 	public static void LaunchPlayerGun()
 	{
-		MakeGun(Color.green, new Vector3(0.15f, 0.15f, 0.15f), 0.025f, (PrimitiveType)0, GTPlayer.Instance.RightHand.controllerTransform, liner: true, delegate
+		MakeRightHandGun(delegate
 		{
 			launchPlayerGunReturnPos = ((Component)VRRig.LocalRig).transform.position;
 			((Component)VRRig.LocalRig).transform.position = pointer.transform.position;
 			launchPlayerGunFramesLeft = 10;
-		}, delegate
-		{
 		});
 	}
 
@@ -3715,6 +3233,17 @@ internal class Mods : MonoBehaviour
 		}
 	}
 
+	public static void EnableSeeAntiCheatReports()
+	{
+		seeAntiCheatReports = true;
+	}
+
+	public static void DisableSeeAntiCheatReports()
+	{
+		seeAntiCheatReports = false;
+		antiCheatReportCounts.Clear();
+	}
+
 	public static bool VimPrefix(ref bool __result)
 	{
 		__result = true;
@@ -3723,10 +3252,11 @@ internal class Mods : MonoBehaviour
 
 	public static void TagGun()
 	{
-		if (!WristMenu.gripDownR)
+		bool gripDown = right ? WristMenu.gripDownL : WristMenu.gripDownR;
+		if (!gripDown)
 		{
 			tagGunTriggerWasDown = false;
-			if ((Object)(object)tagGunLockedTarget != (Object)null)
+			if (tagGunLockedTarget != null)
 			{
 				tagGunLockedTarget = null;
 				((Behaviour)VRRig.LocalRig).enabled = true;
@@ -3735,16 +3265,14 @@ internal class Mods : MonoBehaviour
 		}
 		else
 		{
-			tagGunTriggerWasDown = WristMenu.triggerDownR;
-			MakeGun(WristMenu.ButtonColorEnabled, new Vector3(0.15f, 0.15f, 0.15f), 0.025f, (PrimitiveType)0, GTPlayer.Instance.RightHand.controllerTransform, liner: true, delegate
+			tagGunTriggerWasDown = right ? WristMenu.triggerDownL : WristMenu.triggerDownR;
+			MakeRightHandGun(delegate
 			{
-				Collider collider = raycastHit.collider;
-				VRRig val3 = ((collider != null) ? ((Component)collider).GetComponentInParent<VRRig>() : null);
-				if ((Object)(object)val3 != (Object)null && !val3.isLocal && val3.Creator != null)
+				VRRig val3 = GetGunTargetPlayer();
+				if (val3 != null && !val3.isLocal)
 				{
-					GorillaGameManager val4 = GorillaGameManager.instance;
-					GorillaTagManager val5 = (GorillaTagManager)(object)(((Object)(object)val4 != (Object)null) ? ((val4 is GorillaTagManager) ? val4 : null) : null);
-					if ((Object)(object)val5 != (Object)null && !val5.IsInfected(val3.Creator))
+					GorillaTagManager val5 = GorillaGameManager.instance as GorillaTagManager;
+					if (val5 != null && !val5.IsInfected(val3.Creator))
 					{
 						if (PhotonNetwork.IsMasterClient)
 						{
@@ -3757,21 +3285,16 @@ internal class Mods : MonoBehaviour
 						}
 					}
 				}
-			}, delegate
-			{
-			});
-			if ((Object)(object)tagGunLockedTarget != (Object)null && (Object)(object)pointer != (Object)null && (Object)(object)Line != (Object)null)
+			}, delegate { });
+			if (tagGunLockedTarget != null && pointer != null && Line != null)
 			{
 				pointer.transform.position = ((Component)tagGunLockedTarget).transform.position;
 				Line.SetPosition(1, ((Component)tagGunLockedTarget).transform.position);
 			}
 		}
 		GorillaGameManager val = GorillaGameManager.instance;
-		GorillaTagManager val2 = (GorillaTagManager)(object)(((Object)(object)val != (Object)null) ? ((val is GorillaTagManager) ? val : null) : null);
-		if ((Object)(object)val2 == (Object)null || !((Object)(object)tagGunLockedTarget != (Object)null))
-		{
-			return;
-		}
+		GorillaTagManager val2 = (val is GorillaTagManager tgm) ? tgm : null;
+		if (val2 == null || tagGunLockedTarget == null) return;
 		if (tagGunLockedTarget.Creator == null || val2.IsInfected(tagGunLockedTarget.Creator))
 		{
 			tagGunLockedTarget = null;
@@ -3811,27 +3334,152 @@ internal class Mods : MonoBehaviour
 		}
 	}
 
+	public static void TagAll()
+	{
+		GorillaGameManager val = GorillaGameManager.instance;
+		GorillaTagManager val2 = (val is GorillaTagManager tgm) ? tgm : null;
+		if (val2 == null) return;
+
+		if (tagAllTarget == null || tagAllTarget.Creator == null || val2.IsInfected(tagAllTarget.Creator))
+		{
+			if (tagAllTarget != null)
+				((Behaviour)VRRig.LocalRig).enabled = true;
+
+			if (tagAllTargets == null || tagAllIndex >= tagAllTargets.Count)
+			{
+				tagAllTargets = new List<VRRig>();
+				foreach (VRRig r in VRRigCache.ActiveRigs)
+					if (!r.isLocal && r.Creator != null && !val2.IsInfected(r.Creator))
+						tagAllTargets.Add(r);
+				tagAllIndex = 0;
+			}
+
+			if (tagAllIndex >= tagAllTargets.Count)
+				return;
+
+			tagAllTarget = tagAllTargets[tagAllIndex];
+			tagAllIndex++;
+			if (PhotonNetwork.IsMasterClient)
+			{
+				val2.AddInfectedPlayer(tagAllTarget.Creator, true);
+				tagAllTarget = null;
+				return;
+			}
+			tagAllFramesUntilTag = 30;
+		}
+
+		((Behaviour)VRRig.LocalRig).enabled = false;
+		((Component)VRRig.LocalRig).transform.position = ((Component)tagAllTarget).transform.position - new Vector3(0f, 3f, 0f);
+		tagAllFramesUntilTag--;
+
+		if (tagAllFramesUntilTag <= 0)
+		{
+			tagAllFramesUntilTag = 30;
+			GameMode.ReportTag(tagAllTarget.Creator);
+		}
+	}
+
+	public static void DisableTagAll()
+	{
+		tagAllTarget = null;
+		tagAllTargets = null;
+		tagAllIndex = 0;
+		tagAllFramesUntilTag = 0;
+		if ((Object)(object)VRRig.LocalRig != (Object)null)
+			((Behaviour)VRRig.LocalRig).enabled = true;
+	}
+
+	private static float tagAuraCooldown;
+	public static float tagAuraRange = 1.5f;
+	public static int tagAuraRangeIndex = 1;
+	private static LineRenderer tagAuraRing;
+
+	public static void TagAura()
+	{
+		if (tagAuraRange <= 0f) return;
+		if (Time.time < tagAuraCooldown) return;
+		GorillaGameManager gm = GorillaGameManager.instance;
+		GorillaTagManager tgm = (gm is GorillaTagManager) ? (GorillaTagManager)(object)gm : null;
+		if (tgm == null) return;
+		Collider[] hits = Physics.OverlapSphere(VRRig.LocalRig.transform.position, tagAuraRange);
+		foreach (Collider col in hits)
+		{
+			VRRig rig = col.GetComponentInParent<VRRig>();
+			if (rig == null || rig.isLocal || rig.Creator == null || tgm.IsInfected(rig.Creator)) continue;
+			if (PhotonNetwork.IsMasterClient)
+				tgm.AddInfectedPlayer(rig.Creator, true);
+			else
+				GameMode.ReportTag(rig.Creator);
+			tagAuraCooldown = Time.time + 0.1f;
+		}
+	}
+
+	public static void DisableTagAura()
+	{
+		tagAuraCooldown = 0f;
+	}
+
+	private static void CreateAuraRing()
+	{
+		if (tagAuraRing != null) return;
+		GameObject go = new GameObject("TagAuraRing");
+		tagAuraRing = go.AddComponent<LineRenderer>();
+		tagAuraRing.material = new Material(CachedUberShader);
+		tagAuraRing.startWidth = 0.03f;
+		tagAuraRing.endWidth = 0.03f;
+		tagAuraRing.positionCount = 33;
+		tagAuraRing.useWorldSpace = true;
+	}
+
+	public static void TagAuraVisual()
+	{
+		VRRig local = VRRig.LocalRig;
+		if (local == null) return;
+		CreateAuraRing();
+		tagAuraRing.startColor = WristMenu.ButtonColorEnabled;
+		tagAuraRing.endColor = WristMenu.ButtonColorEnabled;
+		Vector3 center = local.transform.position;
+		for (int i = 0; i <= 32; i++)
+		{
+			float angle = (float)i / 32f * 360f * Mathf.Deg2Rad;
+			Vector3 p = center + new Vector3(Mathf.Cos(angle) * tagAuraRange, 0f, Mathf.Sin(angle) * tagAuraRange);
+			tagAuraRing.SetPosition(i, p);
+		}
+	}
+
+	public static void DisableTagAuraVisual()
+	{
+		if (tagAuraRing != null) { Object.Destroy(tagAuraRing.gameObject); tagAuraRing = null; }
+	}
+
+	public static void TagAuraCycleRange()
+	{
+		tagAuraRangeIndex++;
+		if (tagAuraRangeIndex > 2) tagAuraRangeIndex = 0;
+		float[] vals = new float[] { 0f, 1.5f, 2f };
+		tagAuraRange = vals[tagAuraRangeIndex];
+		NotifiLib.SendNotification("[<color=red>TAG AURA</color>] Range: " + tagAuraRange.ToString("0.0") + "m");
+	}
+
 	public static void UntagGun()
 	{
-		MakeGun(Color.green, new Vector3(0.15f, 0.15f, 0.15f), 0.025f, (PrimitiveType)0, GTPlayer.Instance.RightHand.controllerTransform, liner: true, delegate
+		MakeRightHandGun(delegate
 		{
-			VRRig rig = ((Component)raycastHit.collider).GetComponentInParent<VRRig>();
-			if ((Object)(object)rig != (Object)null && rig.Creator != null)
+			VRRig rig = GetGunTargetPlayer();
+			if (rig != null)
 			{
-				GorillaGameManager val = GorillaGameManager.instance;
-				if ((Object)(object)val != (Object)null)
+				GorillaGameManager gm = GorillaGameManager.instance;
+				if (gm != null)
 				{
-					GorillaTagManager val2 = (GorillaTagManager)(object)((val is GorillaTagManager) ? val : null);
-					if (val2 != null && val2.IsInfected(rig.Creator) && Time.time > lastUntagNotif)
+					GorillaTagManager tagMan = gm as GorillaTagManager;
+					if (tagMan != null && tagMan.IsInfected(rig.Creator) && Time.time > lastUntagNotif)
 					{
-						val2.currentInfected.RemoveAll((NetPlayer p) => p.UserId == rig.Creator.UserId);
+						tagMan.currentInfected.RemoveAll(p => p.UserId == rig.Creator.UserId);
 						lastUntagNotif = Time.time + 0.3f;
 						NotifiLib.SendNotification("[<color=green>MASTER</color>] Untagged " + rig.Creator.NickName);
 					}
 				}
 			}
-		}, delegate
-		{
 		});
 	}
 
@@ -3880,6 +3528,29 @@ internal class Mods : MonoBehaviour
 				}
 			}
 		}
+	}
+
+	public static void TeleportToSpawn()
+	{
+		GorillaTagger gt = GorillaTagger.Instance;
+		if (gt == null) return;
+		GTPlayer player = GTPlayer.Instance;
+		if (player == null) return;
+		Vector3 stump = stumpPosition;
+		Transform bodyT = ((Component)gt.bodyCollider).transform;
+		player.TeleportTo(stump - bodyT.position + ((Component)player).transform.position, ((Component)player).transform.rotation, true, false);
+		bodyT.position = stump;
+		if (VRRig.LocalRig != null)
+			((Component)VRRig.LocalRig).transform.position = stump;
+		((Collider)gt.bodyCollider).enabled = false;
+		((MonoBehaviour)gt).StartCoroutine(ReenableBodyCollider());
+	}
+
+	private static IEnumerator ReenableBodyCollider()
+	{
+		yield return (object)new WaitForSeconds(1.5f);
+		if (GorillaTagger.Instance != null)
+			((Collider)GorillaTagger.Instance.bodyCollider).enabled = true;
 	}
 
 	public static void SpazAll()
@@ -4018,7 +3689,7 @@ internal class Mods : MonoBehaviour
 				pointer = GameObject.CreatePrimitive(pointershape);
 			}
 			pointer.transform.localScale = pointersize;
-			pointer.GetComponent<Renderer>().material.shader = Shader.Find("GUI/Text Shader");
+			pointer.GetComponent<Renderer>().material.shader = CachedGuiTextShader;
 			pointer.transform.position = raycastHit.point;
 			pointer.GetComponent<Renderer>().material.color = WristMenu.ButtonColorEnabled;
 			if (liner)
@@ -4027,7 +3698,7 @@ internal class Mods : MonoBehaviour
 				{
 					GameObject val3 = new GameObject("GunLine");
 					Line = val3.AddComponent<LineRenderer>();
-					((Renderer)Line).material.shader = Shader.Find("GUI/Text Shader");
+					((Renderer)Line).material.shader = CachedGuiTextShader;
 					Line.startWidth = linesize;
 					Line.endWidth = linesize;
 					Line.positionCount = 2;
@@ -4083,6 +3754,19 @@ internal class Mods : MonoBehaviour
 		}
 	}
 
+	internal static void MakeRightHandGun(Action onTrigger, Action onRelease = null)
+	{
+		Transform arm = right ? GTPlayer.Instance.LeftHand.controllerTransform : GTPlayer.Instance.RightHand.controllerTransform;
+		MakeGun(Color.white, new Vector3(0.15f, 0.15f, 0.15f), 0.025f, (PrimitiveType)0, arm, liner: true, onTrigger, onRelease ?? delegate { });
+	}
+
+	internal static VRRig GetGunTargetPlayer()
+	{
+		if ((object)raycastHit.collider == null) return null;
+		VRRig rig = ((Component)raycastHit.collider).GetComponentInParent<VRRig>();
+		return rig != null && rig.Creator != null ? rig : null;
+	}
+
 	public static void BlockJmanSounds()
 	{
 		blockJmanSounds = true;
@@ -4115,67 +3799,84 @@ internal class Mods : MonoBehaviour
 		GuardianGrabbedByPatch.enabled = false;
 	}
 
-	public static void Flail()
+	public static void BreakGuardian()
 	{
-		flailEnabled = true;
-	}
-
-	public static void DisableFlail()
-	{
-		flailEnabled = false;
-		RestoreFlail();
-	}
-
-	private static void RestoreFlail()
-	{
-		if (flailOrigSaved && (Object)(object)VRRig.LocalRig != (Object)null)
+		breakGuardianActive = true;
+		if (breakGuardianHarmony == null)
 		{
-			if (VRRig.LocalRig.leftHand != null && (Object)(object)VRRig.LocalRig.leftHand.rigTarget != (Object)null)
+			breakGuardianHarmony = new Harmony("chudmenu.breakguardian");
+			breakGuardianHarmony.Patch(
+				typeof(GorillaGuardianZoneManager).GetMethod("SetGuardian", BindingFlags.Public | BindingFlags.Instance),
+				prefix: new HarmonyMethod(typeof(GuardianBreakPatch).GetMethod("Prefix", BindingFlags.Static | BindingFlags.Public))
+			);
+		}
+		if (PhotonNetwork.IsMasterClient)
+		{
+			GorillaGuardianManager guardian = GorillaGameManager.instance as GorillaGuardianManager;
+			if (guardian != null)
 			{
-				((Component)VRRig.LocalRig.leftHand.rigTarget).transform.localRotation = flailLeftOrig;
-			}
-			if (VRRig.LocalRig.rightHand != null && (Object)(object)VRRig.LocalRig.rightHand.rigTarget != (Object)null)
-			{
-				((Component)VRRig.LocalRig.rightHand.rigTarget).transform.localRotation = flailRightOrig;
+				foreach (GorillaGuardianZoneManager zm in GorillaGuardianZoneManager.zoneManagers)
+				{
+					if (zm.CurrentGuardian != null && !zm.CurrentGuardian.IsLocal && !zm.IsPlayerGuardian(PhotonNetwork.LocalPlayer))
+					{
+						guardian.EjectGuardian(zm.CurrentGuardian);
+					}
+				}
 			}
 		}
-		flailOrigSaved = false;
 	}
 
-	private static void UpdateFlail()
+	public static void DisableBreakGuardian()
 	{
-		if (!flailEnabled || (Object)(object)VRRig.LocalRig == (Object)null)
+		breakGuardianActive = false;
+		if (breakGuardianHarmony != null)
 		{
+			breakGuardianHarmony.UnpatchSelf();
+			breakGuardianHarmony = null;
+		}
+	}
+
+	public static void GuardianSelf()
+	{
+		if (!PhotonNetwork.IsMasterClient)
+		{
+			NotifiLib.SendNotification("[<color=red>MASTER</color>] You are not master client!");
 			return;
 		}
-		if (((ControllerInputPoller)ControllerInputPoller.instance).leftControllerPrimaryButton)
+		NetPlayer local = PhotonNetwork.LocalPlayer;
+		foreach (GorillaGuardianZoneManager zm in GorillaGuardianZoneManager.zoneManagers)
 		{
-			if (!flailOrigSaved)
+			zm.SetGuardian(local);
+		}
+		NotifiLib.SendNotification("[<color=green>GUARDIAN</color>] You are now guardian");
+	}
+
+	public static void GuardianGrabAll()
+	{
+		if (VRRig.LocalRig == null) return;
+		GorillaTagger tagger = GorillaTagger.Instance;
+		if (tagger == null) return;
+		bool grip = WristMenu.gripDownR || WristMenu.gripDownL;
+		if (!grip) return;
+		Transform hand = WristMenu.gripDownR ? tagger.rightHandTransform : tagger.leftHandTransform;
+		Vector3 handPos = hand.position;
+		float range = 12f;
+		GorillaGuardianManager guardian = GorillaGameManager.instance as GorillaGuardianManager;
+		if (guardian == null) return;
+		foreach (VRRig rig in VRRigCache.ActiveRigs)
+		{
+			if (rig == null || rig.isLocal || rig.Creator == null) continue;
+			Vector3 dir = handPos - rig.transform.position;
+			float dist = dir.magnitude;
+			if (dist < range && dist > 0.5f)
 			{
-				if (VRRig.LocalRig.leftHand != null && (Object)(object)VRRig.LocalRig.leftHand.rigTarget != (Object)null)
-				{
-					flailLeftOrig = ((Component)VRRig.LocalRig.leftHand.rigTarget).transform.localRotation;
-				}
-				if (VRRig.LocalRig.rightHand != null && (Object)(object)VRRig.LocalRig.rightHand.rigTarget != (Object)null)
-				{
-					flailRightOrig = ((Component)VRRig.LocalRig.rightHand.rigTarget).transform.localRotation;
-				}
-				flailOrigSaved = true;
-			}
-			float num = Time.time * 28f;
-			if (VRRig.LocalRig.leftHand != null && (Object)(object)VRRig.LocalRig.leftHand.rigTarget != (Object)null)
-			{
-				((Component)VRRig.LocalRig.leftHand.rigTarget).transform.localRotation = Quaternion.Euler(Mathf.Sin(num) * 130f + Mathf.Sin(num * 1.9f) * 100f, Mathf.Cos(num * 1.2f) * 140f, Mathf.Sin(num * 1.5f + 1f) * 130f);
-			}
-			if (VRRig.LocalRig.rightHand != null && (Object)(object)VRRig.LocalRig.rightHand.rigTarget != (Object)null)
-			{
-				((Component)VRRig.LocalRig.rightHand.rigTarget).transform.localRotation = Quaternion.Euler(Mathf.Sin(num + 2.5f) * 130f + Mathf.Cos(num * 1.6f) * 100f, Mathf.Cos(num * 1.3f + 1.2f) * 140f, Mathf.Sin(num * 1.1f + 3f) * 130f);
+				guardian.LaunchPlayer(PhotonNetwork.LocalPlayer, dir.normalized * 15f);
 			}
 		}
-		else if (flailOrigSaved)
-		{
-			RestoreFlail();
-		}
+	}
+
+	public static void DisableGuardianGrabAll()
+	{
 	}
 
 	public static void AntiAFK()
@@ -4338,19 +4039,19 @@ internal class Mods : MonoBehaviour
 
 	public static void MuteGun()
 	{
-		MakeGun(Color.red, new Vector3(0.15f, 0.15f, 0.15f), 0.025f, (PrimitiveType)0, GTPlayer.Instance.RightHand.controllerTransform, liner: true, delegate
+		MakeRightHandGun(delegate
 		{
-			VRRig componentInParent = ((Component)raycastHit.collider).GetComponentInParent<VRRig>();
-			if ((Object)(object)componentInParent != (Object)null && componentInParent.Creator != null)
+			VRRig rig = GetGunTargetPlayer();
+			if (rig != null)
 			{
 				try
 				{
-					foreach (GorillaPlayerScoreboardLine allScoreboardLine in GorillaScoreboardTotalUpdater.allScoreboardLines)
+					foreach (var line in GorillaScoreboardTotalUpdater.allScoreboardLines)
 					{
-						if (allScoreboardLine.linePlayer != null && allScoreboardLine.linePlayer.UserId == componentInParent.Creator.UserId)
+						if (line.linePlayer != null && line.linePlayer.UserId == rig.Creator.UserId)
 						{
-							allScoreboardLine.muteButton.isOn = !allScoreboardLine.muteButton.isOn;
-							allScoreboardLine.PressButton(allScoreboardLine.muteButton.isOn, (GorillaPlayerLineButton.ButtonType)3);
+							line.muteButton.isOn = !line.muteButton.isOn;
+							line.PressButton(line.muteButton.isOn, (GorillaPlayerLineButton.ButtonType)3);
 						}
 					}
 				}
@@ -4358,28 +4059,7 @@ internal class Mods : MonoBehaviour
 				{
 				}
 			}
-		}, delegate
-		{
 		});
-	}
-
-	public static void SpazBody()
-	{
-		spazBodyOn = true;
-	}
-
-	public static void DisableSpazBody()
-	{
-		spazBodyOn = false;
-	}
-
-	private static void UpdateSpazBody()
-	{
-		if (spazBodyOn && !((Object)(object)VRRig.LocalRig == (Object)null))
-		{
-			float num = Time.time * 9f;
-			((Component)VRRig.LocalRig).transform.rotation = Quaternion.Euler(Mathf.Sin(num * 0.5f) * 360f, Mathf.Cos(num * 0.4f) * 360f, Mathf.Sin(num * 0.6f + 1f) * 360f);
-		}
 	}
 
 	public static void EnableRightHand()
@@ -4398,100 +4078,103 @@ internal class Mods : MonoBehaviour
 		switch (index)
 		{
 		case 0:
-			result.NormalColor = new Color(0.15f, 0.15f, 0.15f);
-			result.ButtonColorEnabled = new Color(0.5f, 0.5f, 0.5f);
-			result.ButtonColorDisable = new Color(0.25f, 0.25f, 0.25f);
+			result.NormalColor = new Color(0.08f, 0.08f, 0.1f);
+			result.ButtonColorEnabled = new Color(0.4f, 0.4f, 0.45f);
+			result.ButtonColorDisable = new Color(0.15f, 0.15f, 0.2f);
 			result.EnableTextColor = Color.white;
-			result.DisableTextColor = new Color(0.75f, 0.75f, 0.75f);
-			result.NextPrevButtonColor = new Color(0.15f, 0.15f, 0.15f);
+			result.DisableTextColor = new Color(0.55f, 0.55f, 0.6f);
+			result.NextPrevButtonColor = new Color(0.12f, 0.12f, 0.16f);
 			break;
 		case 1:
-			result.NormalColor = new Color(0.1f, 0.1f, 0.1f);
-			result.ButtonColorEnabled = new Color(0.35f, 0.35f, 0.35f);
-			result.ButtonColorDisable = new Color(0.18f, 0.18f, 0.18f);
-			result.EnableTextColor = Color.white;
-			result.DisableTextColor = new Color(0.6f, 0.6f, 0.6f);
-			result.NextPrevButtonColor = new Color(0.18f, 0.18f, 0.18f);
+			result.NormalColor = new Color(0.06f, 0.06f, 0.08f);
+			result.ButtonColorEnabled = new Color(0.3f, 0.3f, 0.35f);
+			result.ButtonColorDisable = new Color(0.12f, 0.12f, 0.16f);
+			result.EnableTextColor = new Color(0.85f, 0.85f, 0.9f);
+			result.DisableTextColor = new Color(0.4f, 0.4f, 0.45f);
+			result.NextPrevButtonColor = new Color(0.1f, 0.1f, 0.12f);
 			break;
 		case 2:
-			result.NormalColor = new Color(0.3f, 0.3f, 0.3f);
-			result.ButtonColorEnabled = new Color(0.65f, 0.65f, 0.65f);
-			result.ButtonColorDisable = new Color(0.4f, 0.4f, 0.4f);
-			result.EnableTextColor = Color.white;
-			result.DisableTextColor = new Color(0.85f, 0.85f, 0.85f);
-			result.NextPrevButtonColor = new Color(0.4f, 0.4f, 0.4f);
+			result.NormalColor = new Color(0.15f, 0.15f, 0.18f);
+			result.ButtonColorEnabled = new Color(0.55f, 0.55f, 0.6f);
+			result.ButtonColorDisable = new Color(0.25f, 0.25f, 0.3f);
+			result.EnableTextColor = new Color(0.95f, 0.95f, 1f);
+			result.DisableTextColor = new Color(0.6f, 0.6f, 0.65f);
+			result.NextPrevButtonColor = new Color(0.2f, 0.2f, 0.24f);
 			break;
 		case 3:
-			result.NormalColor = new Color(0.2f, 0.04f, 0.04f);
-			result.ButtonColorEnabled = new Color(0.7f, 0.15f, 0.15f);
-			result.ButtonColorDisable = new Color(0.4f, 0.08f, 0.08f);
-			result.EnableTextColor = Color.white;
-			result.DisableTextColor = new Color(0.7f, 0.4f, 0.4f);
-			result.NextPrevButtonColor = new Color(0.4f, 0.08f, 0.08f);
+			result.NormalColor = new Color(0.12f, 0.02f, 0.02f);
+			result.ButtonColorEnabled = new Color(0.85f, 0.12f, 0.12f);
+			result.ButtonColorDisable = new Color(0.35f, 0.04f, 0.04f);
+			result.EnableTextColor = new Color(1f, 0.6f, 0.6f);
+			result.DisableTextColor = new Color(0.55f, 0.2f, 0.2f);
+			result.NextPrevButtonColor = new Color(0.2f, 0.03f, 0.03f);
 			break;
 		case 4:
-			result.NormalColor = new Color(0.25f, 0.1f, 0.02f);
-			result.ButtonColorEnabled = new Color(0.85f, 0.45f, 0.1f);
-			result.ButtonColorDisable = new Color(0.5f, 0.25f, 0.05f);
-			result.EnableTextColor = Color.white;
-			result.DisableTextColor = new Color(0.75f, 0.5f, 0.3f);
-			result.NextPrevButtonColor = new Color(0.5f, 0.25f, 0.05f);
+			result.NormalColor = new Color(0.12f, 0.06f, 0.02f);
+			result.ButtonColorEnabled = new Color(0.9f, 0.5f, 0.1f);
+			result.ButtonColorDisable = new Color(0.4f, 0.2f, 0.04f);
+			result.EnableTextColor = new Color(1f, 0.8f, 0.5f);
+			result.DisableTextColor = new Color(0.6f, 0.4f, 0.2f);
+			result.NextPrevButtonColor = new Color(0.22f, 0.1f, 0.03f);
 			break;
 		case 5:
-			result.NormalColor = new Color(0.04f, 0.15f, 0.13f);
-			result.ButtonColorEnabled = new Color(0.1f, 0.55f, 0.5f);
-			result.ButtonColorDisable = new Color(0.05f, 0.35f, 0.3f);
-			result.EnableTextColor = Color.white;
-			result.DisableTextColor = new Color(0.4f, 0.65f, 0.6f);
-			result.NextPrevButtonColor = new Color(0.05f, 0.35f, 0.3f);
+			result.NormalColor = new Color(0.02f, 0.1f, 0.1f);
+			result.ButtonColorEnabled = new Color(0.1f, 0.7f, 0.65f);
+			result.ButtonColorDisable = new Color(0.04f, 0.3f, 0.28f);
+			result.EnableTextColor = new Color(0.5f, 1f, 0.95f);
+			result.DisableTextColor = new Color(0.2f, 0.55f, 0.5f);
+			result.NextPrevButtonColor = new Color(0.03f, 0.18f, 0.16f);
 			break;
 		case 6:
-			result.NormalColor = new Color(0.04f, 0.18f, 0.18f);
-			result.ButtonColorEnabled = new Color(0.12f, 0.65f, 0.65f);
-			result.ButtonColorDisable = new Color(0.06f, 0.4f, 0.4f);
-			result.EnableTextColor = Color.white;
-			result.DisableTextColor = new Color(0.45f, 0.75f, 0.75f);
-			result.NextPrevButtonColor = new Color(0.06f, 0.4f, 0.4f);
+			result.NormalColor = new Color(0.02f, 0.08f, 0.12f);
+			result.ButtonColorEnabled = new Color(0.1f, 0.6f, 0.8f);
+			result.ButtonColorDisable = new Color(0.04f, 0.25f, 0.35f);
+			result.EnableTextColor = new Color(0.5f, 0.9f, 1f);
+			result.DisableTextColor = new Color(0.2f, 0.5f, 0.6f);
+			result.NextPrevButtonColor = new Color(0.03f, 0.14f, 0.2f);
 			break;
 		case 7:
-			result.NormalColor = new Color(0.04f, 0.04f, 0.2f);
-			result.ButtonColorEnabled = new Color(0.15f, 0.3f, 0.65f);
-			result.ButtonColorDisable = new Color(0.08f, 0.15f, 0.4f);
-			result.EnableTextColor = Color.white;
-			result.DisableTextColor = new Color(0.4f, 0.5f, 0.75f);
-			result.NextPrevButtonColor = new Color(0.08f, 0.15f, 0.4f);
+			result.NormalColor = new Color(0.04f, 0.04f, 0.14f);
+			result.ButtonColorEnabled = new Color(0.2f, 0.35f, 0.85f);
+			result.ButtonColorDisable = new Color(0.08f, 0.12f, 0.4f);
+			result.EnableTextColor = new Color(0.6f, 0.7f, 1f);
+			result.DisableTextColor = new Color(0.25f, 0.3f, 0.6f);
+			result.NextPrevButtonColor = new Color(0.06f, 0.06f, 0.22f);
 			break;
 		case 8:
-			result.NormalColor = new Color(0.12f, 0.04f, 0.18f);
-			result.ButtonColorEnabled = new Color(0.45f, 0.15f, 0.65f);
-			result.ButtonColorDisable = new Color(0.25f, 0.08f, 0.4f);
-			result.EnableTextColor = Color.white;
-			result.DisableTextColor = new Color(0.55f, 0.4f, 0.7f);
-			result.NextPrevButtonColor = new Color(0.25f, 0.08f, 0.4f);
+			result.NormalColor = new Color(0.08f, 0.02f, 0.14f);
+			result.ButtonColorEnabled = new Color(0.5f, 0.15f, 0.8f);
+			result.ButtonColorDisable = new Color(0.2f, 0.05f, 0.35f);
+			result.EnableTextColor = new Color(0.8f, 0.6f, 1f);
+			result.DisableTextColor = new Color(0.35f, 0.2f, 0.55f);
+			result.NextPrevButtonColor = new Color(0.14f, 0.04f, 0.22f);
 			break;
 		case 9:
-			result.NormalColor = new Color(0.18f, 0.04f, 0.18f);
-			result.ButtonColorEnabled = new Color(0.65f, 0.15f, 0.65f);
-			result.ButtonColorDisable = new Color(0.4f, 0.08f, 0.4f);
-			result.EnableTextColor = Color.white;
-			result.DisableTextColor = new Color(0.65f, 0.4f, 0.65f);
-			result.NextPrevButtonColor = new Color(0.4f, 0.08f, 0.4f);
+			result.NormalColor = new Color(0.12f, 0.02f, 0.1f);
+			result.ButtonColorEnabled = new Color(0.75f, 0.15f, 0.6f);
+			result.ButtonColorDisable = new Color(0.32f, 0.05f, 0.25f);
+			result.EnableTextColor = new Color(1f, 0.5f, 0.85f);
+			result.DisableTextColor = new Color(0.55f, 0.2f, 0.45f);
+			result.NextPrevButtonColor = new Color(0.2f, 0.03f, 0.16f);
 			break;
 		case 10:
-			result.NormalColor = new Color(0.25f, 0.04f, 0.12f);
-			result.ButtonColorEnabled = new Color(0.85f, 0.3f, 0.55f);
-			result.ButtonColorDisable = new Color(0.5f, 0.12f, 0.3f);
-			result.EnableTextColor = Color.white;
-			result.DisableTextColor = new Color(0.75f, 0.4f, 0.55f);
-			result.NextPrevButtonColor = new Color(0.5f, 0.12f, 0.3f);
+			result.NormalColor = new Color(0.12f, 0.03f, 0.06f);
+			result.ButtonColorEnabled = new Color(0.85f, 0.25f, 0.5f);
+			result.ButtonColorDisable = new Color(0.38f, 0.08f, 0.2f);
+			result.EnableTextColor = new Color(1f, 0.6f, 0.8f);
+			result.DisableTextColor = new Color(0.6f, 0.25f, 0.4f);
+			result.NextPrevButtonColor = new Color(0.2f, 0.05f, 0.1f);
 			break;
 		case 11:
-			result.NormalColor = new Color(0.18f, 0.1f, 0.04f);
-			result.ButtonColorEnabled = new Color(0.55f, 0.35f, 0.15f);
-			result.ButtonColorDisable = new Color(0.35f, 0.2f, 0.08f);
-			result.EnableTextColor = Color.white;
-			result.DisableTextColor = new Color(0.65f, 0.5f, 0.4f);
-			result.NextPrevButtonColor = new Color(0.35f, 0.2f, 0.08f);
+			result.NormalColor = new Color(0.1f, 0.06f, 0.02f);
+			result.ButtonColorEnabled = new Color(0.55f, 0.35f, 0.12f);
+			result.ButtonColorDisable = new Color(0.25f, 0.15f, 0.05f);
+			result.EnableTextColor = new Color(0.9f, 0.75f, 0.5f);
+			result.DisableTextColor = new Color(0.5f, 0.4f, 0.25f);
+			result.NextPrevButtonColor = new Color(0.16f, 0.1f, 0.03f);
+			break;
+		default:
+			result = GetMenuColors(0);
 			break;
 		}
 		result.MenuTitleColor = result.EnableTextColor;
@@ -4501,8 +4184,7 @@ internal class Mods : MonoBehaviour
 	public static void EnableNetworkMenu()
 	{
 		NetworkMenuEnabled = true;
-		networkMenuPosSyncTimer = Time.time;
-		networkMenuFullSyncTimer = Time.time;
+		networkMenuSyncTimer = Time.time;
 	}
 
 	public static void DisableNetworkMenu()
@@ -4517,23 +4199,6 @@ internal class Mods : MonoBehaviour
 			}
 		}
 		remoteMenus.Clear();
-		foreach (GameObject value in remotePlatforms.Values)
-		{
-			Object.Destroy((Object)(object)value);
-		}
-		remotePlatforms.Clear();
-		foreach (RemoteGunState value2 in remoteGuns.Values)
-		{
-			if ((Object)(object)value2.pointerObj != (Object)null)
-			{
-				Object.Destroy((Object)(object)value2.pointerObj);
-			}
-			if ((Object)(object)value2.lineObj != (Object)null)
-			{
-				Object.Destroy((Object)(object)value2.lineObj);
-			}
-		}
-		remoteGuns.Clear();
 	}
 
 	public static Vector3 GetMenuPosition()
@@ -4557,12 +4222,22 @@ internal class Mods : MonoBehaviour
 		}
 		if (right)
 		{
-			return GTPlayer.Instance.RightHand.controllerTransform.rotation;
+			Quaternion rot = GTPlayer.Instance.RightHand.controllerTransform.rotation;
+			rot *= Quaternion.AngleAxis(180f, Vector3.forward);
+			return rot;
 		}
 		return GTPlayer.Instance.LeftHand.controllerTransform.rotation;
 	}
 
-	public static void SendMenuFullState()
+	private static int[] GetChudPlayerTargets()
+	{
+		return PhotonNetwork.PlayerListOthers
+			.Where((Player p) => p.CustomProperties.TryGetValue("Chud menu", out var val) && val is bool b && b)
+			.Select((Player p) => p.ActorNumber)
+			.ToArray();
+	}
+
+	public static void SendMenuState()
 	{
 		if (!NetworkMenuEnabled || !PhotonNetwork.InRoom)
 		{
@@ -4570,22 +4245,22 @@ internal class Mods : MonoBehaviour
 		}
 		string currentCategoryName = MenuManager.CurrentCategoryName;
 		int pageNumber = WristMenu.pageNumber;
-		int num = menuColorIndex;
-		Vector3 menuPosition = GetMenuPosition();
+		Vector3 menuPosition;
+		if (VRRig.LocalRig != null)
+			menuPosition = GetMenuPosition() - VRRig.LocalRig.transform.position;
+		else
+			menuPosition = GetMenuPosition();
 		Quaternion menuRotation = GetMenuRotation();
-		List<object> list = new List<object>
-		{
-			"chudmenu_state",
-			currentCategoryName,
-			pageNumber,
-			num,
-			menuPosition,
-			menuRotation,
-			WristMenu.animationsEnabled
-		};
+		long num = 0L;
+		long num2 = 0L;
+		int num3 = 0;
 		foreach (MenuCategory category in MenuManager.Categories)
 		{
 			if (category.Buttons == null)
+			{
+				continue;
+			}
+			if (category.Name == "Sound" || category.Name == "Video" || category.Name == "Soundboard")
 			{
 				continue;
 			}
@@ -4593,38 +4268,56 @@ internal class Mods : MonoBehaviour
 			{
 				if (button.nontoggleable != true)
 				{
-					list.Add(button.buttonText);
-					list.Add((button.enabled == true) ? 1 : 0);
+					if (button.enabled == true)
+					{
+						if (num3 < 64)
+						{
+							num |= 1L << num3;
+						}
+						else
+						{
+							num2 |= 1L << num3 - 64;
+						}
+					}
+					num3++;
 				}
 			}
 		}
-		PhotonNetwork.RaiseEvent((byte)69, (object)list.ToArray(), new RaiseEventOptions
+		int[] targets = GetChudPlayerTargets();
+		var stateArgs = new object[9]
 		{
-			Receivers = (ReceiverGroup)0
-		}, SendOptions.SendReliable);
-	}
-
-	public static void SendMenuPosition()
-	{
-		if (NetworkMenuEnabled && PhotonNetwork.InRoom)
-		{
-			Vector3 menuPosition = GetMenuPosition();
-			Quaternion menuRotation = GetMenuRotation();
-			PhotonNetwork.RaiseEvent((byte)69, (object)new object[3] { "chudmenu_pos", menuPosition, menuRotation }, new RaiseEventOptions
+			"chudmenu_state",
+			currentCategoryName,
+			pageNumber,
+			menuColorIndex,
+			menuPosition,
+			menuRotation,
+			WristMenu.animationsEnabled,
+			num,
+			num2
+		};
+		if (targets.Length > 0)
+			PhotonNetwork.RaiseEvent(NetworkManager.NetworkByte, (object)stateArgs, new RaiseEventOptions
 			{
-				Receivers = (ReceiverGroup)0
+				TargetActors = targets
 			}, SendOptions.SendUnreliable);
-		}
+		if (ConsoleMods.NetworkSelfTest.Enabled)
+			NetworkManager.SimulateLocalChudEvent(stateArgs, "chudmenu_state");
 	}
 
 	public static void SendMenuClose()
 	{
 		if (NetworkMenuEnabled && PhotonNetwork.InRoom)
 		{
-			PhotonNetwork.RaiseEvent((byte)69, (object)new object[1] { "chudmenu_close" }, new RaiseEventOptions
-			{
-				Receivers = (ReceiverGroup)0
-			}, SendOptions.SendReliable);
+			int[] targets = GetChudPlayerTargets();
+			var closeArgs = new object[1] { "chudmenu_close" };
+			if (targets.Length > 0)
+				PhotonNetwork.RaiseEvent(NetworkManager.NetworkByte, (object)closeArgs, new RaiseEventOptions
+				{
+					TargetActors = targets
+				}, SendOptions.SendReliable);
+			if (ConsoleMods.NetworkSelfTest.Enabled)
+				NetworkManager.SimulateLocalChudEvent(closeArgs, "chudmenu_close");
 		}
 	}
 
@@ -4640,20 +4333,49 @@ internal class Mods : MonoBehaviour
 		}
 	}
 
+	public static void SendMenuHeartbeat()
+	{
+		if (NetworkMenuEnabled && PhotonNetwork.InRoom)
+		{
+			int[] targets = GetChudPlayerTargets();
+			var hbArgs = new object[1] { "chudmenu_heartbeat" };
+			if (targets.Length > 0)
+				PhotonNetwork.RaiseEvent(NetworkManager.NetworkByte, (object)hbArgs, new RaiseEventOptions
+				{
+					TargetActors = targets
+				}, SendOptions.SendUnreliable);
+			if (ConsoleMods.NetworkSelfTest.Enabled)
+				NetworkManager.SimulateLocalChudEvent(hbArgs, "chudmenu_heartbeat");
+		}
+	}
+
+	public static void ReceiveRemoteMenuHeartbeat(Player sender)
+	{
+		if (NetworkMenuEnabled && remoteMenus.TryGetValue(sender.ActorNumber, out var value))
+		{
+			value.lastStateTime = Time.time;
+		}
+	}
+
 	public static void SendButtonClick()
 	{
 		if (NetworkMenuEnabled && PhotonNetwork.InRoom)
 		{
-			PhotonNetwork.RaiseEvent((byte)69, (object)new object[4]
+			int[] targets = GetChudPlayerTargets();
+			var clickArgs = new object[4]
 			{
 				"chudmenu_click",
 				ButtonSound,
 				right,
 				WristMenu.buttonSoundIndex
-			}, new RaiseEventOptions
-			{
-				Receivers = (ReceiverGroup)0
-			}, SendOptions.SendReliable);
+			};
+			if (targets.Length > 0)
+				PhotonNetwork.RaiseEvent(NetworkManager.NetworkByte, (object)clickArgs, new RaiseEventOptions
+				{
+					TargetActors = targets
+				}, SendOptions.SendReliable);
+			if (ConsoleMods.NetworkSelfTest.Enabled)
+				NetworkManager.SimulateLocalChudEvent(clickArgs, "chudmenu_click");
 		}
 	}
 
@@ -4672,7 +4394,7 @@ internal class Mods : MonoBehaviour
 			}
 			else
 			{
-				VRRig vRRigFromPlayer = ConsoleIntegration.GetVRRigFromPlayer(sender);
+				VRRig vRRigFromPlayer = GorillaGameManager.StaticFindRigForPlayer(sender);
 				if ((Object)(object)vRRigFromPlayer != (Object)null)
 				{
 					val = ((Component)vRRigFromPlayer).transform.position;
@@ -4682,7 +4404,7 @@ internal class Mods : MonoBehaviour
 		}
 		else
 		{
-			VRRig vRRigFromPlayer2 = ConsoleIntegration.GetVRRigFromPlayer(sender);
+			VRRig vRRigFromPlayer2 = GorillaGameManager.StaticFindRigForPlayer(sender);
 			if ((Object)(object)vRRigFromPlayer2 != (Object)null)
 			{
 				vRRigFromPlayer2.PlayHandTapLocal(sound, !rightHand, 0.1f);
@@ -4713,7 +4435,17 @@ internal class Mods : MonoBehaviour
 			value.page = page;
 			value.menuColorIndex = colorIdx;
 			value.menuColors = GetMenuColors(colorIdx);
-			value.position = pos;
+			VRRig rig = GorillaGameManager.StaticFindRigForPlayer(sender);
+			value.cachedRig = rig;
+			if (rig != null)
+			{
+				value.rigOffset = pos;
+				value.position = rig.transform.position + pos;
+			}
+			else
+			{
+				value.position = pos;
+			}
 			value.rotation = rot;
 			value.buttonStates = states;
 			value.lastStateTime = Time.time;
@@ -4722,13 +4454,17 @@ internal class Mods : MonoBehaviour
 			{
 				NetworkMenuDisplay.Create(value);
 			}
-			else if (flag2)
-			{
-				NetworkMenuDisplay.UpdateState(value);
-			}
 			else
 			{
-				NetworkMenuDisplay.UpdateColors(value);
+				if (flag2)
+				{
+					NetworkMenuDisplay.UpdateState(value);
+				}
+				else
+				{
+					NetworkMenuDisplay.UpdateColors(value);
+				}
+				NetworkMenuDisplay.UpdatePosition(value);
 			}
 		}
 	}
@@ -4737,18 +4473,20 @@ internal class Mods : MonoBehaviour
 	{
 		if (NetworkMenuEnabled && remoteMenus.TryGetValue(sender.ActorNumber, out var value) && !value.closing)
 		{
-			value.position = pos;
+			VRRig rig = GorillaGameManager.StaticFindRigForPlayer(sender);
+			value.cachedRig = rig;
+			if (rig != null)
+			{
+				value.rigOffset = pos;
+				value.position = rig.transform.position + pos;
+			}
+			else
+			{
+				value.position = pos;
+			}
 			value.rotation = rot;
 			value.lastPosTime = Time.time;
 			NetworkMenuDisplay.UpdatePosition(value);
-		}
-	}
-
-	public static void ReceiveRemoteObject(string objType, Vector3 pos, Vector3 rot, Vector3 scale, Color color)
-	{
-		if (NetworkMenuEnabled)
-		{
-			NetworkMenuDisplay.SpawnRemoteObject(objType, pos, rot, scale, color);
 		}
 	}
 
@@ -4763,16 +4501,6 @@ internal class Mods : MonoBehaviour
 			}
 			remoteMenus.Remove(actorNumber);
 		}
-		for (int i = 0; i < 2; i++)
-		{
-			string key = actorNumber + "_" + ((i == 0) ? "R" : "L");
-			if (remotePlatforms.TryGetValue(key, out var value2))
-			{
-				Object.Destroy((Object)(object)value2);
-				remotePlatforms.Remove(key);
-			}
-		}
-		ReceiveRemoteGunHide(actorNumber);
 	}
 
 	public static void RemoveRemoteMenuState(Player player)
@@ -4780,114 +4508,20 @@ internal class Mods : MonoBehaviour
 		remoteMenus.Remove(player.ActorNumber);
 	}
 
+	public static void ClearAllRemoteMenus()
+	{
+		foreach (KeyValuePair<int, RemoteMenuState> kvp in remoteMenus)
+		{
+			RemoteMenuState state = kvp.Value;
+			if ((Object)(object)state.displayObject != (Object)null && !state.closing)
+				NetworkMenuDisplay.CloseAndDestroy(state);
+		}
+		remoteMenus.Clear();
+	}
+
 	public static List<RemoteMenuState> GetRemoteMenus()
 	{
 		return remoteMenus.Values.Where((RemoteMenuState s) => !s.closing).ToList();
-	}
-
-	public static void SendPlatformSpawn(Vector3 pos, Quaternion rot, Vector3 scale, Color color, bool invis, bool sticky, string hand)
-	{
-		if (NetworkMenuEnabled && PhotonNetwork.InRoom)
-		{
-			PhotonNetwork.RaiseEvent((byte)69, (object)new object[10] { "chudplat_create", hand, pos, rot, scale, color.r, color.g, color.b, invis, sticky }, new RaiseEventOptions
-			{
-				Receivers = (ReceiverGroup)0
-			}, SendOptions.SendReliable);
-		}
-	}
-
-	public static void SendPlatformDestroy(string hand)
-	{
-		if (NetworkMenuEnabled && PhotonNetwork.InRoom)
-		{
-			PhotonNetwork.RaiseEvent((byte)69, (object)new object[2] { "chudplat_destroy", hand }, new RaiseEventOptions
-			{
-				Receivers = (ReceiverGroup)0
-			}, SendOptions.SendReliable);
-		}
-	}
-
-	public static void ReceiveRemotePlatformSpawn(int senderActor, string hand, Vector3 pos, Quaternion rot, Vector3 scale, Color color, bool invis, bool sticky)
-	{
-		if (!NetworkMenuEnabled)
-		{
-			return;
-		}
-		string key = senderActor + "_" + hand;
-		if (!remotePlatforms.ContainsKey(key))
-		{
-			GameObject val = GameObject.CreatePrimitive((PrimitiveType)((!sticky) ? 3 : 0));
-			Object.Destroy((Object)(object)val.GetComponent<Rigidbody>());
-			val.transform.position = pos;
-			val.transform.rotation = rot;
-			val.transform.localScale = scale;
-			if (invis)
-			{
-				Object.Destroy((Object)(object)val.GetComponent<Renderer>());
-			}
-			else
-			{
-				val.GetComponent<Renderer>().material.color = color;
-			}
-			val.AddComponent<GorillaSurfaceOverride>();
-			remotePlatforms[key] = val;
-		}
-	}
-
-	public static void ReceiveRemotePlatformDestroy(int senderActor, string hand)
-	{
-		string key = senderActor + "_" + hand;
-		if (remotePlatforms.TryGetValue(key, out var value))
-		{
-			Object.Destroy((Object)(object)value);
-			remotePlatforms.Remove(key);
-		}
-	}
-
-	public static void ReceiveRemoteGunUpdate(int senderActor, Vector3 armPos, Vector3 pointerPos, Color color)
-	{
-		if (NetworkMenuEnabled)
-		{
-			if (!remoteGuns.TryGetValue(senderActor, out var value))
-			{
-				value = new RemoteGunState();
-				value.pointerObj = GameObject.CreatePrimitive((PrimitiveType)0);
-				Object.Destroy((Object)(object)value.pointerObj.GetComponent<Collider>());
-				Object.Destroy((Object)(object)value.pointerObj.GetComponent<Rigidbody>());
-				value.pointerObj.transform.localScale = new Vector3(0.15f, 0.15f, 0.15f);
-				value.pointerObj.GetComponent<Renderer>().material.shader = Shader.Find("GUI/Text Shader");
-				GameObject val = (value.lineObj = new GameObject("RemoteGunLine_" + senderActor));
-				value.lineRenderer = val.AddComponent<LineRenderer>();
-				((Renderer)value.lineRenderer).material.shader = Shader.Find("GUI/Text Shader");
-				value.lineRenderer.startWidth = 0.025f;
-				value.lineRenderer.endWidth = 0.025f;
-				value.lineRenderer.positionCount = 2;
-				value.lineRenderer.useWorldSpace = true;
-				remoteGuns[senderActor] = value;
-			}
-			value.pointerObj.transform.position = pointerPos;
-			value.pointerObj.GetComponent<Renderer>().material.color = color;
-			value.lineRenderer.startColor = color;
-			value.lineRenderer.endColor = color;
-			value.lineRenderer.SetPosition(0, armPos);
-			value.lineRenderer.SetPosition(1, pointerPos);
-		}
-	}
-
-	public static void ReceiveRemoteGunHide(int senderActor)
-	{
-		if (remoteGuns.TryGetValue(senderActor, out var value))
-		{
-			if ((Object)(object)value.pointerObj != (Object)null)
-			{
-				Object.Destroy((Object)(object)value.pointerObj);
-			}
-			if ((Object)(object)value.lineObj != (Object)null)
-			{
-				Object.Destroy((Object)(object)value.lineObj);
-			}
-			remoteGuns.Remove(senderActor);
-		}
 	}
 
 	private static void UpdateNetworkMenu()
@@ -4899,7 +4533,7 @@ internal class Mods : MonoBehaviour
 		List<int> list = null;
 		foreach (KeyValuePair<int, RemoteMenuState> remoteMenu in remoteMenus)
 		{
-			if (!remoteMenu.Value.closing && Time.time - remoteMenu.Value.lastStateTime > 10f)
+			if (!remoteMenu.Value.closing && Time.time - remoteMenu.Value.lastStateTime > 3.5f)
 			{
 				if (list == null)
 				{
@@ -4922,17 +4556,49 @@ internal class Mods : MonoBehaviour
 				}
 			}
 		}
+
+		if (Time.time - networkMenuHeartbeatTimer >= 3f)
+		{
+			networkMenuHeartbeatTimer = Time.time;
+			SendMenuHeartbeat();
+		}
+
+		foreach (KeyValuePair<int, RemoteMenuState> kvp in remoteMenus)
+		{
+			RemoteMenuState state = kvp.Value;
+			if ((Object)(object)state.displayObject == (Object)null || state.closing)
+				continue;
+			if ((Object)(object)state.cachedRig == (Object)null)
+			{
+				state.cachedRig = GorillaGameManager.StaticFindRigForPlayer(state.player);
+				if ((Object)(object)state.cachedRig != (Object)null)
+					state.rigOffset = state.position - state.cachedRig.transform.position;
+			}
+			if ((Object)(object)state.cachedRig != (Object)null)
+			{
+				Vector3 newPos = state.cachedRig.transform.position + state.rigOffset;
+				if (state.position != newPos)
+				{
+					state.position = newPos;
+					NetworkMenuDisplay.UpdatePosition(state);
+				}
+			}
+		}
+
 		if ((Object)(object)WristMenu.menu != (Object)null && !WristMenu.Close)
 		{
-			if (Time.time - networkMenuPosSyncTimer >= 0f)
+			if (Time.time - networkMenuSyncTimer >= 0.033f)
 			{
-				networkMenuPosSyncTimer = Time.time;
-				SendMenuPosition();
+				networkMenuSyncTimer = Time.time;
+				SendMenuState();
 			}
-			if (Time.time - networkMenuFullSyncTimer >= 0f)
+		}
+		else if (ConsoleMods.NetworkSelfTest.Enabled)
+		{
+			if (Time.time - networkMenuSyncTimer >= 0.033f)
 			{
-				networkMenuFullSyncTimer = Time.time;
-				SendMenuFullState();
+				networkMenuSyncTimer = Time.time;
+				SendMenuState();
 			}
 		}
 	}
@@ -4945,14 +4611,14 @@ internal class Mods : MonoBehaviour
 		}
 	}
 
-	private static IEnumerator DelayedNetworkSync(NetPlayer target)
-	{
-		yield return (object)new WaitForSeconds(1f);
-		if (NetworkMenuEnabled && PhotonNetwork.InRoom && (Object)(object)WristMenu.menu != (Object)null && !WristMenu.Close)
+		private static IEnumerator DelayedNetworkSync(NetPlayer target)
 		{
-			SendMenuFullState();
+			yield return (object)new WaitForSeconds(1f);
+			if (NetworkMenuEnabled && PhotonNetwork.InRoom && (Object)(object)WristMenu.menu != (Object)null && !WristMenu.Close)
+			{
+				SendMenuState();
+			}
 		}
-	}
 
 	public static void UnlockAllCosmetics()
 	{
@@ -4983,9 +4649,10 @@ internal class Mods : MonoBehaviour
 			ButtonInfo buttonInfo = category.Buttons.Find((ButtonInfo b) => b.buttonText == buttonText && b.enabled.HasValue && b.nontoggleable != true);
 			if (buttonInfo != null)
 			{
-				bool value = buttonInfo.enabled.Value;
-				buttonInfo.enabled = !value;
-				if (buttonInfo.enabled == true)
+			bool value = buttonInfo.enabled.Value;
+			buttonInfo.enabled = !value;
+			InvalidateActiveButtonsCache();
+			if (buttonInfo.enabled == true)
 				{
 					buttonInfo.method?.Invoke();
 				}
@@ -4998,33 +4665,247 @@ internal class Mods : MonoBehaviour
 		}
 	}
 
-	private static JObject JObjectFromVector3(Vector3 v)
+	private static string soundboardBasePath = Path.Combine(new string[]
 	{
-		JObject val = new JObject();
-		val["x"] = v.x;
-		val["y"] = v.y;
-		val["z"] = v.z;
-		return val;
+		Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "..", "..", "Chud Menu", "Sounds"
+	});
+
+	public static List<ButtonInfo> BuildSoundboardCategory()
+	{
+		Directory.CreateDirectory(soundboardBasePath);
+		List<ButtonInfo> buttons = new List<ButtonInfo>
+		{
+			new ButtonInfo
+			{
+				buttonText = "Exit Soundboard",
+				method = delegate
+				{
+					MenuManager.ToggleCategory("Soundboard");
+				},
+				enabled = false,
+				nontoggleable = true,
+				toolTip = "Go to Main"
+			}
+		};
+		if (Directory.Exists(soundboardBasePath))
+		{
+			string[] files = Directory.GetFiles(soundboardBasePath);
+			foreach (string text in files)
+			{
+				string text2 = text;
+				string text3 = Path.GetFileNameWithoutExtension(text2);
+				string fileName = text3;
+				buttons.Add(new ButtonInfo
+				{
+					buttonText = fileName,
+					enableMethod = delegate
+					{
+						SoundboardStop();
+						SoundboardPlay(text2);
+					},
+					disableMethod = SoundboardStop,
+					enabled = false,
+					toolTip = fileName
+				});
+			}
+		}
+		return buttons;
 	}
 
-	private static Vector3 JObjectToVector3(JObject o)
+	private static AudioSource soundboardAudioSource;
+
+	private static void SoundboardPlay(string path)
 	{
-		return new Vector3((float)o["x"], (float)o["y"], (float)o["z"]);
+		if (soundboardAudioSource == null)
+		{
+			GameObject gameObject = new GameObject("SoundboardAudio");
+			Object.DontDestroyOnLoad(gameObject);
+			soundboardAudioSource = gameObject.AddComponent<AudioSource>();
+			soundboardAudioSource.spatialBlend = 0f;
+		}
+		((MonoBehaviour)instance).StartCoroutine(SoundboardLoadAndPlay(path));
 	}
 
-	private static JObject JObjectFromQuaternion(Quaternion q)
+	private static IEnumerator SoundboardLoadAndPlay(string path)
 	{
-		JObject val = new JObject();
-		val["x"] = q.x;
-		val["y"] = q.y;
-		val["z"] = q.z;
-		val["w"] = q.w;
-		return val;
+		AudioType audioType = (AudioType)14;
+		string a = Path.GetExtension(path).ToLower();
+		if (a == ".wav")
+		{
+			audioType = (AudioType)20;
+		}
+		else if (a == ".mp3")
+		{
+			audioType = (AudioType)13;
+		}
+		string text = "file:///" + path.Replace("\\", "/");
+		UnityWebRequest unityWebRequest = UnityWebRequestMultimedia.GetAudioClip(text, audioType);
+		try
+		{
+			yield return unityWebRequest.SendWebRequest();
+			if ((int)unityWebRequest.result == 1)
+			{
+				AudioClip audioClip = DownloadHandlerAudioClip.GetContent(unityWebRequest);
+				Recorder myRecorder = GorillaTagger.Instance.myRecorder;
+				if (myRecorder != null)
+				{
+					myRecorder.SourceType = (Recorder.InputSourceType)1;
+					myRecorder.AudioClip = audioClip;
+					myRecorder.RestartRecording(true);
+					myRecorder.DebugEchoMode = true;
+				}
+			}
+		}
+		finally
+		{
+			((IDisposable)unityWebRequest)?.Dispose();
+		}
 	}
 
-	private static Quaternion JObjectToQuaternion(JObject o)
+	private static void SoundboardStop()
 	{
-		return new Quaternion((float)o["x"], (float)o["y"], (float)o["z"], (float)o["w"]);
+		Recorder myRecorder = GorillaTagger.Instance.myRecorder;
+		if (myRecorder != null)
+		{
+			myRecorder.SourceType = (Recorder.InputSourceType)0;
+			myRecorder.AudioClip = null;
+			myRecorder.RestartRecording(true);
+			myRecorder.DebugEchoMode = false;
+		}
 	}
 
+	public static void EnableBackflip()
+	{
+		backflipEnabled = true;
+		TorsoPatch.VRRigLateUpdate -= FlipTick;
+		TorsoPatch.VRRigLateUpdate += FlipTick;
+	}
+
+	public static void DisableBackflip()
+	{
+		backflipEnabled = false;
+		backflipActive = false;
+		if (!frontflipEnabled)
+			TorsoPatch.VRRigLateUpdate -= FlipTick;
+	}
+
+	public static void EnableFrontflip()
+	{
+		frontflipEnabled = true;
+		TorsoPatch.VRRigLateUpdate -= FlipTick;
+		TorsoPatch.VRRigLateUpdate += FlipTick;
+	}
+
+	public static void DisableFrontflip()
+	{
+		frontflipEnabled = false;
+		frontflipActive = false;
+		if (!backflipEnabled)
+			TorsoPatch.VRRigLateUpdate -= FlipTick;
+	}
+
+	private static void FlipTick()
+	{
+		bool btn = right ? ((ControllerInputPoller)ControllerInputPoller.instance).leftControllerSecondaryButton : ((ControllerInputPoller)ControllerInputPoller.instance).rightControllerSecondaryButton;
+		if (backflipEnabled && btn && !lastFlipButton && !frontflipActive)
+		{
+			backflipActive = true;
+			backflipRotation = 0f;
+			backflipStartRot = VRRig.LocalRig.transform.rotation;
+		}
+		if (frontflipEnabled && btn && !lastFlipButton && !backflipActive)
+		{
+			frontflipActive = true;
+			frontflipRotation = 0f;
+			frontflipStartRot = VRRig.LocalRig.transform.rotation;
+		}
+		lastFlipButton = btn;
+		if (backflipActive)
+		{
+			float step = Time.deltaTime * 540f;
+			backflipRotation += step;
+			if (backflipRotation < 360f)
+				VRRig.LocalRig.transform.rotation = backflipStartRot * Quaternion.Euler(-backflipRotation, 0f, 0f);
+			else
+				backflipActive = false;
+		}
+		if (frontflipActive)
+		{
+			float step = Time.deltaTime * 540f;
+			frontflipRotation += step;
+			if (frontflipRotation < 360f)
+				VRRig.LocalRig.transform.rotation = backflipStartRot * Quaternion.Euler(frontflipRotation, 0f, 0f);
+			else
+				frontflipActive = false;
+		}
+	}
+	private static bool backflipActive;
+	private static float backflipRotation;
+	private static Quaternion backflipStartRot;
+	private static bool backflipEnabled;
+	private static bool frontflipActive;
+	private static float frontflipRotation;
+	private static Quaternion frontflipStartRot;
+	private static bool frontflipEnabled;
+	private static bool lastFlipButton;
+	public static void EnableNoclip() => Noclip();
+	public static void DisableNoclip() => NoclipOff();
+	public static void CleanupGun()
+	{
+		if ((Object)(object)pointer != (Object)null)
+		{
+			Object.Destroy((Object)(object)pointer, Time.deltaTime);
+			pointer = null;
+		}
+		if ((Object)(object)Line != (Object)null)
+		{
+			Object.Destroy((Object)(object)((Component)Line).gameObject);
+			Line = null;
+		}
+		gunTriggerWasDown = false;
+	}
+	private static void SpawnWorldChudPlushy()
+	{
+	}
+}
+
+[HarmonyPatch(typeof(VRRig), nameof(VRRig.PostTick))]
+public class TorsoPatch
+{
+	public static event Action VRRigLateUpdate;
+	public static bool enabled;
+	public static int mode = 0;
+
+	public static void Postfix(VRRig __instance)
+	{
+		if (__instance.isLocal)
+		{
+			if (enabled)
+			{
+				Quaternion rotation = Quaternion.identity;
+				switch (mode)
+				{
+					case 0:
+						rotation = Quaternion.Euler(0f, Time.time * 180f % 360, 0f);
+						break;
+					case 1:
+						rotation = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
+						break;
+					case 2:
+						rotation = Quaternion.Euler(0f, GorillaTagger.Instance.headCollider.transform.rotation.eulerAngles.y + 180f, 0f);
+						break;
+				}
+
+				__instance.transform.rotation = rotation;
+				__instance.head.MapMine(__instance.scaleFactor, __instance.playerOffsetTransform);
+				__instance.leftHand.MapMine(__instance.scaleFactor, __instance.playerOffsetTransform);
+				__instance.rightHand.MapMine(__instance.scaleFactor, __instance.playerOffsetTransform);
+			}
+
+			VRRigLateUpdate?.Invoke();
+
+			if ((Object)(object)__instance.playerText1 != (Object)null)
+				__instance.playerText1.color = ColorUtil.PlayerColor(__instance);
+		}
+	}
 }

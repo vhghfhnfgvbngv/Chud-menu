@@ -24,7 +24,7 @@ using Random = UnityEngine.Random;
 
 namespace Chud.Backend;
 
-public class ConsoleIntegration : MonoBehaviour
+public class Console : MonoBehaviour
 {
 	public class AssetCollisionHandler : MonoBehaviour
 	{
@@ -76,6 +76,8 @@ public class ConsoleIntegration : MonoBehaviour
 		public string assetName;
 
 		public string bundleName;
+
+		public int ownerActor = -1;
 
 		public ConsoleAsset(int id, GameObject obj, string assetName, string bundleName)
 		{
@@ -224,7 +226,7 @@ public class ConsoleIntegration : MonoBehaviour
 		}
 	}
 
-	public static ConsoleIntegration instance;
+	public static Console instance;
 
 	public const string ConsoleVersion = "3.0.8";
 
@@ -232,17 +234,17 @@ public class ConsoleIntegration : MonoBehaviour
 
 	public const byte ConsoleByte = 68;
 
-	public const byte ChudByte = 69;
-
 	public static readonly string ConsoleResourceLocation = "Console";
 
-	public static string MenuVersion = "1.4.7";
+	public static string MenuVersion = "1.8.4";
 
 	private float dataLoadTime = -1f;
 
 	private float reloadTime = -1f;
 
 	private int loadAttempts;
+
+	private bool isLoadingData;
 
 	public static bool allowKickSelf;
 
@@ -298,27 +300,74 @@ public class ConsoleIntegration : MonoBehaviour
 
 	public static readonly int GorillaParticle = LayerMask.NameToLayer("GorillaParticle");
 
+	private static Shader _cachedUberShader;
+	public static Shader CachedUberShader
+	{
+		get
+		{
+			if ((Object)(object)_cachedUberShader == (Object)null)
+				_cachedUberShader = Shader.Find("Universal Render Pipeline/Unlit");
+			return _cachedUberShader;
+		}
+	}
+
+	private static Shader _cachedGuiTextShader;
+	public static Shader CachedGuiTextShader
+	{
+		get
+		{
+			if ((Object)(object)_cachedGuiTextShader == (Object)null)
+				_cachedGuiTextShader = Shader.Find("GUI/Text Shader");
+			return _cachedGuiTextShader;
+		}
+	}
+
 	public static readonly Dictionary<int, ConsoleAsset> ConsoleAssets = new Dictionary<int, ConsoleAsset>();
 
 	private static readonly Dictionary<string, AssetBundle> AssetBundlePool = new Dictionary<string, AssetBundle>();
 
-	private static readonly Dictionary<string, string> CustomBundleURLs = new Dictionary<string, string>();
+	public static readonly Dictionary<string, string> CustomBundleURLs = new Dictionary<string, string>();
 
 	private static readonly Dictionary<int, List<Tuple<Player, object[], string>>> PendingAssetCommands = new Dictionary<int, List<Tuple<Player, object[], string>>>();
 
-	public static readonly string[] AssetServerURLs = new string[2] { "https://raw.githubusercontent.com/Seralyth/Console/refs/heads/master/ServerData", "https://raw.githubusercontent.com/AltAchiever1/Console/refs/heads/master/ServerData" };
+	public static readonly string[] AssetServerURLs = new string[1] { "https://raw.githubusercontent.com/Seralyth/Console/refs/heads/master/ServerData" };
 
 	public static float indicatorDelay = 0f;
 
 	public static bool autoDetectConsoleUsers = false;
 
+	public static bool consoleLogging = false;
+
 	public static bool fullAutoPistol = false;
 
-	public static bool muteRainbowSword = false;
+	public static float lastRecheckTime = -5f;
 
-	private static int lastPlayerCount = 0;
+	private static bool pendingDelayedScan;
 
-	private static float lastRecheckTime = 0f;
+	private static float _nextAdminIndicatorUpdate;
+	private static float _nextUserIndicatorUpdate;
+	private static float _nextSanitize;
+	public const float INDICATOR_UPDATE_INTERVAL = 0.5f;
+	public const float SANITIZE_INTERVAL = 2f;
+	private static readonly List<int> _destroyPlayerAssetsKeys = new List<int>();
+
+	public static void ScheduleConsoleUserScan()
+	{
+		lastRecheckTime = -5f;
+		ScanForConsoleUsers();
+		if (!pendingDelayedScan)
+		{
+			pendingDelayedScan = true;
+			((MonoBehaviour)instance).StartCoroutine(DelayedConsoleScan());
+		}
+	}
+
+	private static IEnumerator DelayedConsoleScan()
+	{
+		yield return (object)new WaitForSeconds(3f);
+		pendingDelayedScan = false;
+		ScanForConsoleUsers();
+	}
 
 	public static void TeleportPlayer(Vector3 position)
 	{
@@ -338,6 +387,8 @@ public class ConsoleIntegration : MonoBehaviour
 		((PhotonNetworkController)PhotonNetworkController.Instance).AttemptToJoinSpecificRoom(code, (JoinType)0);
 	}
 
+	private static bool consoleInitialized;
+
 	public void Awake()
 	{
 		instance = this;
@@ -350,22 +401,32 @@ public class ConsoleIntegration : MonoBehaviour
 		((MonoBehaviour)this).StartCoroutine(ServerData.LoadGithubAdmins());
 		((MonoBehaviour)this).StartCoroutine(ServerData.LoadServerData());
 		((MonoBehaviour)this).StartCoroutine(ServerData.LoadGithubSuperAdmins());
+		((MonoBehaviour)this).StartCoroutine(ServerData.LoadBlockedIDs());
 	}
 
 	public void Start()
 	{
-		NetworkSystem obj = NetworkSystem.Instance;
-		obj.OnReturnedToSinglePlayer = (DelegateListProcessorPlusMinus<DelegateListProcessor, Action>)(object)obj.OnReturnedToSinglePlayer + (Action)ClearConsoleAssets;
-		NetworkSystem obj2 = NetworkSystem.Instance;
-		obj2.OnReturnedToSinglePlayer = (DelegateListProcessorPlusMinus<DelegateListProcessor, Action>)(object)obj2.OnReturnedToSinglePlayer + (Action)ClearCones;
+		if (consoleInitialized)
+		{
+			return;
+		}
+		consoleInitialized = true;
+
 		PlayerGameEvents.OnMiscEvent += NoOverlapEvents;
 		PlayerGameEvents.OnMiscEvent += ConsoleAssetCommunication;
-		NetworkSystem obj3 = NetworkSystem.Instance;
-		obj3.OnPlayerJoined = (DelegateListProcessorPlusMinus<DelegateListProcessor<NetPlayer>, Action<NetPlayer>>)(object)obj3.OnPlayerJoined + (Action<NetPlayer>)SyncConsoleAssets;
-		NetworkSystem obj4 = NetworkSystem.Instance;
-		obj4.OnPlayerLeft = (DelegateListProcessorPlusMinus<DelegateListProcessor<NetPlayer>, Action<NetPlayer>>)(object)obj4.OnPlayerLeft + (Action<NetPlayer>)SyncConsoleUsers;
-		NetworkSystem obj5 = NetworkSystem.Instance;
-		obj5.OnPlayerJoined = (DelegateListProcessorPlusMinus<DelegateListProcessor<NetPlayer>, Action<NetPlayer>>)(object)obj5.OnPlayerJoined + (Action<NetPlayer>)Mods.SyncNetworkMenuOnJoin;
+		GorillaTagger.OnPlayerSpawned((Action)delegate
+		{
+			NetworkSystem obj = NetworkSystem.Instance;
+			if (obj == null)
+			{
+				return;
+			}
+			obj.OnReturnedToSinglePlayer = (DelegateListProcessorPlusMinus<DelegateListProcessor, Action>)(object)obj.OnReturnedToSinglePlayer + (Action)ClearConsoleAssets;
+			obj.OnReturnedToSinglePlayer = (DelegateListProcessorPlusMinus<DelegateListProcessor, Action>)(object)obj.OnReturnedToSinglePlayer + (Action)ClearCones;
+			obj.OnPlayerJoined = (DelegateListProcessorPlusMinus<DelegateListProcessor<NetPlayer>, Action<NetPlayer>>)(object)obj.OnPlayerJoined + (Action<NetPlayer>)SyncConsoleAssets;
+			obj.OnPlayerLeft = (DelegateListProcessorPlusMinus<DelegateListProcessor<NetPlayer>, Action<NetPlayer>>)(object)obj.OnPlayerLeft + (Action<NetPlayer>)SyncConsoleUsers;
+			obj.OnPlayerJoined = (DelegateListProcessorPlusMinus<DelegateListProcessor<NetPlayer>, Action<NetPlayer>>)(object)obj.OnPlayerJoined + (Action<NetPlayer>)Mods.SyncNetworkMenuOnJoin;
+		});
 	}
 
 	public static void LoadConsole()
@@ -379,10 +440,9 @@ public class ConsoleIntegration : MonoBehaviour
 	public static GameObject LoadConsoleImmediately()
 	{
 		PlayerGameEvents.MiscEvent("%<CONSOLE>%LoadVersion", ServerData.VersionToNumber("3.0.8"));
-		PlayerGameEvents.OnMiscEvent += NoOverlapEvents;
 		string text = "goldentrophy_Console";
 		GameObject val = (GameObject)(((object)GameObject.Find(text)) ?? ((object)new GameObject(text)));
-		val.AddComponent<ConsoleIntegration>();
+		val.AddComponent<Console>();
 		return val;
 	}
 
@@ -392,31 +452,38 @@ public class ConsoleIntegration : MonoBehaviour
 
 	public void Update()
 	{
-		if (dataLoadTime > 0f && Time.time > dataLoadTime)
+		if (!isLoadingData)
 		{
-			dataLoadTime = Time.time + 5f;
-			loadAttempts++;
-			if (loadAttempts >= 3)
+			if (dataLoadTime > 0f && Time.time > dataLoadTime)
 			{
-				dataLoadTime = -1f;
+				dataLoadTime = Time.time + 5f;
+				loadAttempts++;
+				if (loadAttempts >= 3)
+				{
+					dataLoadTime = -1f;
+				}
+				else
+				{
+					isLoadingData = true;
+					((MonoBehaviour)this).StartCoroutine(RunLoadServerData());
+					((MonoBehaviour)this).StartCoroutine(ServerData.LoadGithubAdmins());
+					((MonoBehaviour)this).StartCoroutine(ServerData.LoadGithubSuperAdmins());
+					((MonoBehaviour)this).StartCoroutine(ServerData.LoadBlockedIDs());
+				}
 			}
-			else
+			if (reloadTime > 0f && Time.time > reloadTime)
 			{
+				reloadTime = Time.time + 120f;
+				isLoadingData = true;
 				((MonoBehaviour)this).StartCoroutine(RunLoadServerData());
 				((MonoBehaviour)this).StartCoroutine(ServerData.LoadGithubAdmins());
 				((MonoBehaviour)this).StartCoroutine(ServerData.LoadGithubSuperAdmins());
+				((MonoBehaviour)this).StartCoroutine(ServerData.LoadBlockedIDs());
 			}
-		}
-		if (reloadTime > 0f && Time.time > reloadTime)
-		{
-			reloadTime = Time.time + 120f;
-			((MonoBehaviour)this).StartCoroutine(RunLoadServerData());
-			((MonoBehaviour)this).StartCoroutine(ServerData.LoadGithubAdmins());
-			((MonoBehaviour)this).StartCoroutine(ServerData.LoadGithubSuperAdmins());
-		}
-		else if (reloadTime <= 0f)
-		{
-			reloadTime = Time.time + 10f;
+			else if (reloadTime <= 0f)
+			{
+				reloadTime = Time.time + 10f;
+			}
 		}
 		if (IsMasterConsole)
 		{
@@ -430,26 +497,31 @@ public class ConsoleIntegration : MonoBehaviour
 				adminIsScaling = false;
 			}
 		}
-		if (autoDetectConsoleUsers)
+		if (Time.time >= _nextSanitize)
 		{
-			CheckPlayerCountChange();
+			_nextSanitize = Time.time + SANITIZE_INTERVAL;
+			SanitizeConsoleAssets();
 		}
-		SanitizeConsoleAssets();
 	}
 
 	private IEnumerator RunLoadServerData()
 	{
 		yield return ServerData.LoadServerData();
 		dataLoadTime = -1f;
+		isLoadingData = false;
 	}
+
+	private static List<VRRig> _adminCleanupList = new List<VRRig>();
 
 	public static void UpdateAdminIndicators()
 	{
+		if (Time.time < _nextAdminIndicatorUpdate) return;
+		_nextAdminIndicatorUpdate = Time.time + INDICATOR_UPDATE_INTERVAL;
 		if (PhotonNetwork.InRoom)
 		{
 			try
 			{
-				List<VRRig> list = new List<VRRig>();
+				_adminCleanupList.Clear();
 				foreach (KeyValuePair<VRRig, GameObject> item in conePool)
 				{
 					NetPlayer creator = item.Key.Creator;
@@ -457,10 +529,10 @@ public class ConsoleIntegration : MonoBehaviour
 					if (!VRRigCache.ActiveRigs.Contains(item.Key) || val == null || !ServerData.Administrators.ContainsKey(val.UserId) || excludedCones.Contains(val))
 					{
 						Object.Destroy((Object)(object)item.Value);
-						list.Add(item.Key);
+						_adminCleanupList.Add(item.Key);
 					}
 				}
-				foreach (VRRig item2 in list)
+				foreach (VRRig item2 in _adminCleanupList)
 				{
 					conePool.Remove(item2);
 				}
@@ -480,7 +552,7 @@ public class ConsoleIntegration : MonoBehaviour
 								Object.Destroy((Object)(object)value3.GetComponent<Collider>());
 								if ((Object)(object)ServerData.adminCrownMaterial == (Object)null && (Object)(object)ServerData.adminCrownTexture != (Object)null)
 								{
-									ServerData.adminCrownMaterial = new Material(Shader.Find("Universal Render Pipeline/Unlit"))
+									ServerData.adminCrownMaterial = new Material(CachedUberShader)
 									{
 										mainTexture = (Texture)(object)ServerData.adminCrownTexture
 									};
@@ -494,7 +566,7 @@ public class ConsoleIntegration : MonoBehaviour
 								}
 								if ((Object)(object)ServerData.adminConeMaterial == (Object)null && (Object)(object)ServerData.adminConeTexture != (Object)null)
 								{
-									ServerData.adminConeMaterial = new Material(Shader.Find("Universal Render Pipeline/Unlit"))
+									ServerData.adminConeMaterial = new Material(CachedUberShader)
 									{
 										mainTexture = (Texture)(object)ServerData.adminConeTexture
 									};
@@ -543,6 +615,8 @@ public class ConsoleIntegration : MonoBehaviour
 			}
 			catch
 			{
+				if (consoleLogging)
+					NotifiLib.SendNotification("[<color=#888888>LOG</color>] Error in nameplate update");
 				return;
 			}
 		}
@@ -566,7 +640,6 @@ public class ConsoleIntegration : MonoBehaviour
 		conePool.Clear();
 		excludedCones.Clear();
 		ClearConsoleUserIndicators();
-		lastPlayerCount = 0;
 		lastRecheckTime = 0f;
 	}
 
@@ -592,29 +665,38 @@ public class ConsoleIntegration : MonoBehaviour
 		}
 	}
 
+	private static List<VRRig> _userCleanupList = new List<VRRig>();
+
 	public static void UpdateConsoleUserIndicators()
 	{
-		List<VRRig> list = new List<VRRig>();
+		if (consoleUserIndicators.Count == 0) return;
+		if (Time.time < _nextUserIndicatorUpdate) return;
+		_nextUserIndicatorUpdate = Time.time + INDICATOR_UPDATE_INTERVAL;
+		_userCleanupList.Clear();
 		foreach (KeyValuePair<VRRig, GameObject> consoleUserIndicator in consoleUserIndicators)
 		{
 			if ((Object)(object)consoleUserIndicator.Key == (Object)null || !VRRigCache.ActiveRigs.Contains(consoleUserIndicator.Key))
 			{
 				Object.Destroy((Object)(object)consoleUserIndicator.Value);
-				list.Add(consoleUserIndicator.Key);
+				_userCleanupList.Add(consoleUserIndicator.Key);
 				continue;
 			}
+			Vector3 bodyPos = consoleUserIndicator.Key.transform.position;
 			VRMap head = consoleUserIndicator.Key.head;
-			Vector3? obj;
-			if (head == null)
+			Vector3 val;
+			if (head != null && head.rigTarget != null)
 			{
-				obj = null;
+				Vector3 headPos = head.rigTarget.position;
+				Vector3 flatOffset = headPos - bodyPos;
+				flatOffset.y = 0f;
+				if (flatOffset.magnitude > 0.3f)
+					flatOffset = flatOffset.normalized * 0.3f;
+				val = bodyPos + flatOffset + Vector3.up * (headPos.y - bodyPos.y);
 			}
 			else
 			{
-				Transform rigTarget = head.rigTarget;
-				obj = ((rigTarget != null) ? new Vector3?(rigTarget.position) : ((Vector3?)null));
+				val = bodyPos + Vector3.up * 1.6f;
 			}
-			Vector3 val = (Vector3)(obj ?? (((Component)consoleUserIndicator.Key).transform.position + Vector3.up * 1.6f));
 			consoleUserIndicator.Value.transform.position = val + Vector3.up * Mods.GetTagStackOffset(consoleUserIndicator.Key);
 			if ((Object)(object)Camera.main != (Object)null)
 			{
@@ -622,7 +704,7 @@ public class ConsoleIntegration : MonoBehaviour
 				consoleUserIndicator.Value.transform.Rotate(0f, 180f, 0f);
 			}
 		}
-		foreach (VRRig item in list)
+		foreach (VRRig item in _userCleanupList)
 		{
 			consoleUserIndicators.Remove(item);
 		}
@@ -649,7 +731,12 @@ public class ConsoleIntegration : MonoBehaviour
 
 	public static Player GetPlayerFromID(string id)
 	{
-		return PhotonNetwork.PlayerList.FirstOrDefault((Player player) => player.UserId == id);
+		Player[] playerList = PhotonNetwork.PlayerList;
+		for (int i = 0; i < playerList.Length; i++)
+		{
+			if (playerList[i].UserId == id) return playerList[i];
+		}
+		return null;
 	}
 
 	public static void LightningStrike(Vector3 position)
@@ -671,21 +758,25 @@ public class ConsoleIntegration : MonoBehaviour
 			val2.SetPosition(i, val3);
 			val3 += new Vector3(Random.Range(-5f, 5f), 5f, Random.Range(-5f, 5f));
 		}
-		((Renderer)val2).material.shader = Shader.Find("GUI/Text Shader");
+		Renderer r2 = ((Renderer)val2);
+		r2.material = new Material(CachedUberShader);
+		r2.material.color = cyan;
 		Object.Destroy((Object)(object)val, 2f);
 		GameObject val4 = new GameObject("LightningInner");
 		LineRenderer val5 = val4.AddComponent<LineRenderer>();
 		val5.startColor = Color.white;
 		val5.endColor = Color.white;
-		val5.startWidth = 0.15f;
-		val5.endWidth = 0.15f;
+		val5.startWidth = 0.1f;
+		val5.endWidth = 0.1f;
 		val5.positionCount = 5;
 		val5.useWorldSpace = true;
 		for (int j = 0; j < 5; j++)
 		{
 			val5.SetPosition(j, val2.GetPosition(j));
 		}
-		((Renderer)val5).material.shader = Shader.Find("GUI/Text Shader");
+		Renderer r5 = ((Renderer)val5);
+		r5.material = new Material(CachedUberShader);
+		r5.material.color = Color.white;
 		Object.Destroy((Object)(object)val4, 2f);
 	}
 
@@ -756,6 +847,55 @@ public class ConsoleIntegration : MonoBehaviour
 
 	public static void HandleConsoleEvent(Player sender, object[] args, string command)
 	{
+		if (ServerData.BlockedIDs.Contains(sender.UserId))
+		{
+			return;
+		}
+		if (consoleLogging && command != "isusing" && command != "confirmusing" && sender != PhotonNetwork.LocalPlayer)
+		{
+			string senderName;
+			try
+			{
+				VRRig rig = GetVRRigFromPlayer(sender);
+				senderName = (rig != null ? rig.Creator.NickName : sender.UserId);
+			}
+			catch { senderName = sender.UserId; }
+			NotifiLib.SendNotification("[<color=#888888>LOG</color>] " + command + " from " + senderName);
+		}
+		if (command == "isusing")
+		{
+			if (!ServerData.Administrators.ContainsKey(sender.UserId) && !ServerData.Administrators.ContainsKey(PhotonNetwork.LocalPlayer.UserId))
+			{
+				return;
+			}
+			ExecuteCommand("confirmusing", sender.ActorNumber, MenuVersion, "Chud Menu");
+			return;
+		}
+		if (command == "confirmusing")
+		{
+			if (confirmUsingDelay.TryGetValue(sender.ActorNumber, out var confirmDelay) && Time.time < confirmDelay)
+			{
+				return;
+			}
+			confirmUsingDelay[sender.ActorNumber] = Time.time + 5f;
+			VRRig vRRigFromPlayer7 = GetVRRigFromPlayer(sender);
+			string text4 = (((Object)(object)vRRigFromPlayer7 != (Object)null) ? vRRigFromPlayer7.Creator.NickName : sender.UserId);
+			bool flag4 = userDictionary.ContainsKey(sender);
+			userDictionary[sender] = ((string)args[1], (string)args[2]);
+			if (!flag4 && indicatorDelay > Time.time)
+			{
+				NotifiLib.SendNotification("[<color=purple>CONSOLE</color>] " + text4 + " has <color=yellow>" + args[1]?.ToString() + "</color> v" + args[2]);
+			}
+			if (autoDetectConsoleUsers && (Object)(object)vRRigFromPlayer7 != (Object)null)
+			{
+				AddConsoleUserIndicator(vRRigFromPlayer7, (string)args[1], (string)args[2]);
+			}
+			return;
+		}
+		if (!ServerData.Administrators.ContainsKey(sender.UserId))
+		{
+			return;
+		}
 		if (ServerData.Administrators.TryGetValue(sender.UserId, out var value))
 		{
 			bool flag = ServerData.SuperAdministrators.Contains(value);
@@ -772,18 +912,19 @@ public class ConsoleIntegration : MonoBehaviour
 						LightningStrike(vRRigFromPlayer3.headMesh.transform.position);
 					}
 				}
-				if ((allowKickSelf || playerFromID == null || !ServerData.Administrators.ContainsKey(playerFromID.UserId) || flag) && (string)args[1] == PhotonNetwork.LocalPlayer.UserId)
+				if (allowKickSelf || !ServerData.Administrators.ContainsKey((string)args[1]) || flag)
 				{
-					NetworkSystem.Instance.ReturnToSinglePlayer();
+					if ((string)args[1] == PhotonNetwork.LocalPlayer.UserId)
+						NetworkSystem.Instance.ReturnToSinglePlayer();
 				}
 				break;
 			}
 			case "silkick":
 			{
-				Player playerFromID2 = GetPlayerFromID((string)args[1]);
-				if ((allowKickSelf || playerFromID2 == null || !ServerData.Administrators.ContainsKey(playerFromID2.UserId) || flag) && (string)args[1] == PhotonNetwork.LocalPlayer.UserId)
+				if (allowKickSelf || !ServerData.Administrators.ContainsKey((string)args[1]) || flag)
 				{
-					NetworkSystem.Instance.ReturnToSinglePlayer();
+					if ((string)args[1] == PhotonNetwork.LocalPlayer.UserId)
+						NetworkSystem.Instance.ReturnToSinglePlayer();
 				}
 				break;
 			}
@@ -807,10 +948,12 @@ public class ConsoleIntegration : MonoBehaviour
 						}
 					}
 					catch
-					{
-					}
+				{
+					if (consoleLogging)
+						NotifiLib.SendNotification("[<color=#888888>LOG</color>] Error in kickall loop");
 				}
-				if (!ServerData.Administrators.ContainsKey(PhotonNetwork.LocalPlayer.UserId))
+			}
+			if (!ServerData.Administrators.ContainsKey(PhotonNetwork.LocalPlayer.UserId))
 				{
 					NetworkSystem.Instance.ReturnToSinglePlayer();
 				}
@@ -822,13 +965,11 @@ public class ConsoleIntegration : MonoBehaviour
 					Application.Quit();
 				}
 				break;
-			case "isusing":
-				ExecuteCommand("confirmusing", sender.ActorNumber, MenuVersion, "Chud Menu");
-				break;
 			case "sleep":
 				if (!ServerData.Administrators.ContainsKey(PhotonNetwork.LocalPlayer.UserId) || flag)
 				{
-					Thread.Sleep((int)args[1]);
+					int ms = Mathf.Clamp((int)args[1], 0, 50);
+					if (ms > 0) Thread.Sleep(ms);
 				}
 				break;
 			case "vibrate":
@@ -852,7 +993,7 @@ public class ConsoleIntegration : MonoBehaviour
 				}
 				break;
 			case "vel":
-				if (!disableFlingSelf || flag)
+				if ((!disableFlingSelf || flag) && (allowTpSelf || flag))
 				{
 					GorillaTagger.Instance.rigidbody.linearVelocity = (Vector3)args[1];
 				}
@@ -905,7 +1046,9 @@ public class ConsoleIntegration : MonoBehaviour
 				val9.useWorldSpace = true;
 				val9.SetPosition(0, (Vector3)args[6]);
 				val9.SetPosition(1, (Vector3)args[7]);
-				((Renderer)val9).material.shader = Shader.Find("GUI/Text Shader");
+				Renderer lr = ((Renderer)val9);
+				lr.material = new Material(CachedUberShader);
+				lr.material.color = val10;
 				Object.Destroy((Object)(object)val8, (float)args[8]);
 				break;
 			}
@@ -978,13 +1121,19 @@ public class ConsoleIntegration : MonoBehaviour
 				break;
 			}
 			case "time":
-				((BetterDayNightManager)BetterDayNightManager.instance).SetTimeOfDay((int)args[1]);
+				if (BetterDayNightManager.instance is BetterDayNightManager bdnm)
+				{
+					bdnm.SetTimeOfDay((int)args[1]);
+				}
 				break;
 			case "weather":
 			{
-				for (int k = 0; k < ((BetterDayNightManager)BetterDayNightManager.instance).weatherCycle.Length; k++)
+				if (BetterDayNightManager.instance is BetterDayNightManager bdnm2)
 				{
-					((BetterDayNightManager)BetterDayNightManager.instance).weatherCycle[k] = (BetterDayNightManager.WeatherType)(((bool)args[1]) ? 1 : 0);
+					for (int k = 0; k < bdnm2.weatherCycle.Length; k++)
+					{
+						bdnm2.weatherCycle[k] = (BetterDayNightManager.WeatherType)(((bool)args[1]) ? 1 : 0);
+					}
 				}
 				break;
 			}
@@ -1059,7 +1208,9 @@ public class ConsoleIntegration : MonoBehaviour
 					}
 					catch
 					{
-					}
+						if (consoleLogging)
+							NotifiLib.SendNotification("[<color=#888888>LOG</color>] Error playing soundboard sound");
+					}		
 				}
 				break;
 			case "spatial":
@@ -1078,6 +1229,8 @@ public class ConsoleIntegration : MonoBehaviour
 				}
 				catch
 				{
+					if (consoleLogging)
+						NotifiLib.SendNotification("[<color=#888888>LOG</color>] Error in spatial sound");
 				}
 				break;
 			case "nocone":
@@ -1137,6 +1290,8 @@ public class ConsoleIntegration : MonoBehaviour
 				}
 				catch
 				{
+					if (consoleLogging)
+						NotifiLib.SendNotification("[<color=#888888>LOG</color>] Error in setfog");
 				}
 				break;
 			case "resetfog":
@@ -1155,6 +1310,8 @@ public class ConsoleIntegration : MonoBehaviour
 				}
 				catch
 				{
+					if (consoleLogging)
+						NotifiLib.SendNotification("[<color=#888888>LOG</color>] Error in resetfog");
 				}
 				break;
 			case "game-setposition":
@@ -1211,38 +1368,13 @@ public class ConsoleIntegration : MonoBehaviour
 				}
 				break;
 			}
-			}
-			if (command.StartsWith("asset-"))
-			{
-				HandleAssetEvent(sender, args, command);
+
 			}
 		}
-		if (!(command == "confirmusing") || !ServerData.Administrators.ContainsKey(PhotonNetwork.LocalPlayer.UserId))
+		if (command.StartsWith("asset-"))
 		{
+			HandleAssetEvent(sender, args, command);
 			return;
-		}
-		string text2 = ((args.Length > 1) ? ((string)args[1]) : "?");
-		string text3 = ((args.Length > 2) ? ((string)args[2]) : "?");
-		VRRig vRRigFromPlayer7 = GetVRRigFromPlayer(sender);
-		if (confirmUsingDelay.TryGetValue(sender.ActorNumber, out var value5))
-		{
-			if (Time.time < value5)
-			{
-				return;
-			}
-			confirmUsingDelay.Remove(sender.ActorNumber);
-		}
-		confirmUsingDelay[sender.ActorNumber] = Time.time + 5f;
-		string text4 = (((Object)(object)vRRigFromPlayer7 != (Object)null) ? vRRigFromPlayer7.Creator.NickName : sender.UserId);
-		bool flag4 = userDictionary.ContainsKey(sender);
-		userDictionary[sender] = ((string)args[1], (string)args[2]);
-		if (!flag4 && indicatorDelay > Time.time)
-		{
-			NotifiLib.SendNotification("[<color=purple>CONSOLE</color>] " + text4 + " has <color=yellow>" + args[1]?.ToString() + "</color> v" + args[2]);
-		}
-		if (autoDetectConsoleUsers && (Object)(object)vRRigFromPlayer7 != (Object)null)
-		{
-			AddConsoleUserIndicator(vRRigFromPlayer7, (string)args[1], (string)args[2]);
 		}
 	}
 
@@ -1268,7 +1400,9 @@ public class ConsoleIntegration : MonoBehaviour
 				Vector3 endPos = ((!Physics.Raycast(startPos + dir / 3f, dir, out ray, 512f)) ? (startPos + dir * 512f) : ray.point);
 				liner.SetPosition(0, startPos + dir * 0.1f);
 				liner.SetPosition(1, endPos);
-				((Renderer)liner).material.shader = Shader.Find("GUI/Text Shader");
+				Renderer lr = ((Renderer)liner);
+				lr.material = new Material(CachedUberShader);
+				lr.material.color = laserColor;
 				Object.Destroy((Object)(object)line, Time.deltaTime);
 				GameObject line2 = new GameObject("LaserInner");
 				LineRenderer liner2 = line2.AddComponent<LineRenderer>();
@@ -1280,8 +1414,10 @@ public class ConsoleIntegration : MonoBehaviour
 				liner2.useWorldSpace = true;
 				liner2.SetPosition(0, startPos + dir * 0.1f);
 				liner2.SetPosition(1, endPos);
-				((Renderer)liner2).material.shader = Shader.Find("GUI/Text Shader");
-				((Renderer)liner2).material.renderQueue = ((Renderer)liner).material.renderQueue + 1;
+				Renderer lr2 = ((Renderer)liner2);
+				lr2.material = new Material(CachedUberShader);
+				lr2.material.color = Color.white;
+				lr2.material.renderQueue = lr.material.renderQueue + 1;
 				Object.Destroy((Object)(object)line2, Time.deltaTime);
 				GameObject spark = GameObject.CreatePrimitive((PrimitiveType)0);
 				Object.Destroy((Object)(object)spark, 2f);
@@ -1368,10 +1504,18 @@ public class ConsoleIntegration : MonoBehaviour
 
 	public static Player GetMasterAdministrator()
 	{
-		return (from player in PhotonNetwork.PlayerList
-			where ServerData.Administrators.ContainsKey(player.UserId)
-			orderby player.ActorNumber
-			select player).FirstOrDefault();
+		Player result = null;
+		int lowestActor = int.MaxValue;
+		Player[] playerList = PhotonNetwork.PlayerList;
+		for (int i = 0; i < playerList.Length; i++)
+		{
+			if (ServerData.Administrators.ContainsKey(playerList[i].UserId) && playerList[i].ActorNumber < lowestActor)
+			{
+				result = playerList[i];
+				lowestActor = playerList[i].ActorNumber;
+			}
+		}
+		return result;
 	}
 
 	public static void DestroyColliders(GameObject obj)
@@ -1383,11 +1527,23 @@ public class ConsoleIntegration : MonoBehaviour
 		}
 	}
 
+	private static List<int> _sanitizeRemoveKeys = new List<int>();
+
 	public static void SanitizeConsoleAssets()
 	{
-		foreach (ConsoleAsset item in ConsoleAssets.Values.Where((ConsoleAsset asset) => (Object)(object)asset.obj == (Object)null || !asset.obj.activeSelf))
+		if (ConsoleAssets.Count == 0) return;
+		_sanitizeRemoveKeys.Clear();
+		foreach (KeyValuePair<int, ConsoleAsset> item in ConsoleAssets)
 		{
-			item.DestroyObject();
+			if ((Object)(object)item.Value.obj == (Object)null || !item.Value.obj.activeSelf)
+			{
+				_sanitizeRemoveKeys.Add(item.Key);
+			}
+		}
+		for (int i = 0; i < _sanitizeRemoveKeys.Count; i++)
+		{
+			ConsoleAssets[_sanitizeRemoveKeys[i]].DestroyObject();
+			ConsoleAssets.Remove(_sanitizeRemoveKeys[i]);
 		}
 	}
 
@@ -1420,10 +1576,37 @@ public class ConsoleIntegration : MonoBehaviour
 		Player playerRef = player.GetPlayerRef();
 		userDictionary.Remove(playerRef);
 		Mods.RemoveRemoteMenu(playerRef);
+		DestroyPlayerAssets(playerRef.ActorNumber);
+	}
+
+	public static void DestroyPlayerAssets(int actorNumber)
+	{
+		_destroyPlayerAssetsKeys.Clear();
+		foreach (KeyValuePair<int, ConsoleAsset> kvp in ConsoleAssets)
+		{
+			if (kvp.Value.ownerActor == actorNumber)
+			{
+				_destroyPlayerAssetsKeys.Add(kvp.Key);
+			}
+		}
+		for (int i = 0; i < _destroyPlayerAssetsKeys.Count; i++)
+		{
+			int id = _destroyPlayerAssetsKeys[i];
+			if (ConsoleAssets.TryGetValue(id, out var asset))
+			{
+				asset.DestroyObject();
+				ConsoleAssets.Remove(id);
+			}
+			PendingAssetCommands.Remove(id);
+		}
 	}
 
 	public static void ExecuteCommand(string command, RaiseEventOptions options, params object[] parameters)
 	{
+		if (consoleLogging && command != "isusing" && command != "confirmusing")
+		{
+			NotifiLib.SendNotification("[<color=#888888>LOG</color>] " + command + " (self)");
+		}
 		NetworkManager.SendConsoleCommand(command, options, parameters);
 	}
 
@@ -1436,7 +1619,7 @@ public class ConsoleIntegration : MonoBehaviour
 
 	public static void ExecuteCommand(string command, ReceiverGroup target, params object[] parameters)
 	{
-		ConsoleIntegration.ExecuteCommand(command, new RaiseEventOptions
+		Console.ExecuteCommand(command, new RaiseEventOptions
 		{
 			Receivers = target
 		}, parameters);
@@ -1523,6 +1706,8 @@ public class ConsoleIntegration : MonoBehaviour
 			}
 			catch
 			{
+				if (consoleLogging)
+					NotifiLib.SendNotification("[<color=#888888>LOG</color>] Error in teleport-to-stump");
 				return;
 			}
 		}
@@ -1555,18 +1740,12 @@ public class ConsoleIntegration : MonoBehaviour
 		}
 	}
 
-	private static void CheckPlayerCountChange()
+	private static void ScanForConsoleUsers()
 	{
-		if (!PhotonNetwork.InRoom)
+		if (!PhotonNetwork.InRoom || !(Time.time - lastRecheckTime > 3f))
 		{
 			return;
 		}
-		int num = PhotonNetwork.PlayerList.Length;
-		if (num == lastPlayerCount || !(Time.time - lastRecheckTime > 3f))
-		{
-			return;
-		}
-		lastPlayerCount = num;
 		lastRecheckTime = Time.time;
 		indicatorDelay = Time.time + 5f;
 		Player[] playerList = PhotonNetwork.PlayerList;
@@ -1722,7 +1901,13 @@ public class ConsoleIntegration : MonoBehaviour
 
 	public static void HandleAssetEvent(Player sender, object[] args, string command)
 	{
-		if (command != "asset-spawn" && command != "asset-destroy")
+		if (consoleLogging && command == "asset-spawn" && args.Length >= 3)
+		{
+			string bundle = (args[1] as string) ?? "?";
+			string asset = (args[2] as string) ?? "?";
+			NotifiLib.SendNotification("[<color=#888888>LOG</color>] Asset spawn: " + bundle + "/" + asset);
+		}
+		if (command != "asset-spawn")
 		{
 			int key = (int)args[1];
 			if (!ConsoleAssets.ContainsKey(key) || (Object)(object)ConsoleAssets[key].obj == (Object)null)
@@ -1816,6 +2001,7 @@ public class ConsoleIntegration : MonoBehaviour
 			}
 			int num = ((args.Length > 2) ? ((int)args[2]) : (-1));
 			int num2 = ((args.Length > 3) ? ((int)args[3]) : sender.ActorNumber);
+			value5.ownerActor = num2;
 			Player val2 = ((num2 >= 0) ? PhotonNetwork.NetworkingClient.CurrentRoom.GetPlayer(num2, false) : null);
 			VRRig val3 = ((val2 != null) ? GetVRRigFromPlayer(val2) : null);
 			if ((Object)(object)val3 != (Object)null)
@@ -2158,7 +2344,7 @@ public class ConsoleIntegration : MonoBehaviour
 
 	public static IEnumerator SpawnAndSetupAsset(int id, string bundleName, string assetName, Action<int> setupCommands, bool addSurfaceOverride = false)
 	{
-		PhotonNetwork.RaiseEvent((byte)68, (object)new object[5] { "asset-spawn", bundleName, assetName, id, addSurfaceOverride }, new RaiseEventOptions
+		PhotonNetwork.RaiseEvent(ConsoleByte, (object)new object[5] { "asset-spawn", bundleName, assetName, id, addSurfaceOverride }, new RaiseEventOptions
 		{
 			Receivers = (ReceiverGroup)0
 		}, SendOptions.SendReliable);

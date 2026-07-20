@@ -8,6 +8,8 @@ public class ButtonInfo
 
 	public Action method = null;
 
+	public Action enableMethod = null;
+
 	public Action disableMethod = null;
 
 	public bool? enabled = false;
@@ -19,4 +21,6 @@ public class ButtonInfo
 	public bool isFrameCall = false;
 
 	public bool isGun = false;
+
+	public bool isLockOn = false;
 }

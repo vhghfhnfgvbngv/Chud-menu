@@ -56,4 +56,7 @@
     <Reference Include="Fusion.Sockets" HintPath="$(GorillaTagDir)\Fusion.Sockets.dll" />
     <Reference Include="Fusion.Common" HintPath="$(GorillaTagDir)\Fusion.Common.dll" />
   </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="NAudio" Version="2.2.1" />
+  </ItemGroup>
 </Project>

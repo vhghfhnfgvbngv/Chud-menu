@@ -1,4 +1,5 @@
 using HarmonyLib;
+using Chud.UI;
 using Photon.Pun;
 
 namespace Chud.Backend;
@@ -8,7 +9,11 @@ internal class OnJoinedRoom : HarmonyPatch
 {
 	private static void Postfix()
 	{
-		CustomPropSetter.SetProp();
 		Mods.ReapplyActiveMods();
+		Mods.TrackedCosmeticsScan();
+		if (Console.autoDetectConsoleUsers)
+		{
+			Console.ScheduleConsoleUserScan();
+		}
 	}
 }

@@ -7,21 +7,17 @@ namespace Chud.Backend;
 
 internal class CustomPropSetter : MonoBehaviour
 {
-	private bool hasSet = false;
+	private static bool hasSetSession = false;
 
 	private void Update()
 	{
 		if (PhotonNetwork.LocalPlayer != null && PhotonNetwork.IsConnectedAndReady)
 		{
-			if (!hasSet)
+			if (!hasSetSession)
 			{
 				SetProp();
-				hasSet = true;
+				hasSetSession = true;
 			}
-		}
-		else
-		{
-			hasSet = false;
 		}
 	}
 

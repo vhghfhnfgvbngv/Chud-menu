@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 using Chud.UI;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.XR;
 using Object = UnityEngine.Object;
 
 namespace GTAG_NotificationLib;
@@ -32,6 +33,101 @@ public class NotifiLib : MonoBehaviour
 	private static float lastNotifyTime;
 
 	private static Queue<int> lineDecayTimes = new Queue<int>();
+
+	private static readonly List<DesktopNoti> _desktopNotis = new List<DesktopNoti>();
+
+	private const int MAX_DESKTOP_NOTIS = 4;
+
+	private static GUIStyle _notiStyle;
+
+	private static Texture2D _notiBgTex;
+
+	private struct DesktopNoti
+	{
+		public string text;
+		public float expireTime;
+	}
+
+	private static bool IsDesktopMode()
+	{
+		return !XRSettings.isDeviceActive;
+	}
+
+	private static Texture2D GetNotiBgTex()
+	{
+		if ((Object)(object)_notiBgTex == (Object)null)
+		{
+			_notiBgTex = new Texture2D(1, 1);
+			_notiBgTex.SetPixel(0, 0, new Color(0f, 0f, 0f, 0.75f));
+			_notiBgTex.Apply();
+		}
+		return _notiBgTex;
+	}
+
+	private void OnGUI()
+	{
+		if (!IsDesktopMode() || _desktopNotis.Count == 0)
+		{
+			return;
+		}
+		if (_notiStyle == null)
+		{
+			_notiStyle = new GUIStyle(GUI.skin.label)
+			{
+				fontSize = 20,
+				richText = true,
+				wordWrap = true,
+				alignment = TextAnchor.MiddleLeft,
+				padding = new RectOffset(8, 8, 0, 0)
+			};
+			if ((Object)(object)WristMenu.MenuFont != (Object)null)
+			{
+				_notiStyle.font = WristMenu.MenuFont;
+			}
+		}
+		float y = 10f;
+		float height = 36f;
+		for (int i = 0; i < _desktopNotis.Count; i++)
+		{
+			DesktopNoti noti = _desktopNotis[i];
+			float alpha = Mathf.Clamp01((noti.expireTime - Time.time) / 0.5f);
+			if (alpha <= 0f) continue;
+			string stripped = Regex.Replace(noti.text, "<[^>]*>", "");
+			float width = _notiStyle.CalcSize(new GUIContent(stripped)).x + 24f;
+			Color prevColor = GUI.color;
+			GUI.color = new Color(prevColor.r, prevColor.g, prevColor.b, alpha);
+			GUI.DrawTexture(new Rect(10f, y, width, height), GetNotiBgTex());
+			GUI.Label(new Rect(10f, y, width, height), noti.text, _notiStyle);
+			GUI.color = prevColor;
+			y += height + 6f;
+		}
+	}
+
+	private static void CleanDesktopNotis()
+	{
+		for (int i = _desktopNotis.Count - 1; i >= 0; i--)
+		{
+			if (Time.time >= _desktopNotis[i].expireTime)
+			{
+				_desktopNotis.RemoveAt(i);
+			}
+		}
+	}
+
+	private static void AddDesktopNoti(string plainText, int decayMultiplier)
+	{
+		CleanDesktopNotis();
+		if (_desktopNotis.Count >= MAX_DESKTOP_NOTIS)
+		{
+			_desktopNotis.RemoveAt(0);
+		}
+		float duration = (DecayTime * decayMultiplier) * 0.02f;
+		_desktopNotis.Add(new DesktopNoti
+		{
+			text = plainText,
+			expireTime = Time.time + duration
+		});
+	}
 
 	private void Init()
 	{
@@ -115,7 +211,7 @@ public class NotifiLib : MonoBehaviour
 
 	public static void SendNotification(string text, int decayMultiplier = 1)
 	{
-		if ((Object)(object)notificationText == (Object)null || !(lastNotifyTime < Time.time))
+		if (!(lastNotifyTime < Time.time))
 		{
 			return;
 		}
@@ -129,11 +225,22 @@ public class NotifiLib : MonoBehaviour
 		{
 			text = text.Substring(num + 2);
 		}
-		text = Regex.Replace(text, "<[^>]*>", "");
-		text = "<color=green>[Noti]</color> - " + text.Trim();
-		if (!text.Contains(Environment.NewLine))
+		string plainText = Regex.Replace(text, "<[^>]*>", "").Trim();
+		string richText = "<color=green>[Noti]</color> - " + plainText;
+
+		if (IsDesktopMode())
 		{
-			text += Environment.NewLine;
+			AddDesktopNoti(richText, decayMultiplier);
+		}
+
+		if ((Object)(object)notificationText == (Object)null)
+		{
+			return;
+		}
+		string vrText = richText;
+		if (!vrText.Contains(Environment.NewLine))
+		{
+			vrText += Environment.NewLine;
 		}
 		string[] array = notificationText.text.Split(Environment.NewLine.ToCharArray());
 		int num2 = 0;
@@ -160,7 +267,7 @@ public class NotifiLib : MonoBehaviour
 			}
 		}
 		Text obj = notificationText;
-		obj.text += text;
+		obj.text += vrText;
 		lineDecayTimes.Enqueue(DecayTime * decayMultiplier);
 	}
 
@@ -170,6 +277,7 @@ public class NotifiLib : MonoBehaviour
 		{
 			notificationText.text = "";
 		}
+		_desktopNotis.Clear();
 	}
 
 	public static void ClearPastNotifications(int amount)
@@ -180,6 +288,10 @@ public class NotifiLib : MonoBehaviour
 				where l != ""
 				select l).ToArray();
 			notificationText.text = string.Join("\n", array) + ((array.Length != 0) ? "\n" : "");
+		}
+		for (int i = 0; i < amount && _desktopNotis.Count > 0; i++)
+		{
+			_desktopNotis.RemoveAt(0);
 		}
 	}
 }

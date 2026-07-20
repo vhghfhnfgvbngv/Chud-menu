@@ -1,0 +1,11 @@
+bin/
+obj/
+*.user
+*.suo
+*.sln.docstates
+.vs/
+Debug/
+Release/
+Any CPU/
+packages/
+*.nupkg

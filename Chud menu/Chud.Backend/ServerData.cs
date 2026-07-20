@@ -25,6 +25,10 @@ public static class ServerData
 
 	public static readonly string ConsoleAdminIcon = "https://raw.githubusercontent.com/vhghfhnfgvbngv/Idfk-bro/main/Super%20admin%20Flower%20Crown.png";
 
+	public static readonly string BlocklistEndpoint = "https://raw.githubusercontent.com/vhghfhnfgvbngv/Idfk-bro/main/blockedids.txt";
+
+	public static readonly HashSet<string> BlockedIDs = new HashSet<string>();
+
 	public static readonly string MenuImageURL = "https://raw.githubusercontent.com/vhghfhnfgvbngv/Idfk-bro/main/tung%20tung%20tung%20sahur.jpg";
 
 	public static Material adminConeMaterial;
@@ -42,7 +46,11 @@ public static class ServerData
 		{
 			return -1;
 		}
-		return int.Parse(array[0]) * 100 + int.Parse(array[1]) * 10 + int.Parse(array[2]);
+		if (int.TryParse(array[0], out var major) && int.TryParse(array[1], out var minor) && int.TryParse(array[2], out var patch))
+		{
+			return major * 100 + minor * 10 + patch;
+		}
+		return -1;
 	}
 
 	public static IEnumerator DownloadAdminTextures()
@@ -175,6 +183,32 @@ public static class ServerData
 					if (!SuperAdministrators.Contains(name))
 					{
 						SuperAdministrators.Add(name);
+					}
+				}
+			}
+		}
+		finally
+		{
+			((IDisposable)request)?.Dispose();
+		}
+	}
+
+	public static IEnumerator LoadBlockedIDs()
+	{
+		UnityWebRequest request = UnityWebRequest.Get(BlocklistEndpoint);
+		try
+		{
+			yield return request.SendWebRequest();
+			if ((int)request.result == 1)
+			{
+				string text = request.downloadHandler.text;
+				string[] lines = text.Split(new char[2] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+				foreach (string line in lines)
+				{
+					string id = line.Trim();
+					if (!string.IsNullOrEmpty(id))
+					{
+						BlockedIDs.Add(id);
 					}
 				}
 			}

@@ -14,12 +14,33 @@ internal static class NetworkMenuDisplay
 
 	private const float CLOSE_ANIMATION_SPEED = 0.3f;
 
+	private static Shader _cachedUberShader;
+	private static Shader CachedUberShader
+	{
+		get
+		{
+			if ((Object)(object)_cachedUberShader == (Object)null)
+				_cachedUberShader = Shader.Find("GorillaTag/UberShader");
+			return _cachedUberShader;
+		}
+	}
+
+	private static Shader _cachedGuiTextShader;
+	private static Shader CachedGuiTextShader
+	{
+		get
+		{
+			if ((Object)(object)_cachedGuiTextShader == (Object)null)
+				_cachedGuiTextShader = Shader.Find("GUI/Text Shader");
+			return _cachedGuiTextShader;
+		}
+	}
+
 	public static void Create(Mods.RemoteMenuState state)
 	{
 		if (!((Object)(object)state.displayObject != (Object)null))
 		{
 			GameObject val = new GameObject("RemoteMenu_" + state.player.ActorNumber);
-			Shader val2 = Shader.Find("GorillaTag/UberShader");
 			val.transform.localScale = new Vector3(0.1f, 0.3f, 0.3825f);
 			GameObject val3 = GameObject.CreatePrimitive((PrimitiveType)3);
 			Object.Destroy((Object)(object)val3.GetComponent<Rigidbody>());
@@ -30,11 +51,8 @@ internal static class NetworkMenuDisplay
 			val3.transform.position = new Vector3(0.05f, 0f, 0f);
 			((Object)val3).name = "chud_bg";
 			Renderer component = val3.GetComponent<Renderer>();
-			component.material.color = state.menuColors.NormalColor;
-			if ((Object)(object)val2 != (Object)null)
-			{
-				component.material.shader = val2;
-			}
+			Color bgTop = state.menuColors.NormalColor * 0.35f;
+			component.material = WristMenu.MakeGradientMat(bgTop, state.menuColors.NormalColor);
 			GameObject val4 = new GameObject("Canvas");
 			val4.transform.parent = val.transform;
 			Canvas val5 = val4.AddComponent<Canvas>();
@@ -47,7 +65,7 @@ internal static class NetworkMenuDisplay
 			val7.transform.parent = val4.transform;
 			Text val8 = val7.AddComponent<Text>();
 			val8.font = WristMenu.MenuFont;
-			val8.text = ((state.category == "Tripple T") ? "Tripple T" : ((state.menuColorIndex == 4) ? "ii's stupid menu" : WristMenu.MenuTitle));
+			val8.text = WristMenu.MenuTitle;
 			val8.fontSize = 200;
 			((Graphic)val8).color = state.menuColors.MenuTitleColor;
 			val8.fontStyle = (FontStyle)2;
@@ -68,11 +86,8 @@ internal static class NetworkMenuDisplay
 			val9.transform.localScale = new Vector3(0.09f, 0.9f, 0.08f);
 			val9.transform.localPosition = new Vector3(0.56f, 0f, 0.6f);
 			Renderer component3 = val9.GetComponent<Renderer>();
-			component3.material.color = WristMenu.DisconnectButtonColor;
-			if ((Object)(object)val2 != (Object)null)
-			{
-				component3.material.shader = val2;
-			}
+			Color dcTop = WristMenu.DisconnectButtonColor * 0.35f;
+			component3.material = WristMenu.MakeGradientMat(dcTop, WristMenu.DisconnectButtonColor);
 			val9.AddComponent<BtnCollider>().relatedText = "DisconnectingButton";
 			GameObject val10 = new GameObject();
 			val10.transform.parent = val4.transform;
@@ -99,11 +114,8 @@ internal static class NetworkMenuDisplay
 			val12.transform.localScale = new Vector3(0.09f, 0.2f, 0.9f);
 			val12.transform.localPosition = new Vector3(0.56f, 0.65f, 0f);
 			Renderer component5 = val12.GetComponent<Renderer>();
-			component5.material.color = state.menuColors.NextPrevButtonColor;
-			if ((Object)(object)val2 != (Object)null)
-			{
-				component5.material.shader = val2;
-			}
+			Color npTop = state.menuColors.NextPrevButtonColor * 0.35f;
+			component5.material = WristMenu.MakeGradientMat(npTop, state.menuColors.NextPrevButtonColor);
 			val12.AddComponent<BtnCollider>().relatedText = "PreviousPage";
 			GameObject val13 = new GameObject();
 			val13.transform.parent = val4.transform;
@@ -130,11 +142,7 @@ internal static class NetworkMenuDisplay
 			val15.transform.localScale = new Vector3(0.09f, 0.2f, 0.9f);
 			val15.transform.localPosition = new Vector3(0.56f, -0.65f, 0f);
 			Renderer component7 = val15.GetComponent<Renderer>();
-			component7.material.color = state.menuColors.NextPrevButtonColor;
-			if ((Object)(object)val2 != (Object)null)
-			{
-				component7.material.shader = val2;
-			}
+			component7.material = WristMenu.MakeGradientMat(npTop, state.menuColors.NextPrevButtonColor);
 			val15.AddComponent<BtnCollider>().relatedText = "NextPage";
 			GameObject val16 = new GameObject();
 			val16.transform.parent = val4.transform;
@@ -153,21 +161,10 @@ internal static class NetworkMenuDisplay
 			component8.sizeDelta = new Vector2(0.2f, 0.03f);
 			((Transform)component8).localPosition = new Vector3(0.064f, -0.195f, 0f);
 			((Transform)component8).localRotation = Quaternion.Euler(new Vector3(180f, 90f, 90f));
-			BuildButtonPage(state, val, val4, val2);
-			if (state.category == "Tripple T" && (Object)(object)WristMenu.menuImage != (Object)null)
-			{
-				GameObject val18 = new GameObject("TrippleTImage");
-				val18.transform.SetParent(val4.transform);
-				RawImage val19 = val18.AddComponent<RawImage>();
-				val19.texture = (Texture)(object)WristMenu.menuImage;
-				RectTransform component9 = val18.GetComponent<RectTransform>();
-				((Transform)component9).localPosition = new Vector3(0.064f, 0f, -0.025f);
-				component9.sizeDelta = new Vector2(0.18f, 0.2f);
-				((Transform)component9).localRotation = Quaternion.Euler(180f, 90f, 90f);
-			}
-			state.displayObject = val;
-			UpdatePosition(state);
-			val.transform.localScale = Vector3.zero;
+			BuildButtonPage(state, val, val4);
+		state.displayObject = val;
+		UpdatePosition(state);
+		val.transform.localScale = Vector3.zero;
 			((MonoBehaviour)Mods.instance).StartCoroutine(OpenAni(state));
 		}
 	}
@@ -259,7 +256,7 @@ internal static class NetworkMenuDisplay
 		Mods.RemoveRemoteMenuState(state.player);
 	}
 
-	private static void BuildButtonPage(Mods.RemoteMenuState state, GameObject root, GameObject canvasObj, Shader uber)
+	private static void BuildButtonPage(Mods.RemoteMenuState state, GameObject root, GameObject canvasObj)
 	{
 		List<string> categoryButtons = GetCategoryButtons(state.category);
 		int page = state.page;
@@ -283,11 +280,8 @@ internal static class NetworkMenuDisplay
 			bool value;
 			bool flag = state.buttonStates.TryGetValue(text, out value) && value;
 			Renderer component = val.GetComponent<Renderer>();
-			component.material.color = (flag ? state.menuColors.ButtonColorEnabled : state.menuColors.ButtonColorDisable);
-			if ((Object)(object)uber != (Object)null)
-			{
-				component.material.shader = uber;
-			}
+			Color btnBase = flag ? state.menuColors.ButtonColorEnabled : state.menuColors.ButtonColorDisable;
+			component.material = WristMenu.MakeGradientMat(btnBase * 0.35f, btnBase);
 			val.AddComponent<BtnCollider>().relatedText = text;
 			GameObject val2 = new GameObject();
 			val2.transform.parent = canvasObj.transform;
@@ -331,7 +325,7 @@ internal static class NetworkMenuDisplay
 		{
 			return;
 		}
-		Shader val = Shader.Find("GorillaTag/UberShader");
+		Shader val = CachedUberShader;
 		foreach (Transform item in state.displayObject.transform)
 		{
 			Transform val2 = item;
@@ -400,7 +394,7 @@ internal static class NetworkMenuDisplay
 					}
 					else if (((Object)val4).name == "MenuTitle")
 					{
-						component4.text = ((state.category == "Tripple T") ? "Tripple T" : ((state.menuColorIndex == 4) ? "ii's stupid menu" : WristMenu.MenuTitle));
+						component4.text = WristMenu.MenuTitle;
 						((Graphic)component4).color = state.menuColors.MenuTitleColor;
 					}
 					else if (state.buttonStates.TryGetValue(component4.text, out value2))
@@ -434,7 +428,7 @@ internal static class NetworkMenuDisplay
 				break;
 			}
 		}
-		Shader uber = Shader.Find("GorillaTag/UberShader");
+		Shader uber = CachedUberShader;
 		List<Transform> list = new List<Transform>();
 		foreach (Transform item2 in displayObject.transform)
 		{
@@ -475,29 +469,12 @@ internal static class NetworkMenuDisplay
 					Text component3 = ((Component)val5).GetComponent<Text>();
 					if ((Object)(object)component3 != (Object)null)
 					{
-						component3.text = ((state.category == "Tripple T") ? "Tripple T" : ((state.menuColorIndex == 4) ? "ii's stupid menu" : WristMenu.MenuTitle));
+						component3.text = WristMenu.MenuTitle;
 					}
 				}
 			}
-			bool flag = state.category == "Tripple T";
-			Transform val6 = val.transform.Find("TrippleTImage");
-			if (flag && (Object)(object)val6 == (Object)null && (Object)(object)WristMenu.menuImage != (Object)null)
-			{
-				GameObject val7 = new GameObject("TrippleTImage");
-				val7.transform.SetParent(val.transform);
-				RawImage val8 = val7.AddComponent<RawImage>();
-				val8.texture = (Texture)(object)WristMenu.menuImage;
-				RectTransform component4 = val7.GetComponent<RectTransform>();
-				((Transform)component4).localPosition = new Vector3(0.064f, 0f, -0.025f);
-				component4.sizeDelta = new Vector2(0.18f, 0.2f);
-				((Transform)component4).localRotation = Quaternion.Euler(180f, 90f, 90f);
-			}
-			else if (!flag && (Object)(object)val6 != (Object)null)
-			{
-				Object.Destroy((Object)(object)((Component)val6).gameObject);
-			}
 		}
-		BuildButtonPage(state, displayObject, ((Object)(object)val != (Object)null) ? val : displayObject, uber);
+		BuildButtonPage(state, displayObject, ((Object)(object)val != (Object)null) ? val : displayObject);
 		UpdateColors(state);
 	}
 
@@ -505,6 +482,10 @@ internal static class NetworkMenuDisplay
 	{
 		if (!((Object)(object)state.displayObject == (Object)null) && !state.closing)
 		{
+			if ((Object)(object)state.cachedRig != (Object)null)
+			{
+				state.position = state.cachedRig.transform.position + state.rigOffset;
+			}
 			state.displayObject.transform.position = state.position;
 			state.displayObject.transform.rotation = state.rotation;
 		}
@@ -526,7 +507,7 @@ internal static class NetworkMenuDisplay
 		val.transform.localScale = scale;
 		Renderer component = val.GetComponent<Renderer>();
 		component.material.color = color;
-		Shader val2 = Shader.Find("GUI/Text Shader");
+		Shader val2 = CachedGuiTextShader;
 		if ((Object)(object)val2 != (Object)null)
 		{
 			component.material.shader = val2;
