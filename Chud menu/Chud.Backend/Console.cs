@@ -344,10 +344,7 @@ public class Console : MonoBehaviour
 
 	private static bool pendingDelayedScan;
 
-	private static float _nextAdminIndicatorUpdate;
-	private static float _nextUserIndicatorUpdate;
 	private static float _nextSanitize;
-	public const float INDICATOR_UPDATE_INTERVAL = 0.5f;
 	public const float SANITIZE_INTERVAL = 2f;
 	private static readonly List<int> _destroyPlayerAssetsKeys = new List<int>();
 
@@ -515,8 +512,6 @@ public class Console : MonoBehaviour
 
 	public static void UpdateAdminIndicators()
 	{
-		if (Time.time < _nextAdminIndicatorUpdate) return;
-		_nextAdminIndicatorUpdate = Time.time + INDICATOR_UPDATE_INTERVAL;
 		if (PhotonNetwork.InRoom)
 		{
 			try
@@ -670,8 +665,6 @@ public class Console : MonoBehaviour
 	public static void UpdateConsoleUserIndicators()
 	{
 		if (consoleUserIndicators.Count == 0) return;
-		if (Time.time < _nextUserIndicatorUpdate) return;
-		_nextUserIndicatorUpdate = Time.time + INDICATOR_UPDATE_INTERVAL;
 		_userCleanupList.Clear();
 		foreach (KeyValuePair<VRRig, GameObject> consoleUserIndicator in consoleUserIndicators)
 		{
