@@ -1,13 +1,13 @@
 using System.Collections.Generic;
 using ExitGames.Client.Photon;
 using HarmonyLib;
-using Photon.Pun;
 using Photon.Realtime;
 using UnityEngine;
 
 namespace Chud.Backend;
 
-[HarmonyPatch]
+[HarmonyPatch(typeof(LoadBalancingClient), nameof(LoadBalancingClient.OpRaiseEvent),
+	new[] { typeof(byte), typeof(object), typeof(RaiseEventOptions), typeof(SendOptions) })]
 public static class RPCProtection
 {
 	const int MaxRPCs = 500;
@@ -22,12 +22,5 @@ public static class RPCProtection
 			return false;
 		eventTimes.Enqueue(now);
 		return true;
-	}
-
-	[HarmonyTargetMethod]
-	static System.Reflection.MethodBase TargetMethod()
-	{
-		return AccessTools.Method(typeof(PhotonNetwork), nameof(PhotonNetwork.RaiseEvent),
-			new[] { typeof(byte), typeof(object), typeof(RaiseEventOptions), typeof(SendOptions) });
 	}
 }
