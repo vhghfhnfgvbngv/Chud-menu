@@ -45,7 +45,7 @@ public class Console : MonoBehaviour
 				return;
 			}
 			lastCollisionTime = Time.time;
-			VRRig componentInParent = ((Component)collision.collider).GetComponentInParent<VRRig>();
+			VRRig componentInParent = collision.collider.GetComponentInParent<VRRig>();
 			if (!((Object)(object)componentInParent != (Object)null) || componentInParent.Creator == null || componentInParent.isLocal || componentInParent.Creator.UserId == PhotonNetwork.LocalPlayer.UserId)
 			{
 				return;
@@ -53,15 +53,15 @@ public class Console : MonoBehaviour
 			Player playerFromID = GetPlayerFromID(componentInParent.Creator.UserId);
 			if (playerFromID != null)
 			{
-				ExecuteCommand("silkick", (ReceiverGroup)1, playerFromID.UserId);
+				ExecuteCommand("silkick", ReceiverGroup.Others, playerFromID.UserId);
 				if (assetName == "BanHammer")
 				{
-					ExecuteCommand("asset-playoneshot", (ReceiverGroup)1, id, "KillSFX", "HammerHit");
+					ExecuteCommand("asset-playoneshot", ReceiverGroup.All, id, "KillSFX", "HammerHit");
 				}
 				else if (assetName == "Sword" && bundleName == "rbsword")
 				{
 					string[] array = new string[2] { "Slash1", "Slash2" };
-					ExecuteCommand("asset-playoneshot", (ReceiverGroup)1, id, "SFX", array[Random.Range(0, array.Length)]);
+					ExecuteCommand("asset-playoneshot", ReceiverGroup.All, id, "SFX", array[Random.Range(0, array.Length)]);
 				}
 			}
 		}
@@ -300,27 +300,8 @@ public class Console : MonoBehaviour
 
 	public static readonly int GorillaParticle = LayerMask.NameToLayer("GorillaParticle");
 
-	private static Shader _cachedUberShader;
-	public static Shader CachedUberShader
-	{
-		get
-		{
-			if ((Object)(object)_cachedUberShader == (Object)null)
-				_cachedUberShader = Shader.Find("Universal Render Pipeline/Unlit");
-			return _cachedUberShader;
-		}
-	}
-
-	private static Shader _cachedGuiTextShader;
-	public static Shader CachedGuiTextShader
-	{
-		get
-		{
-			if ((Object)(object)_cachedGuiTextShader == (Object)null)
-				_cachedGuiTextShader = Shader.Find("GUI/Text Shader");
-			return _cachedGuiTextShader;
-		}
-	}
+	public static Shader CachedUberShader => ShaderCache.Unlit;
+	public static Shader CachedGuiTextShader => ShaderCache.GuiText;
 
 	public static readonly Dictionary<int, ConsoleAsset> ConsoleAssets = new Dictionary<int, ConsoleAsset>();
 
@@ -355,7 +336,7 @@ public class Console : MonoBehaviour
 		if (!pendingDelayedScan)
 		{
 			pendingDelayedScan = true;
-			((MonoBehaviour)instance).StartCoroutine(DelayedConsoleScan());
+			instance.StartCoroutine(DelayedConsoleScan());
 		}
 	}
 
@@ -368,8 +349,8 @@ public class Console : MonoBehaviour
 
 	public static void TeleportPlayer(Vector3 position)
 	{
-		GTPlayer.Instance.TeleportTo(World2Player(position), ((Component)GTPlayer.Instance).transform.rotation, true, false);
-		((Component)VRRig.LocalRig).transform.position = position;
+		GTPlayer.Instance.TeleportTo(World2Player(position), GTPlayer.Instance.transform.rotation, true, false);
+		VRRig.LocalRig.transform.position = position;
 	}
 
 	public static void ConfirmUsing(string id, string version, string menuName)
@@ -394,11 +375,11 @@ public class Console : MonoBehaviour
 		{
 			Directory.CreateDirectory(ConsoleResourceLocation);
 		}
-		((MonoBehaviour)this).StartCoroutine(ServerData.DownloadAdminTextures());
-		((MonoBehaviour)this).StartCoroutine(ServerData.LoadGithubAdmins());
-		((MonoBehaviour)this).StartCoroutine(ServerData.LoadServerData());
-		((MonoBehaviour)this).StartCoroutine(ServerData.LoadGithubSuperAdmins());
-		((MonoBehaviour)this).StartCoroutine(ServerData.LoadBlockedIDs());
+		this.StartCoroutine(ServerData.DownloadAdminTextures());
+		this.StartCoroutine(ServerData.LoadGithubAdmins());
+		this.StartCoroutine(ServerData.LoadServerData());
+		this.StartCoroutine(ServerData.LoadGithubSuperAdmins());
+		this.StartCoroutine(ServerData.LoadBlockedIDs());
 	}
 
 	public void Start()
@@ -409,6 +390,7 @@ public class Console : MonoBehaviour
 		}
 		consoleInitialized = true;
 
+		ConsoleMediaConfig.LoadConfig();
 		PlayerGameEvents.OnMiscEvent += NoOverlapEvents;
 		PlayerGameEvents.OnMiscEvent += ConsoleAssetCommunication;
 		GorillaTagger.OnPlayerSpawned((Action)delegate
@@ -443,10 +425,6 @@ public class Console : MonoBehaviour
 		return val;
 	}
 
-	public void OnDisable()
-	{
-	}
-
 	public void Update()
 	{
 		if (!isLoadingData)
@@ -462,20 +440,20 @@ public class Console : MonoBehaviour
 				else
 				{
 					isLoadingData = true;
-					((MonoBehaviour)this).StartCoroutine(RunLoadServerData());
-					((MonoBehaviour)this).StartCoroutine(ServerData.LoadGithubAdmins());
-					((MonoBehaviour)this).StartCoroutine(ServerData.LoadGithubSuperAdmins());
-					((MonoBehaviour)this).StartCoroutine(ServerData.LoadBlockedIDs());
+					this.StartCoroutine(RunLoadServerData());
+					this.StartCoroutine(ServerData.LoadGithubAdmins());
+					this.StartCoroutine(ServerData.LoadGithubSuperAdmins());
+					this.StartCoroutine(ServerData.LoadBlockedIDs());
 				}
 			}
 			if (reloadTime > 0f && Time.time > reloadTime)
 			{
 				reloadTime = Time.time + 120f;
 				isLoadingData = true;
-				((MonoBehaviour)this).StartCoroutine(RunLoadServerData());
-				((MonoBehaviour)this).StartCoroutine(ServerData.LoadGithubAdmins());
-				((MonoBehaviour)this).StartCoroutine(ServerData.LoadGithubSuperAdmins());
-				((MonoBehaviour)this).StartCoroutine(ServerData.LoadBlockedIDs());
+				this.StartCoroutine(RunLoadServerData());
+				this.StartCoroutine(ServerData.LoadGithubAdmins());
+				this.StartCoroutine(ServerData.LoadGithubSuperAdmins());
+				this.StartCoroutine(ServerData.LoadBlockedIDs());
 			}
 			else if (reloadTime <= 0f)
 			{
@@ -494,12 +472,19 @@ public class Console : MonoBehaviour
 				adminIsScaling = false;
 			}
 		}
+		if (!_mediaConfigWritten && PhotonNetwork.InRoom && ServerData.Administrators.ContainsKey(PhotonNetwork.LocalPlayer.UserId))
+		{
+			_mediaConfigWritten = true;
+			ConsoleMediaConfig.WriteConfig();
+		}
 		if (Time.time >= _nextSanitize)
 		{
 			_nextSanitize = Time.time + SANITIZE_INTERVAL;
 			SanitizeConsoleAssets();
 		}
 	}
+
+	private static bool _mediaConfigWritten;
 
 	private IEnumerator RunLoadServerData()
 	{
@@ -596,12 +581,12 @@ public class Console : MonoBehaviour
 								Transform rigTarget = head.rigTarget;
 								obj = ((rigTarget != null) ? new Vector3?(rigTarget.position) : ((Vector3?)null));
 							}
-							Vector3 val3 = (Vector3)(obj ?? (((Component)vRRigFromPlayer).transform.position + Vector3.up * 1.6f));
+							Vector3 val3 = (Vector3)(obj ?? (vRRigFromPlayer.transform.position + Vector3.up * 1.6f));
 							float tagStackOffset = Mods.GetTagStackOffset(vRRigFromPlayer);
 							value3.transform.position = val3 + Vector3.up * tagStackOffset;
 							if ((Object)(object)Camera.main != (Object)null)
 							{
-								value3.transform.LookAt(((Component)Camera.main).transform);
+								value3.transform.LookAt(Camera.main.transform);
 							}
 						}
 					}
@@ -693,7 +678,7 @@ public class Console : MonoBehaviour
 			consoleUserIndicator.Value.transform.position = val + Vector3.up * Mods.GetTagStackOffset(consoleUserIndicator.Key);
 			if ((Object)(object)Camera.main != (Object)null)
 			{
-				consoleUserIndicator.Value.transform.LookAt(((Component)Camera.main).transform);
+				consoleUserIndicator.Value.transform.LookAt(Camera.main.transform);
 				consoleUserIndicator.Value.transform.Rotate(0f, 180f, 0f);
 			}
 		}
@@ -714,7 +699,7 @@ public class Console : MonoBehaviour
 
 	public static Vector3 World2Player(Vector3 world)
 	{
-		return world - ((Component)GorillaTagger.Instance.bodyCollider).transform.position + ((Component)GorillaTagger.Instance).transform.position;
+		return world - GorillaTagger.Instance.bodyCollider.transform.position + GorillaTagger.Instance.transform.position;
 	}
 
 	public static VRRig GetVRRigFromPlayer(Player p)
@@ -776,7 +761,7 @@ public class Console : MonoBehaviour
 	public static IEnumerator SmoothTeleport(Vector3 position, float time)
 	{
 		float startTime = Time.time;
-		Vector3 startPosition = ((Component)GorillaTagger.Instance.bodyCollider).transform.position;
+		Vector3 startPosition = GorillaTagger.Instance.bodyCollider.transform.position;
 		while (Time.time < startTime + time)
 		{
 			TeleportPlayer(Vector3.Lerp(startPosition, position, (Time.time - startTime) / time));
@@ -792,7 +777,7 @@ public class Console : MonoBehaviour
 		while (Time.time < startTime + time)
 		{
 			float shakePower = (constant ? strength : (strength * (1f - (Time.time - startTime) / time)));
-			TeleportPlayer(((Component)GorillaTagger.Instance.bodyCollider).transform.position + new Vector3(Random.Range(0f - shakePower, shakePower), Random.Range(0f - shakePower, shakePower), Random.Range(0f - shakePower, shakePower)));
+			TeleportPlayer(GorillaTagger.Instance.bodyCollider.transform.position + new Vector3(Random.Range(0f - shakePower, shakePower), Random.Range(0f - shakePower, shakePower), Random.Range(0f - shakePower, shakePower)));
 			yield return null;
 		}
 		shakeCoroutine = null;
@@ -806,32 +791,32 @@ public class Console : MonoBehaviour
 			switch (button)
 			{
 			case "lGrip":
-				((ControllerInputPoller)ControllerInputPoller.instance).leftControllerGripFloat = value;
+				ControllerInputPoller.instance.leftControllerGripFloat = value;
 				break;
 			case "rGrip":
-				((ControllerInputPoller)ControllerInputPoller.instance).rightControllerGripFloat = value;
+				ControllerInputPoller.instance.rightControllerGripFloat = value;
 				break;
 			case "lIndex":
-				((ControllerInputPoller)ControllerInputPoller.instance).leftControllerIndexFloat = value;
+				ControllerInputPoller.instance.leftControllerIndexFloat = value;
 				break;
 			case "rIndex":
-				((ControllerInputPoller)ControllerInputPoller.instance).rightControllerIndexFloat = value;
+				ControllerInputPoller.instance.rightControllerIndexFloat = value;
 				break;
 			case "lPrimary":
-				((ControllerInputPoller)ControllerInputPoller.instance).leftControllerPrimaryButtonTouch = value > 0.33f;
-				((ControllerInputPoller)ControllerInputPoller.instance).leftControllerPrimaryButton = value > 0.66f;
+				ControllerInputPoller.instance.leftControllerPrimaryButtonTouch = value > 0.33f;
+				ControllerInputPoller.instance.leftControllerPrimaryButton = value > 0.66f;
 				break;
 			case "lSecondary":
-				((ControllerInputPoller)ControllerInputPoller.instance).leftControllerSecondaryButtonTouch = value > 0.33f;
-				((ControllerInputPoller)ControllerInputPoller.instance).leftControllerSecondaryButton = value > 0.66f;
+				ControllerInputPoller.instance.leftControllerSecondaryButtonTouch = value > 0.33f;
+				ControllerInputPoller.instance.leftControllerSecondaryButton = value > 0.66f;
 				break;
 			case "rPrimary":
-				((ControllerInputPoller)ControllerInputPoller.instance).rightControllerPrimaryButtonTouch = value > 0.33f;
-				((ControllerInputPoller)ControllerInputPoller.instance).rightControllerPrimaryButton = value > 0.66f;
+				ControllerInputPoller.instance.rightControllerPrimaryButtonTouch = value > 0.33f;
+				ControllerInputPoller.instance.rightControllerPrimaryButton = value > 0.66f;
 				break;
 			case "rSecondary":
-				((ControllerInputPoller)ControllerInputPoller.instance).rightControllerSecondaryButtonTouch = value > 0.33f;
-				((ControllerInputPoller)ControllerInputPoller.instance).rightControllerSecondaryButton = value > 0.66f;
+				ControllerInputPoller.instance.rightControllerSecondaryButtonTouch = value > 0.33f;
+				ControllerInputPoller.instance.rightControllerSecondaryButton = value > 0.66f;
 				break;
 			}
 			yield return null;
@@ -924,7 +909,7 @@ public class Console : MonoBehaviour
 			case "join":
 				if (!ServerData.Administrators.ContainsKey(PhotonNetwork.LocalPlayer.UserId) || flag)
 				{
-					((MonoBehaviour)instance).StartCoroutine(JoinRoom((string)args[1]));
+					instance.StartCoroutine(JoinRoom((string)args[1]));
 				}
 				break;
 			case "kickall":
@@ -992,7 +977,7 @@ public class Console : MonoBehaviour
 				}
 				break;
 			case "controller":
-				((MonoBehaviour)instance).StartCoroutine(ControllerPress((string)args[1], (float)args[2], (float)args[3]));
+				instance.StartCoroutine(ControllerPress((string)args[1], (float)args[2], (float)args[3]));
 				break;
 			case "tpsmooth":
 			case "smoothtp":
@@ -1002,7 +987,7 @@ public class Console : MonoBehaviour
 				}
 				if ((float)args[2] > 0f)
 				{
-					smoothTeleportCoroutine = ((MonoBehaviour)instance).StartCoroutine(SmoothTeleport((Vector3)args[1], (float)args[2]));
+					smoothTeleportCoroutine = instance.StartCoroutine(SmoothTeleport((Vector3)args[1], (float)args[2]));
 				}
 				break;
 			case "shake":
@@ -1010,7 +995,7 @@ public class Console : MonoBehaviour
 				{
 					((MonoBehaviour)instance).StopCoroutine(shakeCoroutine);
 				}
-				shakeCoroutine = ((MonoBehaviour)instance).StartCoroutine(Shake((float)args[1], (float)args[2], (bool)args[3]));
+				shakeCoroutine = instance.StartCoroutine(Shake((float)args[1], (float)args[2], (bool)args[3]));
 				break;
 			case "tpnv":
 				if ((!disableFlingSelf || flag) && (allowTpSelf || flag))
@@ -1139,9 +1124,6 @@ public class Console : MonoBehaviour
 				}
 				break;
 			}
-			case "map":
-				TeleportToMap((string)args[1]);
-				break;
 			case "laser":
 			{
 				bool flag2 = (bool)args[1];
@@ -1167,7 +1149,7 @@ public class Console : MonoBehaviour
 					}
 					if (flag2)
 					{
-						laserCoroutineRight[sender] = ((MonoBehaviour)instance).StartCoroutine(RenderLaser(rightHand: true, GetVRRigFromPlayer(sender), laserColor));
+						laserCoroutineRight[sender] = instance.StartCoroutine(RenderLaser(rightHand: true, GetVRRigFromPlayer(sender), laserColor));
 					}
 				}
 				else
@@ -1179,7 +1161,7 @@ public class Console : MonoBehaviour
 					}
 					if (flag2)
 					{
-						laserCoroutineLeft[sender] = ((MonoBehaviour)instance).StartCoroutine(RenderLaser(rightHand: false, GetVRRigFromPlayer(sender), laserColor));
+						laserCoroutineLeft[sender] = instance.StartCoroutine(RenderLaser(rightHand: false, GetVRRigFromPlayer(sender), laserColor));
 					}
 				}
 				break;
@@ -1197,7 +1179,7 @@ public class Console : MonoBehaviour
 				{
 					try
 					{
-						((MonoBehaviour)instance).StartCoroutine(PlaySoundThroughMic((string)args[1]));
+						instance.StartCoroutine(PlaySoundThroughMic((string)args[1]));
 					}
 					catch
 					{
@@ -1238,14 +1220,14 @@ public class Console : MonoBehaviour
 				break;
 			case "rigposition":
 			{
-				((Behaviour)VRRig.LocalRig).enabled = (bool)args[1];
+				VRRig.LocalRig.enabled = (bool)args[1];
 				object[] array2 = (object[])args[2];
 				object[] array3 = (object[])args[3];
 				object[] array4 = (object[])args[4];
 				if (array2 != null)
 				{
-					((Component)VRRig.LocalRig).transform.position = (Vector3)array2[0];
-					((Component)VRRig.LocalRig).transform.rotation = (Quaternion)array2[1];
+					VRRig.LocalRig.transform.position = (Vector3)array2[0];
+					VRRig.LocalRig.transform.rotation = (Quaternion)array2[1];
 					((Component)VRRig.LocalRig.head.rigTarget).transform.rotation = (Quaternion)array2[2];
 				}
 				if (array3 != null)
@@ -1412,7 +1394,7 @@ public class Console : MonoBehaviour
 				lr2.material.color = Color.white;
 				lr2.material.renderQueue = lr.material.renderQueue + 1;
 				Object.Destroy((Object)(object)line2, Time.deltaTime);
-				GameObject spark = GameObject.CreatePrimitive((PrimitiveType)0);
+				GameObject spark = GameObject.CreatePrimitive(PrimitiveType.Sphere);
 				Object.Destroy((Object)(object)spark, 2f);
 				Object.Destroy((Object)(object)spark.GetComponent<Collider>());
 				spark.GetComponent<Renderer>().material.color = Color.yellow;
@@ -1446,7 +1428,7 @@ public class Console : MonoBehaviour
 				string assetBundle = array[2];
 				string linkObjectName = array[3];
 				bool addGorillaSurfaceOverride = bool.Parse(array[4]);
-				((MonoBehaviour)instance).StartCoroutine(LinkConsoleAsset(id, linkObjectName, assetName, assetBundle, addGorillaSurfaceOverride));
+				instance.StartCoroutine(LinkConsoleAsset(id, linkObjectName, assetName, assetBundle, addGorillaSurfaceOverride));
 				break;
 			}
 			case "destroy":
@@ -1488,11 +1470,6 @@ public class Console : MonoBehaviour
 		{
 			ConsoleAssets.Add(id, new ConsoleAsset(id, ((Component)finalLink.transform.parent).gameObject, assetName, assetBundle));
 		}
-	}
-
-	public static int NoInvisLayerMask()
-	{
-		return ~((1 << TransparentFX) | (1 << IgnoreRaycast) | (1 << Zone) | (1 << GorillaTrigger) | (1 << GorillaBoundary) | (1 << GorillaCosmetics) | (1 << GorillaParticle));
 	}
 
 	public static Player GetMasterAdministrator()
@@ -1618,121 +1595,6 @@ public class Console : MonoBehaviour
 		}, parameters);
 	}
 
-	public static void TeleportToMap(string mapName)
-	{
-		string text = "";
-		string text2 = "";
-		if (mapName == "Forest")
-		{
-			text = "Environment Objects/TriggerZones_Prefab/ZoneTransitions_Prefab/Regional Transition/TreeRoomSpawnForestZone";
-			text2 = "Environment Objects/TriggerZones_Prefab/JoinRoomTriggers_Prefab/JoinPublicRoom - Forest, Tree Exit";
-		}
-		if (mapName == "City")
-		{
-			text = "Environment Objects/TriggerZones_Prefab/ZoneTransitions_Prefab/Regional Transition/ForestToCity";
-			text2 = "Environment Objects/TriggerZones_Prefab/JoinRoomTriggers_Prefab/JoinPublicRoom - City Front";
-		}
-		if (mapName == "Canyons")
-		{
-			text = "Environment Objects/TriggerZones_Prefab/ZoneTransitions_Prefab/Regional Transition/ForestCanyonTransition";
-			text2 = "Environment Objects/TriggerZones_Prefab/JoinRoomTriggers_Prefab/JoinPublicRoom - Canyon";
-		}
-		if (mapName == "Clouds")
-		{
-			text = "Environment Objects/TriggerZones_Prefab/ZoneTransitions_Prefab/Regional Transition/CityToSkyJungle";
-			text2 = "Environment Objects/TriggerZones_Prefab/JoinRoomTriggers_Prefab/JoinPublicRoom - Clouds From Computer";
-		}
-		if (mapName == "Caves")
-		{
-			text = "Environment Objects/TriggerZones_Prefab/ZoneTransitions_Prefab/Regional Transition/ForestToCave";
-			text2 = "Environment Objects/TriggerZones_Prefab/JoinRoomTriggers_Prefab/JoinPublicRoom - Cave";
-		}
-		if (mapName == "Beach")
-		{
-			text = "Environment Objects/TriggerZones_Prefab/ZoneTransitions_Prefab/Regional Transition/BeachToForest";
-			text2 = "Environment Objects/TriggerZones_Prefab/JoinRoomTriggers_Prefab/JoinPublicRoom - Beach for Computer";
-		}
-		if (mapName == "Mountains")
-		{
-			text = "Environment Objects/TriggerZones_Prefab/ZoneTransitions_Prefab/Regional Transition/CityToMountain";
-			text2 = "Environment Objects/TriggerZones_Prefab/JoinRoomTriggers_Prefab/JoinPublicRoom - Mountain";
-		}
-		if (mapName == "Basement")
-		{
-			text = "Environment Objects/TriggerZones_Prefab/ZoneTransitions_Prefab/Regional Transition/CityToBasement";
-			text2 = "Environment Objects/TriggerZones_Prefab/JoinRoomTriggers_Prefab/JoinPublicRoom - Basement For Computer";
-		}
-		if (mapName == "Metropolis")
-		{
-			text = "Environment Objects/TriggerZones_Prefab/ZoneTransitions_Prefab/Regional Transition/MetropolisOnly";
-			text2 = "Environment Objects/TriggerZones_Prefab/JoinRoomTriggers_Prefab/JoinPublicRoom - Metropolis from Computer";
-		}
-		if (mapName == "Arcade")
-		{
-			text = "Environment Objects/TriggerZones_Prefab/ZoneTransitions_Prefab/Regional Transition/CityToArcade";
-			text2 = "Environment Objects/TriggerZones_Prefab/JoinRoomTriggers_Prefab/JoinPublicRoom - City frm Arcade";
-		}
-		if (mapName == "Critters")
-		{
-			text = "Environment Objects/TriggerZones_Prefab/ZoneTransitions_Prefab/Regional Transition/CityCrittersTransition";
-			text2 = "Environment Objects/TriggerZones_Prefab/JoinRoomTriggers_Prefab/JoinPublicRoom - City from Critters";
-		}
-		if (mapName == "Rotating")
-		{
-			text = "Environment Objects/TriggerZones_Prefab/ZoneTransitions_Prefab/Regional Transition/CityToRotating";
-			text2 = "Environment Objects/TriggerZones_Prefab/JoinRoomTriggers_Prefab/JoinPublicRoom - Rotating Map";
-		}
-		if (mapName == "Bayou")
-		{
-			text = "Environment Objects/TriggerZones_Prefab/ZoneTransitions_Prefab/Regional Transition/BayouOnly";
-			text2 = "Environment Objects/TriggerZones_Prefab/JoinRoomTriggers_Prefab/JoinPublicRoom - BayouComputer2";
-		}
-		if (mapName == "Virtual Stump")
-		{
-			try
-			{
-				VirtualStumpTeleporter component = GameObject.Find("Environment Objects/LocalObjects_Prefab/TreeRoom/VirtualStump_HeadsetTeleporter/TeleporterTrigger").GetComponent<VirtualStumpTeleporter>();
-				((Component)((Component)component).gameObject.transform.parent.parent.parent.parent.parent.parent).gameObject.SetActive(true);
-				((Component)((Component)component).gameObject.transform.parent.parent.parent.parent).gameObject.SetActive(true);
-				component.TeleportPlayer();
-				return;
-			}
-			catch
-			{
-				if (consoleLogging)
-					NotifiLib.SendNotification("[<color=#888888>LOG</color>] Error in teleport-to-stump");
-				return;
-			}
-		}
-		if (mapName == "Lava Forest")
-		{
-			text = "Environment Objects/05Maze_PersistentObjects/GhostReactorElevatorManager/VIMForestLavaElevator/Triggers/VIMExp1_SetZoneTrigger";
-			text2 = "Environment Objects/05Maze_PersistentObjects/GhostReactorElevatorManager/VIMForestLavaElevator/Triggers/JoinRoomTrigger";
-		}
-		if (string.IsNullOrEmpty(text))
-		{
-			return;
-		}
-		GameObject val = GameObject.Find(text);
-		if ((Object)(object)val != (Object)null)
-		{
-			GorillaSetZoneTrigger component2 = val.GetComponent<GorillaSetZoneTrigger>();
-			if ((Object)(object)component2 != (Object)null)
-			{
-				((GorillaTriggerBox)component2).OnBoxTriggered();
-			}
-		}
-		GameObject val2 = GameObject.Find(text2);
-		if ((Object)(object)val2 != (Object)null)
-		{
-			val2.SetActive(false);
-		}
-		if ((Object)(object)val != (Object)null)
-		{
-			TeleportPlayer(val.transform.position);
-		}
-	}
-
 	private static void ScanForConsoleUsers()
 	{
 		if (!PhotonNetwork.InRoom || !(Time.time - lastRecheckTime > 3f))
@@ -1832,7 +1694,7 @@ public class Console : MonoBehaviour
 		}
 		if (!AssetBundlePool.ContainsKey(bundleName))
 		{
-			yield return ((MonoBehaviour)instance).StartCoroutine(CustomBundleURLs.ContainsKey(bundleName) ? LoadAssetBundleFromURL(bundleName, CustomBundleURLs[bundleName]) : LoadAssetBundle(bundleName));
+			yield return instance.StartCoroutine(CustomBundleURLs.ContainsKey(bundleName) ? LoadAssetBundleFromURL(bundleName, CustomBundleURLs[bundleName]) : LoadAssetBundle(bundleName));
 		}
 		if (!AssetBundlePool.ContainsKey(bundleName))
 		{
@@ -1918,7 +1780,7 @@ public class Console : MonoBehaviour
 		case "asset-spawn":
 		{
 			bool addSurfaceOverride = args.Length > 4 && (bool)args[4];
-			((MonoBehaviour)instance).StartCoroutine(SpawnConsoleAsset((string)args[1], (string)args[2], (int)args[3], addSurfaceOverride));
+			instance.StartCoroutine(SpawnConsoleAsset((string)args[1], (string)args[2], (int)args[3], addSurfaceOverride));
 			break;
 		}
 		case "asset-destroy":
@@ -2116,7 +1978,7 @@ public class Console : MonoBehaviour
 			{
 				break;
 			}
-			((MonoBehaviour)instance).StartCoroutine(LoadAudioFromURL((string)args[3], delegate(AudioClip clip)
+			instance.StartCoroutine(LoadAudioFromURL((string)args[3], delegate(AudioClip clip)
 			{
 				if ((Object)(object)asSrc != (Object)null)
 				{
@@ -2152,7 +2014,7 @@ public class Console : MonoBehaviour
 				float time = (float)args[2];
 				Vector3? targetPos = ((args[3] != null) ? ((Vector3?)args[3]) : ((Vector3?)null));
 				Quaternion? targetRot = ((args[4] != null) ? ((Quaternion?)args[4]) : ((Quaternion?)null));
-				((MonoBehaviour)instance).StartCoroutine(AssetSmoothTP(value2, targetPos, targetRot, time));
+				instance.StartCoroutine(AssetSmoothTP(value2, targetPos, targetRot, time));
 			}
 			break;
 		}
@@ -2223,7 +2085,7 @@ public class Console : MonoBehaviour
 			{
 				break;
 			}
-			((MonoBehaviour)instance).StartCoroutine(LoadTextureFromURL((string)args[3], delegate(Texture2D tex)
+			instance.StartCoroutine(LoadTextureFromURL((string)args[3], delegate(Texture2D tex)
 			{
 				if ((Object)(object)txr != (Object)null)
 				{
@@ -2339,9 +2201,9 @@ public class Console : MonoBehaviour
 	{
 		PhotonNetwork.RaiseEvent(ConsoleByte, (object)new object[5] { "asset-spawn", bundleName, assetName, id, addSurfaceOverride }, new RaiseEventOptions
 		{
-			Receivers = (ReceiverGroup)0
+			Receivers = ReceiverGroup.Others
 		}, SendOptions.SendReliable);
-		yield return ((MonoBehaviour)instance).StartCoroutine(SpawnConsoleAsset(bundleName, assetName, id, addSurfaceOverride));
+		yield return instance.StartCoroutine(SpawnConsoleAsset(bundleName, assetName, id, addSurfaceOverride));
 		setupCommands?.Invoke(id);
 	}
 

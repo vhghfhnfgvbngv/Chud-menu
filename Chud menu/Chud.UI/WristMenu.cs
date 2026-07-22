@@ -554,16 +554,16 @@ internal class WristMenu : MonoBehaviour
 	{
 		try
 		{
-			gripDownL = ((ControllerInputPoller)ControllerInputPoller.instance).leftGrab;
-			gripDownR = ((ControllerInputPoller)ControllerInputPoller.instance).rightGrab;
-			triggerDownL = ((ControllerInputPoller)ControllerInputPoller.instance).leftControllerIndexFloat == 1f;
-			triggerDownR = ((ControllerInputPoller)ControllerInputPoller.instance).rightControllerIndexFloat == 1f;
-			abuttonDown = ((ControllerInputPoller)ControllerInputPoller.instance).rightControllerPrimaryButton;
-			bbuttonDown = ((ControllerInputPoller)ControllerInputPoller.instance).rightControllerSecondaryButton;
-			xbuttonDown = ((ControllerInputPoller)ControllerInputPoller.instance).leftControllerPrimaryButton;
-			ybuttonDown = ((ControllerInputPoller)ControllerInputPoller.instance).leftControllerSecondaryButton;
-			joy = ((ControllerInputPoller)ControllerInputPoller.instance).rightControllerPrimary2DAxis;
-			joyL = ((ControllerInputPoller)ControllerInputPoller.instance).leftControllerPrimary2DAxis;
+			gripDownL = ControllerInputPoller.instance.leftGrab;
+			gripDownR = ControllerInputPoller.instance.rightGrab;
+			triggerDownL = ControllerInputPoller.instance.leftControllerIndexFloat == 1f;
+			triggerDownR = ControllerInputPoller.instance.rightControllerIndexFloat == 1f;
+			abuttonDown = ControllerInputPoller.instance.rightControllerPrimaryButton;
+			bbuttonDown = ControllerInputPoller.instance.rightControllerSecondaryButton;
+			xbuttonDown = ControllerInputPoller.instance.leftControllerPrimaryButton;
+			ybuttonDown = ControllerInputPoller.instance.leftControllerSecondaryButton;
+			joy = ControllerInputPoller.instance.rightControllerPrimary2DAxis;
+			joyL = ControllerInputPoller.instance.leftControllerPrimary2DAxis;
 			bool qKeyDown = Keyboard.current != null && ((ButtonControl)Keyboard.current.qKey).isPressed;
 			if (Mods.change7 == 5 && (Object)(object)menu != (Object)null && !menu.GetComponent<Rigidbody>())
 			{
@@ -659,7 +659,7 @@ internal class WristMenu : MonoBehaviour
 			{
 				instance.Draw();
 				menu.transform.localScale = Vector3.one * 0.001f;
-				((MonoBehaviour)instance).StartCoroutine(OpenAni());
+				instance.StartCoroutine(OpenAni());
 			}
 			if (qKeyDown)
 			{
@@ -754,7 +754,7 @@ internal class WristMenu : MonoBehaviour
 			Mods.SendMenuClose();
 			Object.Destroy((Object)(object)reference);
 			reference = null;
-			((MonoBehaviour)instance).StartCoroutine(CloseAni());
+			instance.StartCoroutine(CloseAni());
 		}
 	}
 
@@ -899,7 +899,6 @@ internal class WristMenu : MonoBehaviour
 		Color bgBot = NormalColor;
 		bgRenderer.material = MakeGradientMat(bgTop, bgBot);
 		menuObj.transform.position = new Vector3(0.05f, 0f, 0f);
-		Shader val = Shader.Find("GorillaTag/UberShader");
 		if (roundedObjects)
 		{
 			RoundGameObject(menuObj, "__background__", bgTop, bgBot);
@@ -1181,15 +1180,16 @@ internal class WristMenu : MonoBehaviour
 			val4.transform.localScale = new Vector3(num * 2.55f, localScale.x / 2f, num * 2f);
 			list.Add(val4.GetComponent<Renderer>());
 		}
-		Shader val = Shader.Find("GorillaTag/UberShader");
+		Shader val = ShaderCache.Uber;
 		foreach (Renderer item in list)
 		{
 			Material material = item.material;
-			material.color = midColor;
 			if ((Object)(object)val != (Object)null)
 			{
 				material.shader = val;
 			}
+			material.color = midColor;
+			material.SetColor("_BaseColor", midColor);
 		}
 		roundedRenderers[identifier] = list;
 		component.enabled = false;
@@ -1219,8 +1219,8 @@ internal class WristMenu : MonoBehaviour
 		InitCategories();
 		InitMenuFont();
 		sessionStartTime = DateTime.Now;
-		((MonoBehaviour)this).StartCoroutine(LoadMenuImage());
-		((MonoBehaviour)this).StartCoroutine(LoadCustomButtonClickAudio());
+		this.StartCoroutine(LoadMenuImage());
+		this.StartCoroutine(LoadCustomButtonClickAudio());
 		Draw();
 	}
 

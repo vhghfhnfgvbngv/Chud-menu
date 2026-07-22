@@ -14,27 +14,8 @@ internal static class NetworkMenuDisplay
 
 	private const float CLOSE_ANIMATION_SPEED = 0.3f;
 
-	private static Shader _cachedUberShader;
-	private static Shader CachedUberShader
-	{
-		get
-		{
-			if ((Object)(object)_cachedUberShader == (Object)null)
-				_cachedUberShader = Shader.Find("GorillaTag/UberShader");
-			return _cachedUberShader;
-		}
-	}
-
-	private static Shader _cachedGuiTextShader;
-	private static Shader CachedGuiTextShader
-	{
-		get
-		{
-			if ((Object)(object)_cachedGuiTextShader == (Object)null)
-				_cachedGuiTextShader = Shader.Find("GUI/Text Shader");
-			return _cachedGuiTextShader;
-		}
-	}
+	private static Shader CachedUberShader => ShaderCache.Uber;
+	private static Shader CachedGuiTextShader => ShaderCache.GuiText;
 
 	public static void Create(Mods.RemoteMenuState state)
 	{
@@ -42,7 +23,7 @@ internal static class NetworkMenuDisplay
 		{
 			GameObject val = new GameObject("RemoteMenu_" + state.player.ActorNumber);
 			val.transform.localScale = new Vector3(0.1f, 0.3f, 0.3825f);
-			GameObject val3 = GameObject.CreatePrimitive((PrimitiveType)3);
+			GameObject val3 = GameObject.CreatePrimitive(PrimitiveType.Cube);
 			Object.Destroy((Object)(object)val3.GetComponent<Rigidbody>());
 			Object.Destroy((Object)(object)val3.GetComponent<BoxCollider>());
 			val3.transform.parent = val.transform;
@@ -58,7 +39,7 @@ internal static class NetworkMenuDisplay
 			Canvas val5 = val4.AddComponent<Canvas>();
 			CanvasScaler val6 = val4.AddComponent<CanvasScaler>();
 			val4.AddComponent<GraphicRaycaster>();
-			val5.renderMode = (RenderMode)2;
+			val5.renderMode = RenderMode.WorldSpace;
 			val6.dynamicPixelsPerUnit = 1900f;
 			val6.referencePixelsPerUnit = 100f;
 			GameObject val7 = new GameObject("MenuTitle");
@@ -68,8 +49,8 @@ internal static class NetworkMenuDisplay
 			val8.text = WristMenu.MenuTitle;
 			val8.fontSize = 200;
 			((Graphic)val8).color = state.menuColors.MenuTitleColor;
-			val8.fontStyle = (FontStyle)2;
-			val8.alignment = (TextAnchor)4;
+			val8.fontStyle = FontStyle.Bold;
+			val8.alignment = TextAnchor.MiddleCenter;
 			val8.resizeTextForBestFit = true;
 			val8.resizeTextMinSize = 0;
 			val8.resizeTextMaxSize = 200;
@@ -78,7 +59,7 @@ internal static class NetworkMenuDisplay
 			component2.sizeDelta = new Vector2(0.28f, 0.05f);
 			((Transform)component2).position = new Vector3(0.06f, 0f, 0.175f);
 			((Transform)component2).localRotation = Quaternion.Euler(new Vector3(180f, 90f, 90f));
-			GameObject val9 = GameObject.CreatePrimitive((PrimitiveType)3);
+			GameObject val9 = GameObject.CreatePrimitive(PrimitiveType.Cube);
 			Object.Destroy((Object)(object)val9.GetComponent<Rigidbody>());
 			((Collider)val9.GetComponent<BoxCollider>()).isTrigger = true;
 			val9.transform.parent = val.transform;
@@ -96,17 +77,17 @@ internal static class NetworkMenuDisplay
 			val11.text = "Disconnect";
 			val11.fontSize = 200;
 			((Graphic)val11).color = WristMenu.DisconnectTextColor;
-			val11.alignment = (TextAnchor)4;
+			val11.alignment = TextAnchor.MiddleCenter;
 			val11.resizeTextForBestFit = true;
 			val11.resizeTextMinSize = 0;
 			val11.resizeTextMaxSize = 200;
-			val11.fontStyle = (FontStyle)2;
+			val11.fontStyle = FontStyle.Bold;
 			RectTransform component4 = ((Component)val11).GetComponent<RectTransform>();
 			((Transform)component4).localPosition = Vector3.zero;
 			component4.sizeDelta = new Vector2(0.2f, 0.03f);
 			((Transform)component4).localPosition = new Vector3(0.064f, 0f, 0.23f);
 			((Transform)component4).localRotation = Quaternion.Euler(new Vector3(180f, 90f, 90f));
-			GameObject val12 = GameObject.CreatePrimitive((PrimitiveType)3);
+			GameObject val12 = GameObject.CreatePrimitive(PrimitiveType.Cube);
 			Object.Destroy((Object)(object)val12.GetComponent<Rigidbody>());
 			((Collider)val12.GetComponent<BoxCollider>()).isTrigger = true;
 			val12.transform.parent = val.transform;
@@ -124,8 +105,8 @@ internal static class NetworkMenuDisplay
 			val14.text = "<";
 			val14.fontSize = 200;
 			((Graphic)val14).color = WristMenu.NextPrevTextColor;
-			val14.fontStyle = (FontStyle)2;
-			val14.alignment = (TextAnchor)4;
+			val14.fontStyle = FontStyle.Bold;
+			val14.alignment = TextAnchor.MiddleCenter;
 			val14.resizeTextForBestFit = true;
 			val14.resizeTextMinSize = 0;
 			val14.resizeTextMaxSize = 200;
@@ -134,7 +115,7 @@ internal static class NetworkMenuDisplay
 			component6.sizeDelta = new Vector2(0.2f, 0.03f);
 			((Transform)component6).localPosition = new Vector3(0.064f, 0.195f, 0f);
 			((Transform)component6).localRotation = Quaternion.Euler(new Vector3(180f, 90f, 90f));
-			GameObject val15 = GameObject.CreatePrimitive((PrimitiveType)3);
+			GameObject val15 = GameObject.CreatePrimitive(PrimitiveType.Cube);
 			Object.Destroy((Object)(object)val15.GetComponent<Rigidbody>());
 			((Collider)val15.GetComponent<BoxCollider>()).isTrigger = true;
 			val15.transform.parent = val.transform;
@@ -151,8 +132,8 @@ internal static class NetworkMenuDisplay
 			val17.text = ">";
 			val17.fontSize = 200;
 			((Graphic)val17).color = WristMenu.NextPrevTextColor;
-			val17.fontStyle = (FontStyle)2;
-			val17.alignment = (TextAnchor)4;
+			val17.fontStyle = FontStyle.Bold;
+			val17.alignment = TextAnchor.MiddleCenter;
 			val17.resizeTextForBestFit = true;
 			val17.resizeTextMinSize = 0;
 			val17.resizeTextMaxSize = 200;
@@ -165,7 +146,7 @@ internal static class NetworkMenuDisplay
 		state.displayObject = val;
 		UpdatePosition(state);
 		val.transform.localScale = Vector3.zero;
-			((MonoBehaviour)Mods.instance).StartCoroutine(OpenAni(state));
+			Mods.instance.StartCoroutine(OpenAni(state));
 		}
 	}
 
@@ -211,7 +192,7 @@ internal static class NetworkMenuDisplay
 		if (!((Object)(object)state.displayObject == (Object)null) && !state.closing)
 		{
 			state.closing = true;
-			((MonoBehaviour)Mods.instance).StartCoroutine(CloseAniCoroutine(state));
+			Mods.instance.StartCoroutine(CloseAniCoroutine(state));
 		}
 	}
 
@@ -270,7 +251,7 @@ internal static class NetworkMenuDisplay
 		{
 			float num2 = (float)j * 0.116f;
 			string text = list[j];
-			GameObject val = GameObject.CreatePrimitive((PrimitiveType)3);
+			GameObject val = GameObject.CreatePrimitive(PrimitiveType.Cube);
 			Object.Destroy((Object)(object)val.GetComponent<Rigidbody>());
 			((Collider)val.GetComponent<BoxCollider>()).isTrigger = true;
 			val.transform.parent = root.transform;
@@ -291,8 +272,8 @@ internal static class NetworkMenuDisplay
 			val3.fontSize = 200;
 			val3.supportRichText = true;
 			((Graphic)val3).color = (flag ? state.menuColors.EnableTextColor : state.menuColors.DisableTextColor);
-			val3.fontStyle = (FontStyle)2;
-			val3.alignment = (TextAnchor)4;
+			val3.fontStyle = FontStyle.Bold;
+			val3.alignment = TextAnchor.MiddleCenter;
 			val3.resizeTextForBestFit = true;
 			val3.resizeTextMinSize = 0;
 			val3.resizeTextMaxSize = 200;
@@ -489,13 +470,13 @@ internal static class NetworkMenuDisplay
 
 	public static void SpawnRemoteObject(string objType, Vector3 pos, Vector3 rot, Vector3 scale, Color color)
 	{
-		GameObject val = GameObject.CreatePrimitive((PrimitiveType)(objType.ToLower() switch
+		GameObject val = GameObject.CreatePrimitive(objType.ToLower() switch
 		{
-			"sphere" => 0, 
-			"capsule" => 1, 
-			"cylinder" => 2, 
-			_ => 3, 
-		}));
+			"sphere" => PrimitiveType.Sphere,
+			"capsule" => PrimitiveType.Capsule,
+			"cylinder" => PrimitiveType.Cylinder,
+			_ => PrimitiveType.Cube,
+		});
 		Object.Destroy((Object)(object)val.GetComponent<Collider>());
 		Object.Destroy((Object)(object)val.GetComponent<Rigidbody>());
 		val.transform.position = pos;

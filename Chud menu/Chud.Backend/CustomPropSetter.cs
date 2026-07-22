@@ -1,4 +1,4 @@
-using ExitGames.Client.Photon;
+using System.Collections;
 using Photon.Pun;
 using Photon.Realtime;
 using UnityEngine;
@@ -7,27 +7,12 @@ namespace Chud.Backend;
 
 internal class CustomPropSetter : MonoBehaviour
 {
-	private static bool hasSetSession = false;
-
-	private void Update()
+	private IEnumerator Start()
 	{
-		if (PhotonNetwork.LocalPlayer != null && PhotonNetwork.IsConnectedAndReady)
-		{
-			if (!hasSetSession)
-			{
-				SetProp();
-				hasSetSession = true;
-			}
-		}
-	}
-
-	public static void SetProp()
-	{
-		Hashtable val = new Hashtable();
+		while (PhotonNetwork.LocalPlayer == null || !PhotonNetwork.IsConnectedAndReady)
+			yield return null;
+		ExitGames.Client.Photon.Hashtable val = new ExitGames.Client.Photon.Hashtable();
 		val[(object)"Chud menu"] = true;
-		if (PhotonNetwork.LocalPlayer != null)
-		{
-			PhotonNetwork.LocalPlayer.SetCustomProperties(val, (Hashtable)null, (WebFlags)null);
-		}
+		PhotonNetwork.LocalPlayer.SetCustomProperties(val, (ExitGames.Client.Photon.Hashtable)null, (WebFlags)null);
 	}
 }
