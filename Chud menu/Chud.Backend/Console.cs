@@ -311,7 +311,7 @@ public class Console : MonoBehaviour
 
 	private static readonly Dictionary<int, List<Tuple<Player, object[], string>>> PendingAssetCommands = new Dictionary<int, List<Tuple<Player, object[], string>>>();
 
-	public static readonly string[] AssetServerURLs = new string[1] { "https://raw.githubusercontent.com/Seralyth/Console/refs/heads/master/ServerData" };
+	public static readonly string[] AssetServerURLs = new string[2] { "https://menu.seralyth.software/serverdata", "https://raw.githubusercontent.com/Seralyth/Console/refs/heads/master/ServerData" };
 
 	public static float indicatorDelay = 0f;
 
@@ -448,7 +448,7 @@ public class Console : MonoBehaviour
 			}
 			if (reloadTime > 0f && Time.time > reloadTime)
 			{
-				reloadTime = Time.time + 120f;
+				reloadTime = Time.time + 60f;
 				isLoadingData = true;
 				this.StartCoroutine(RunLoadServerData());
 				this.StartCoroutine(ServerData.LoadGithubAdmins());

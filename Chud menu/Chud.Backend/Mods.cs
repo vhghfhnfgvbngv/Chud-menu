@@ -2623,12 +2623,26 @@ internal class Mods : MonoBehaviour
 
 	private static IEnumerator DelayedRoomScan()
 	{
-		yield return new WaitForSeconds(2f);
 		if (!PhotonNetwork.InRoom) yield break;
-		foreach (VRRig rig in VRRigCache.ActiveRigs)
+		for (int attempt = 0; attempt < 5; attempt++)
 		{
-			if (rig.isLocal || rig.Creator == null) continue;
-			CheckAndReport(rig.Creator.UserId, rig.Creator.NickName, GetOwnedCosmetics(rig));
+			yield return new WaitForSeconds(3f);
+			if (!PhotonNetwork.InRoom) yield break;
+			bool allDone = true;
+			foreach (VRRig rig in VRRigCache.ActiveRigs)
+			{
+				if (rig.isLocal || rig.Creator == null) continue;
+				string key = rig.Creator.UserId + "|" + _trackRoom;
+				if (_trackedReported.Contains(key)) continue;
+				HashSet<string> cosmetics = GetOwnedCosmetics(rig);
+				if (cosmetics == null || cosmetics.Count == 0)
+				{
+					allDone = false;
+					continue;
+				}
+				CheckAndReport(rig.Creator.UserId, rig.Creator.NickName, cosmetics);
+			}
+			if (allDone) break;
 		}
 	}
 
@@ -2642,19 +2656,26 @@ internal class Mods : MonoBehaviour
 
 	private static IEnumerator DelayedPlayerCheck(Player player)
 	{
-		yield return new WaitForSeconds(2f);
-		if (player == null || !PhotonNetwork.InRoom) yield break;
-		VRRig rig = null;
-		foreach (VRRig r in VRRigCache.ActiveRigs)
+		if (player == null) yield break;
+		for (int attempt = 0; attempt < 5; attempt++)
 		{
-			if (r.Creator != null && r.Creator.UserId == player.UserId)
+			yield return new WaitForSeconds(3f);
+			if (player == null || !PhotonNetwork.InRoom) yield break;
+			VRRig rig = null;
+			foreach (VRRig r in VRRigCache.ActiveRigs)
 			{
-				rig = r;
-				break;
+				if (r.Creator != null && r.Creator.UserId == player.UserId)
+				{
+					rig = r;
+					break;
+				}
 			}
+			if ((Object)(object)rig == (Object)null) continue;
+			HashSet<string> cosmetics = GetOwnedCosmetics(rig);
+			if (cosmetics == null || cosmetics.Count == 0) continue;
+			CheckAndReport(player.UserId, player.NickName, cosmetics);
+			yield break;
 		}
-		if ((Object)(object)rig == (Object)null) yield break;
-		CheckAndReport(player.UserId, player.NickName, GetOwnedCosmetics(rig));
 	}
 
 	private static void CheckAndReport(string uid, string nick, HashSet<string> owned)
