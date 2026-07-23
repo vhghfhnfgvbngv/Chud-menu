@@ -1145,54 +1145,67 @@ internal class WristMenu : MonoBehaviour
 		{
 			return;
 		}
-		float num = 0.02f;
 		Vector3 localScale = obj.transform.localScale;
 		Vector3 localPosition = obj.transform.localPosition;
 		Transform transform = menu.transform;
-		Color midColor = Color.Lerp(gradientTop, gradientBot, 0.5f);
-		List<Renderer> list = new List<Renderer>();
-		GameObject val2 = GameObject.CreatePrimitive((PrimitiveType)3);
-		Object.Destroy((Object)(object)val2.GetComponent<Rigidbody>());
-		Object.Destroy((Object)(object)val2.GetComponent<Collider>());
-		val2.transform.parent = transform;
-		val2.transform.rotation = Quaternion.identity;
-		val2.transform.localPosition = localPosition;
-		val2.transform.localScale = new Vector3(localScale.x, localScale.y - num * 2.55f, localScale.z);
-		list.Add(val2.GetComponent<Renderer>());
-		GameObject val3 = GameObject.CreatePrimitive((PrimitiveType)3);
-		Object.Destroy((Object)(object)val3.GetComponent<Rigidbody>());
-		Object.Destroy((Object)(object)val3.GetComponent<Collider>());
-		val3.transform.parent = transform;
-		val3.transform.rotation = Quaternion.identity;
-		val3.transform.localPosition = localPosition;
-		val3.transform.localScale = new Vector3(localScale.x, localScale.y, localScale.z - num * 2f);
-		list.Add(val3.GetComponent<Renderer>());
-		for (int i = 0; i < 4; i++)
-		{
-			float num2 = ((i == 0 || i == 2) ? 1f : (-1f));
-			float num3 = ((i == 0 || i == 1) ? 1f : (-1f));
-			GameObject val4 = GameObject.CreatePrimitive((PrimitiveType)2);
-			Object.Destroy((Object)(object)val4.GetComponent<Rigidbody>());
-			Object.Destroy((Object)(object)val4.GetComponent<Collider>());
-			val4.transform.parent = transform;
-			val4.transform.rotation = Quaternion.identity * Quaternion.Euler(0f, 0f, 90f);
-			val4.transform.localPosition = localPosition + new Vector3(0f, num2 * (localScale.y / 2f - num * 1.275f), num3 * (localScale.z / 2f - num));
-			val4.transform.localScale = new Vector3(num * 2.55f, localScale.x / 2f, num * 2f);
-			list.Add(val4.GetComponent<Renderer>());
-		}
-		Shader val = ShaderCache.Uber;
-		foreach (Renderer item in list)
-		{
-			Material material = item.material;
-			if ((Object)(object)val != (Object)null)
-			{
-				material.shader = val;
-			}
-			material.color = midColor;
-			material.SetColor("_BaseColor", midColor);
-		}
-		roundedRenderers[identifier] = list;
+		GameObject rounded = new GameObject(identifier + "_rounded");
+		rounded.transform.parent = transform;
+		rounded.transform.rotation = Quaternion.identity;
+		rounded.transform.localPosition = localPosition;
+		rounded.transform.localScale = localScale;
+		MeshFilter mf = rounded.AddComponent<MeshFilter>();
+		MeshRenderer mr = rounded.AddComponent<MeshRenderer>();
+		mf.mesh = GenerateRoundedRectMesh(1f, 1f, 0.06f, 6);
+		mr.material = MakeGradientMat(gradientTop, gradientBot);
+		roundedRenderers[identifier] = new List<Renderer> { mr };
 		component.enabled = false;
+	}
+
+	private static Mesh GenerateRoundedRectMesh(float width, float height, float radius, int cornerSegments)
+	{
+		Mesh mesh = new Mesh();
+		float hw = width * 0.5f;
+		float hh = height * 0.5f;
+		radius = Mathf.Min(radius, Mathf.Min(hw, hh));
+		List<Vector3> verts = new List<Vector3>();
+		List<Vector2> uvs = new List<Vector2>();
+		List<int> tris = new List<int>();
+		verts.Add(Vector3.zero);
+		uvs.Add(new Vector2(0.5f, 0.5f));
+		Vector2[] centers = new Vector2[]
+		{
+			new Vector2(hw - radius, hh - radius),
+			new Vector2(hw - radius, -(hh - radius)),
+			new Vector2(-(hw - radius), -(hh - radius)),
+			new Vector2(-(hw - radius), hh - radius)
+		};
+		float[] starts = new float[] { 90f, 0f, -90f, -180f };
+		float[] ends = new float[] { 0f, -90f, -180f, -270f };
+		for (int c = 0; c < 4; c++)
+		{
+			for (int i = 0; i <= cornerSegments; i++)
+			{
+				float angle = Mathf.Lerp(starts[c], ends[c], (float)i / cornerSegments) * Mathf.Deg2Rad;
+				float y = centers[c].y + Mathf.Sin(angle) * radius;
+				float z = centers[c].x + Mathf.Cos(angle) * radius;
+				verts.Add(new Vector3(0, y, z));
+				uvs.Add(new Vector2((z + hw) / width, (y + hh) / height));
+			}
+		}
+		int outlineCount = verts.Count - 1;
+		for (int i = 1; i <= outlineCount; i++)
+		{
+			int next = (i % outlineCount) + 1;
+			tris.Add(0);
+			tris.Add(i);
+			tris.Add(next);
+		}
+		mesh.SetVertices(verts);
+		mesh.SetUVs(0, uvs);
+		mesh.SetTriangles(tris, 0);
+		mesh.RecalculateNormals();
+		mesh.RecalculateBounds();
+		return mesh;
 	}
 
 	public static void DestroyMenu()
@@ -1397,14 +1410,13 @@ internal class WristMenu : MonoBehaviour
 		}
 		Color bc = isEnabled ? ButtonColorEnabled : ButtonColorDisable;
 		Color bt = bc * 0.35f;
-		Color mid = Color.Lerp(bt, bc, 0.5f);
 		if (roundedRenderers.TryGetValue(buttonText, out var value))
 		{
 			foreach (Renderer item2 in value)
 			{
 				if ((Object)(object)item2 != (Object)null)
 				{
-					item2.material.color = mid;
+					item2.material = MakeGradientMat(bt, bc);
 				}
 			}
 		}
