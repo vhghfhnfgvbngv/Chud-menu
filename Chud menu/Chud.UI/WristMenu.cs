@@ -1155,23 +1155,20 @@ internal class WristMenu : MonoBehaviour
 		rounded.transform.localScale = localScale;
 		MeshFilter mf = rounded.AddComponent<MeshFilter>();
 		MeshRenderer mr = rounded.AddComponent<MeshRenderer>();
-		mf.mesh = GenerateRoundedRectMesh(1f, 1f, 0.06f, 6);
+		mf.mesh = GenerateRoundedRectMesh(1f, 1f, 0.08f, 6, 0.7f);
 		mr.material = MakeGradientMat(gradientTop, gradientBot);
 		roundedRenderers[identifier] = new List<Renderer> { mr };
 		component.enabled = false;
 	}
 
-	private static Mesh GenerateRoundedRectMesh(float width, float height, float radius, int cornerSegments)
+	private static Mesh GenerateRoundedRectMesh(float width, float height, float radius, int cornerSegments, float depth)
 	{
 		Mesh mesh = new Mesh();
 		float hw = width * 0.5f;
 		float hh = height * 0.5f;
+		float hd = depth * 0.5f;
 		radius = Mathf.Min(radius, Mathf.Min(hw, hh));
-		List<Vector3> verts = new List<Vector3>();
-		List<Vector2> uvs = new List<Vector2>();
-		List<int> tris = new List<int>();
-		verts.Add(Vector3.zero);
-		uvs.Add(new Vector2(0.5f, 0.5f));
+		List<Vector2> outline = new List<Vector2>();
 		Vector2[] centers = new Vector2[]
 		{
 			new Vector2(hw - radius, hh - radius),
@@ -1188,17 +1185,58 @@ internal class WristMenu : MonoBehaviour
 				float angle = Mathf.Lerp(starts[c], ends[c], (float)i / cornerSegments) * Mathf.Deg2Rad;
 				float y = centers[c].y + Mathf.Sin(angle) * radius;
 				float z = centers[c].x + Mathf.Cos(angle) * radius;
-				verts.Add(new Vector3(0, y, z));
-				uvs.Add(new Vector2((z + hw) / width, (y + hh) / height));
+				outline.Add(new Vector2(y, z));
 			}
 		}
-		int outlineCount = verts.Count - 1;
-		for (int i = 1; i <= outlineCount; i++)
+		int outlineCount = outline.Count;
+		List<Vector3> verts = new List<Vector3>();
+		List<Vector2> uvs = new List<Vector2>();
+		List<int> tris = new List<int>();
+		int frontCenter = verts.Count;
+		verts.Add(new Vector3(hd, 0, 0));
+		uvs.Add(new Vector2(0.5f, 0.5f));
+		int frontStart = verts.Count;
+		for (int i = 0; i < outlineCount; i++)
 		{
-			int next = (i % outlineCount) + 1;
-			tris.Add(0);
-			tris.Add(i);
-			tris.Add(next);
+			verts.Add(new Vector3(hd, outline[i].x, outline[i].y));
+			uvs.Add(new Vector2((outline[i].y + hw) / width, (outline[i].x + hh) / height));
+		}
+		for (int i = 0; i < outlineCount; i++)
+		{
+			int next = (i + 1) % outlineCount;
+			tris.Add(frontCenter);
+			tris.Add(frontStart + i);
+			tris.Add(frontStart + next);
+		}
+		int backCenter = verts.Count;
+		verts.Add(new Vector3(-hd, 0, 0));
+		uvs.Add(new Vector2(0.5f, 0.5f));
+		int backStart = verts.Count;
+		for (int i = 0; i < outlineCount; i++)
+		{
+			verts.Add(new Vector3(-hd, outline[i].x, outline[i].y));
+			uvs.Add(new Vector2((outline[i].y + hw) / width, (outline[i].x + hh) / height));
+		}
+		for (int i = 0; i < outlineCount; i++)
+		{
+			int next = (i + 1) % outlineCount;
+			tris.Add(backCenter);
+			tris.Add(backStart + next);
+			tris.Add(backStart + i);
+		}
+		for (int i = 0; i < outlineCount; i++)
+		{
+			int next = (i + 1) % outlineCount;
+			int f0 = frontStart + i;
+			int f1 = frontStart + next;
+			int b0 = backStart + i;
+			int b1 = backStart + next;
+			tris.Add(f0);
+			tris.Add(b0);
+			tris.Add(f1);
+			tris.Add(f1);
+			tris.Add(b0);
+			tris.Add(b1);
 		}
 		mesh.SetVertices(verts);
 		mesh.SetUVs(0, uvs);

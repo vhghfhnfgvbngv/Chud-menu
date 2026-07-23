@@ -3641,25 +3641,31 @@ internal class Mods : MonoBehaviour
 				pointer = GameObject.CreatePrimitive(pointershape);
 			}
 			pointer.transform.localScale = pointersize;
-			pointer.GetComponent<Renderer>().material.shader = CachedGuiTextShader;
+			pointer.GetComponent<Renderer>().material.shader = ShaderCache.Uber;
 			pointer.transform.position = raycastHit.point;
-			pointer.GetComponent<Renderer>().material.color = WristMenu.ButtonColorEnabled;
+			pointer.GetComponent<Renderer>().material.color = color;
+			pointer.GetComponent<Renderer>().material.SetColor("_BaseColor", color);
 			if (liner)
 			{
 				if ((Object)(object)Line == (Object)null)
 				{
 					GameObject val3 = new GameObject("GunLine");
 					Line = val3.AddComponent<LineRenderer>();
-					Line.material.shader = CachedGuiTextShader;
+					Line.material.shader = ShaderCache.Uber;
 					Line.startWidth = linesize;
 					Line.endWidth = linesize;
 					Line.positionCount = 2;
 					Line.useWorldSpace = true;
 				}
-				Line.startColor = WristMenu.ButtonColorEnabled;
-				Line.endColor = WristMenu.ButtonColorEnabled;
+			Line.startColor = Color.white;
+			Line.endColor = Color.white;
+			Line.material.color = color;
+			Line.material.SetColor("_BaseColor", color);
 				Line.SetPosition(0, arm.position);
 				Line.SetPosition(1, pointer.transform.position);
+				float pulse = hand1 ? (1f + Mathf.Sin(Time.time * 12f) * 0.4f) : 1f;
+				Line.startWidth = linesize * pulse;
+				Line.endWidth = linesize * pulse;
 			}
 			Object.Destroy((Object)(object)pointer.GetComponent<BoxCollider>());
 			Object.Destroy((Object)(object)pointer.GetComponent<Rigidbody>());
@@ -3686,7 +3692,8 @@ internal class Mods : MonoBehaviour
 			}
 			if (hand1)
 			{
-				pointer.GetComponent<Renderer>().material.color = WristMenu.ButtonColorEnabled * 0.5f;
+				pointer.GetComponent<Renderer>().material.color = WristMenu.ButtonColorDisable;
+			pointer.GetComponent<Renderer>().material.SetColor("_BaseColor", WristMenu.ButtonColorDisable);
 			}
 			gunTriggerWasDown = hand1;
 		}
@@ -3709,7 +3716,7 @@ internal class Mods : MonoBehaviour
 	internal static void MakeRightHandGun(Action onTrigger, Action onRelease = null)
 	{
 		Transform arm = right ? GTPlayer.Instance.LeftHand.controllerTransform : GTPlayer.Instance.RightHand.controllerTransform;
-		MakeGun(Color.white, new Vector3(0.15f, 0.15f, 0.15f), 0.025f, PrimitiveType.Sphere, arm, liner: true, onTrigger, onRelease ?? delegate { });
+		MakeGun(WristMenu.ButtonColorEnabled, new Vector3(0.15f, 0.15f, 0.15f), 0.025f, PrimitiveType.Sphere, arm, liner: true, onTrigger, onRelease ?? delegate { });
 	}
 
 	internal static VRRig GetGunTargetPlayer()

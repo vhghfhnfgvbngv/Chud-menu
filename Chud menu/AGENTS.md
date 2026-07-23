@@ -14,5 +14,8 @@ When the user says "push to github" (or any variant like "push", "upload to gith
 5. Commit with message `"vX.Y.Z"`
 6. Push to GitHub
 
+**Exception**: If the user says "no increment" or "dont increment", skip all version steps and just commit + push.
+**Small changes**: If a change is very small (trivial fix, minor tweak), the user may say "no increment" — respect that and skip the version bump.
+
 ## Build rule
 Always build after making code changes (`MSBuild.exe /restore /m /t:Build /p:Configuration=Release /v:q`).
