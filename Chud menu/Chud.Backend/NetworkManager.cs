@@ -158,32 +158,19 @@ public class NetworkManager : MonoBehaviour
 		{
 		case "chudmenu_state":
 		{
-			if (args.Length < 9) break;
+			if (args.Length < 7) break;
 			string category = (args[1] as string) ?? "Main";
 			if (args[2] is not int page || page < 0 || page > 100) break;
 			if (args[3] is not int colorIdx || colorIdx < 0 || colorIdx > 50) break;
-			if (args[4] is not Vector3 pos) break;
-			if (float.IsNaN(pos.x) || float.IsInfinity(pos.x)) break;
-			if (float.IsNaN(pos.y) || float.IsInfinity(pos.y)) break;
-			if (float.IsNaN(pos.z) || float.IsInfinity(pos.z)) break;
-			Quaternion rot = Quaternion.identity;
-			if (args.Length > 5 && args[5] is Quaternion qrot)
+			if (args[4] is not bool remoteAnimationsEnabled) remoteAnimationsEnabled = true;
+			if (args[5] is not long mask0)
 			{
-				if (float.IsNaN(qrot.x) || float.IsInfinity(qrot.x)) break;
-				if (float.IsNaN(qrot.y) || float.IsInfinity(qrot.y)) break;
-				if (float.IsNaN(qrot.z) || float.IsInfinity(qrot.z)) break;
-				if (float.IsNaN(qrot.w) || float.IsInfinity(qrot.w)) break;
-				rot = qrot;
-			}
-			if (args[6] is not bool remoteAnimationsEnabled) remoteAnimationsEnabled = true;
-			if (args[7] is not long mask0)
-			{
-				if (args[7] is int) mask0 = Convert.ToInt64(args[7]);
+				if (args[5] is int) mask0 = Convert.ToInt64(args[5]);
 				else break;
 			}
-			if (args[8] is not long mask1)
+			if (args[6] is not long mask1)
 			{
-				if (args[8] is int) mask1 = Convert.ToInt64(args[8]);
+				if (args[6] is int) mask1 = Convert.ToInt64(args[6]);
 				else break;
 			}
 			var states = new Dictionary<string, bool>();
@@ -203,7 +190,7 @@ public class NetworkManager : MonoBehaviour
 					}
 				}
 			}
-			Mods.ReceiveRemoteMenuState(sender, category, page, colorIdx, pos, rot, states, remoteAnimationsEnabled);
+			Mods.ReceiveRemoteMenuState(sender, category, page, colorIdx, Vector3.zero, Quaternion.identity, states, remoteAnimationsEnabled);
 			break;
 		}
 		case "chudmenu_pos":

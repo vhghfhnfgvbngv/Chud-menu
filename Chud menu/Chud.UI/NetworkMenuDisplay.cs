@@ -17,6 +17,25 @@ internal static class NetworkMenuDisplay
 	private static Shader CachedUberShader => ShaderCache.Uber;
 	private static Shader CachedGuiTextShader => ShaderCache.GuiText;
 
+	private static void ApplyRoundedMesh(GameObject obj, Transform parent, Color gradientTop, Color gradientBot)
+	{
+		if (!WristMenu.roundedObjects) return;
+		Renderer component = obj.GetComponent<Renderer>();
+		if ((Object)(object)component == (Object)null) return;
+		Vector3 localScale = obj.transform.localScale;
+		Vector3 localPosition = obj.transform.localPosition;
+		GameObject rounded = new GameObject(obj.name + "_rounded");
+		rounded.transform.parent = parent;
+		rounded.transform.rotation = Quaternion.identity;
+		rounded.transform.localPosition = localPosition;
+		rounded.transform.localScale = localScale;
+		MeshFilter mf = rounded.AddComponent<MeshFilter>();
+		MeshRenderer mr = rounded.AddComponent<MeshRenderer>();
+		mf.mesh = WristMenu.GenerateRoundedRectMesh(1f, 1f, 0.08f, 6, 0.7f);
+		mr.material = WristMenu.MakeGradientMat(gradientTop, gradientBot);
+		component.enabled = false;
+	}
+
 	public static void Create(Mods.RemoteMenuState state)
 	{
 		if (!((Object)(object)state.displayObject != (Object)null))
@@ -34,6 +53,7 @@ internal static class NetworkMenuDisplay
 			Renderer component = val3.GetComponent<Renderer>();
 			Color bgTop = state.menuColors.NormalColor * 0.35f;
 			component.material = WristMenu.MakeGradientMat(bgTop, state.menuColors.NormalColor);
+			ApplyRoundedMesh(val3, val.transform, bgTop, state.menuColors.NormalColor);
 			GameObject val4 = new GameObject("Canvas");
 			val4.transform.parent = val.transform;
 			Canvas val5 = val4.AddComponent<Canvas>();
@@ -69,6 +89,7 @@ internal static class NetworkMenuDisplay
 			Renderer component3 = val9.GetComponent<Renderer>();
 			Color dcTop = WristMenu.DisconnectButtonColor * 0.35f;
 			component3.material = WristMenu.MakeGradientMat(dcTop, WristMenu.DisconnectButtonColor);
+			ApplyRoundedMesh(val9, val.transform, dcTop, WristMenu.DisconnectButtonColor);
 			val9.AddComponent<BtnCollider>().relatedText = "DisconnectingButton";
 			GameObject val10 = new GameObject();
 			val10.transform.parent = val4.transform;
@@ -97,6 +118,7 @@ internal static class NetworkMenuDisplay
 			Renderer component5 = val12.GetComponent<Renderer>();
 			Color npTop = state.menuColors.NextPrevButtonColor * 0.35f;
 			component5.material = WristMenu.MakeGradientMat(npTop, state.menuColors.NextPrevButtonColor);
+			ApplyRoundedMesh(val12, val.transform, npTop, state.menuColors.NextPrevButtonColor);
 			val12.AddComponent<BtnCollider>().relatedText = "PreviousPage";
 			GameObject val13 = new GameObject();
 			val13.transform.parent = val4.transform;
@@ -124,6 +146,7 @@ internal static class NetworkMenuDisplay
 			val15.transform.localPosition = new Vector3(0.56f, -0.65f, 0f);
 			Renderer component7 = val15.GetComponent<Renderer>();
 			component7.material = WristMenu.MakeGradientMat(npTop, state.menuColors.NextPrevButtonColor);
+			ApplyRoundedMesh(val15, val.transform, npTop, state.menuColors.NextPrevButtonColor);
 			val15.AddComponent<BtnCollider>().relatedText = "NextPage";
 			GameObject val16 = new GameObject();
 			val16.transform.parent = val4.transform;
@@ -263,6 +286,7 @@ internal static class NetworkMenuDisplay
 			Renderer component = val.GetComponent<Renderer>();
 			Color btnBase = flag ? state.menuColors.ButtonColorEnabled : state.menuColors.ButtonColorDisable;
 			component.material = WristMenu.MakeGradientMat(btnBase * 0.35f, btnBase);
+			ApplyRoundedMesh(val, root.transform, btnBase * 0.35f, btnBase);
 			val.AddComponent<BtnCollider>().relatedText = text;
 			GameObject val2 = new GameObject();
 			val2.transform.parent = canvasObj.transform;

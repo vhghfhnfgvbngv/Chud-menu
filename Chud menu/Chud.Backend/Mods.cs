@@ -417,6 +417,7 @@ internal class Mods : MonoBehaviour
 	private static bool pcGunsEnabled = false;
 
 	public static bool NetworkMenuEnabled = false;
+	public static bool TestNetworkMode = false;
 
 	private static readonly Dictionary<int, RemoteMenuState> remoteMenus = new Dictionary<int, RemoteMenuState>();
 
@@ -4152,12 +4153,31 @@ internal class Mods : MonoBehaviour
 	{
 		NetworkMenuEnabled = true;
 		networkMenuSyncTimer = Time.time;
+		ForceResendMenuState();
+	}
+
+	public static void ForceResendMenuState()
+	{
+		lastStateHash = -1;
+		lastPosSendTime = 0f;
 	}
 
 	public static void DisableNetworkMenu()
 	{
 		SendMenuClose();
 		NetworkMenuEnabled = false;
+		if (TestNetworkMode)
+		{
+			TestNetworkMode = false;
+			if (remoteMenus.TryGetValue(LOCAL_TEST_ACTOR, out var testValue))
+			{
+				if ((Object)(object)testValue.displayObject != (Object)null && !testValue.closing)
+				{
+					NetworkMenuDisplay.CloseAndDestroy(testValue);
+				}
+				remoteMenus.Remove(LOCAL_TEST_ACTOR);
+			}
+		}
 		foreach (KeyValuePair<int, RemoteMenuState> remoteMenu in remoteMenus)
 		{
 			if ((Object)(object)remoteMenu.Value.displayObject != (Object)null && !remoteMenu.Value.closing)
@@ -4166,6 +4186,118 @@ internal class Mods : MonoBehaviour
 			}
 		}
 		remoteMenus.Clear();
+	}
+
+	private const int LOCAL_TEST_ACTOR = -999;
+
+	public static void EnableTestNetworkMode()
+	{
+		if (!NetworkMenuEnabled) return;
+		DisableTestNetworkMode();
+		TestNetworkMode = true;
+		if ((Object)(object)WristMenu.menu != (Object)null)
+		{
+			WristMenu.DestroyMenu();
+		}
+		SpawnTestMenuDisplay();
+	}
+
+	public static void DisableTestNetworkMode()
+	{
+		TestNetworkMode = false;
+		if (remoteMenus.TryGetValue(LOCAL_TEST_ACTOR, out var value))
+		{
+			if ((Object)(object)value.displayObject != (Object)null && !value.closing)
+			{
+				NetworkMenuDisplay.CloseAndDestroy(value);
+			}
+			remoteMenus.Remove(LOCAL_TEST_ACTOR);
+		}
+	}
+
+	private static float _lastTestHash = -1f;
+
+	public static void UpdateTestMenuDisplay()
+	{
+		if (!TestNetworkMode) return;
+
+		if (remoteMenus.TryGetValue(LOCAL_TEST_ACTOR, out var value))
+		{
+			value.position = GetMenuPosition();
+			value.rotation = GetMenuRotation();
+			value.lastStateTime = Time.time;
+
+			float currentHash = GetStateHash();
+			bool stateChanged = currentHash != _lastTestHash;
+
+			if (stateChanged)
+			{
+				_lastTestHash = currentHash;
+				value.category = MenuManager.CurrentCategoryName;
+				value.page = WristMenu.pageNumber;
+				value.menuColorIndex = menuColorIndex;
+				value.menuColors = GetMenuColors(menuColorIndex);
+				value.animationsEnabled = WristMenu.animationsEnabled;
+
+				value.buttonStates.Clear();
+				foreach (MenuCategory category in MenuManager.Categories)
+				{
+					if (category.Buttons == null) continue;
+					if (category.Name == "Sound" || category.Name == "Video" || category.Name == "Soundboard") continue;
+					foreach (ButtonInfo button in category.Buttons)
+					{
+						if (button.nontoggleable != true)
+						{
+							value.buttonStates[button.buttonText] = button.enabled == true;
+						}
+					}
+				}
+
+				if ((Object)(object)value.displayObject == (Object)null)
+				{
+					NetworkMenuDisplay.Create(value);
+				}
+				else
+				{
+					NetworkMenuDisplay.UpdateState(value);
+				}
+			}
+			NetworkMenuDisplay.UpdatePosition(value);
+		}
+	}
+
+	private static void SpawnTestMenuDisplay()
+	{
+		if (remoteMenus.ContainsKey(LOCAL_TEST_ACTOR)) return;
+
+		Player localPlayer = PhotonNetwork.LocalPlayer;
+		var state = new RemoteMenuState
+		{
+			player = localPlayer,
+			category = MenuManager.CurrentCategoryName,
+			page = WristMenu.pageNumber,
+			menuColorIndex = menuColorIndex,
+			menuColors = GetMenuColors(menuColorIndex),
+			position = GetMenuPosition(),
+			rotation = GetMenuRotation(),
+			animationsEnabled = WristMenu.animationsEnabled,
+			lastStateTime = Time.time
+		};
+		state.buttonStates.Clear();
+		foreach (MenuCategory category in MenuManager.Categories)
+		{
+			if (category.Buttons == null) continue;
+			if (category.Name == "Sound" || category.Name == "Video" || category.Name == "Soundboard") continue;
+			foreach (ButtonInfo button in category.Buttons)
+			{
+				if (button.nontoggleable != true)
+				{
+					state.buttonStates[button.buttonText] = button.enabled == true;
+				}
+			}
+		}
+		remoteMenus[LOCAL_TEST_ACTOR] = state;
+		NetworkMenuDisplay.Create(state);
 	}
 
 	public static Vector3 GetMenuPosition()
@@ -4204,70 +4336,109 @@ internal class Mods : MonoBehaviour
 			.ToArray();
 	}
 
-	public static void SendMenuState()
+	private static float lastPosSendTime;
+	private static float lastStateHash;
+
+	private static float GetStateHash()
 	{
-		if (!NetworkMenuEnabled || !PhotonNetwork.InRoom)
-		{
-			return;
-		}
-		string currentCategoryName = MenuManager.CurrentCategoryName;
-		int pageNumber = WristMenu.pageNumber;
-		Vector3 menuPosition;
-		if (VRRig.LocalRig != null)
-			menuPosition = GetMenuPosition() - VRRig.LocalRig.transform.position;
-		else
-			menuPosition = GetMenuPosition();
-		Quaternion menuRotation = GetMenuRotation();
 		long num = 0L;
 		long num2 = 0L;
 		int num3 = 0;
 		foreach (MenuCategory category in MenuManager.Categories)
 		{
-			if (category.Buttons == null)
-			{
-				continue;
-			}
-			if (category.Name == "Sound" || category.Name == "Video" || category.Name == "Soundboard")
-			{
-				continue;
-			}
+			if (category.Buttons == null) continue;
+			if (category.Name == "Sound" || category.Name == "Video" || category.Name == "Soundboard") continue;
 			foreach (ButtonInfo button in category.Buttons)
 			{
 				if (button.nontoggleable != true)
 				{
 					if (button.enabled == true)
 					{
-						if (num3 < 64)
-						{
-							num |= 1L << num3;
-						}
-						else
-						{
-							num2 |= 1L << num3 - 64;
-						}
+						if (num3 < 64) num |= 1L << num3;
+						else num2 |= 1L << (num3 - 64);
 					}
 					num3++;
 				}
 			}
 		}
-		int[] targets = GetChudPlayerTargets();
-		var stateArgs = new object[9]
+		unchecked
 		{
-			"chudmenu_state",
-			currentCategoryName,
-			pageNumber,
-			menuColorIndex,
-			menuPosition,
-			menuRotation,
-			WristMenu.animationsEnabled,
-			num,
-			num2
-		};
-		if (targets.Length > 0)
-			PhotonNetwork.RaiseEvent(NetworkManager.NetworkByte, (object)stateArgs, new RaiseEventOptions
+			long hash = num ^ (num2 << 32);
+			hash = hash * 397 ^ MenuManager.CurrentCategoryName.GetHashCode();
+			hash = hash * 397 ^ WristMenu.pageNumber;
+			hash = hash * 397 ^ menuColorIndex;
+			hash = hash * 397 ^ (WristMenu.animationsEnabled ? 1 : 0);
+			return hash;
+		}
+	}
+
+	public static void SendMenuState()
+	{
+		if (!NetworkMenuEnabled || !PhotonNetwork.InRoom) return;
+
+		float now = Time.time;
+		bool stateChanged = GetStateHash() != lastStateHash;
+		bool posDue = now - lastPosSendTime >= 0.1f;
+
+		if (!stateChanged && !posDue) return;
+
+		int[] targets = GetChudPlayerTargets();
+		if (targets.Length == 0) return;
+
+		if (stateChanged)
+		{
+			lastStateHash = GetStateHash();
+			long num = 0L;
+			long num2 = 0L;
+			int num3 = 0;
+			foreach (MenuCategory category in MenuManager.Categories)
+			{
+				if (category.Buttons == null) continue;
+				if (category.Name == "Sound" || category.Name == "Video" || category.Name == "Soundboard") continue;
+				foreach (ButtonInfo button in category.Buttons)
+				{
+					if (button.nontoggleable != true)
+					{
+						if (button.enabled == true)
+						{
+							if (num3 < 64) num |= 1L << num3;
+							else num2 |= 1L << (num3 - 64);
+						}
+						num3++;
+					}
+				}
+			}
+			var stateArgs = new object[7]
+			{
+				"chudmenu_state",
+				MenuManager.CurrentCategoryName,
+				WristMenu.pageNumber,
+				menuColorIndex,
+				WristMenu.animationsEnabled,
+				num,
+				num2
+			};
+			PhotonNetwork.RaiseEvent(NetworkManager.NetworkByte, stateArgs, new RaiseEventOptions
 			{
 				TargetActors = targets
 			}, SendOptions.SendUnreliable);
+		}
+
+		if (posDue)
+		{
+			lastPosSendTime = now;
+			Vector3 menuPosition;
+			if (VRRig.LocalRig != null)
+				menuPosition = GetMenuPosition() - VRRig.LocalRig.transform.position;
+			else
+				menuPosition = GetMenuPosition();
+			Quaternion menuRotation = GetMenuRotation();
+			var posArgs = new object[3] { "chudmenu_pos", menuPosition, menuRotation };
+			PhotonNetwork.RaiseEvent(NetworkManager.NetworkByte, posArgs, new RaiseEventOptions
+			{
+				TargetActors = targets
+			}, SendOptions.SendUnreliable);
+		}
 	}
 
 	public static void SendMenuClose()
@@ -4396,16 +4567,20 @@ internal class Mods : MonoBehaviour
 			value.menuColors = GetMenuColors(colorIdx);
 			VRRig rig = GorillaGameManager.StaticFindRigForPlayer(sender);
 			value.cachedRig = rig;
-			if (rig != null)
+			bool hasPos = pos != Vector3.zero;
+			if (hasPos)
 			{
-				value.rigOffset = pos;
-				value.position = rig.transform.position + pos;
+				if (rig != null)
+				{
+					value.rigOffset = pos;
+					value.position = rig.transform.position + pos;
+				}
+				else
+				{
+					value.position = pos;
+				}
+				value.rotation = rot;
 			}
-			else
-			{
-				value.position = pos;
-			}
-			value.rotation = rot;
 			value.buttonStates = states;
 			value.lastStateTime = Time.time;
 			value.animationsEnabled = remoteAnimationsEnabled;
@@ -4485,13 +4660,20 @@ internal class Mods : MonoBehaviour
 
 	private static void UpdateNetworkMenu()
 	{
+		if (TestNetworkMode)
+		{
+			UpdateTestMenuDisplay();
+		}
+
 		if (!NetworkMenuEnabled || !PhotonNetwork.InRoom)
 		{
 			return;
 		}
+
 		List<int> list = null;
 		foreach (KeyValuePair<int, RemoteMenuState> remoteMenu in remoteMenus)
 		{
+			if (remoteMenu.Key == LOCAL_TEST_ACTOR) continue;
 			if (!remoteMenu.Value.closing && Time.time - remoteMenu.Value.lastStateTime > 3.5f)
 			{
 				if (list == null)
@@ -4525,6 +4707,7 @@ internal class Mods : MonoBehaviour
 		foreach (KeyValuePair<int, RemoteMenuState> kvp in remoteMenus)
 		{
 			RemoteMenuState state = kvp.Value;
+			if (kvp.Key == LOCAL_TEST_ACTOR) continue;
 			if ((Object)(object)state.displayObject == (Object)null || state.closing)
 				continue;
 			if ((Object)(object)state.cachedRig == (Object)null)
@@ -4805,7 +4988,7 @@ internal class Mods : MonoBehaviour
 	private static int lagGunTargetActor = -1;
 	private static VRRig lagGunLockedTarget;
 
-	private static readonly object lagPayload = null;
+	private static readonly byte[] lagPayload = new byte[128];
 
 	public static void LagGun()
 	{

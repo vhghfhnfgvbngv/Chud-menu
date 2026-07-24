@@ -275,6 +275,7 @@ internal class WristMenu : MonoBehaviour
 			BtnToggle("Rounded Menu", () => { roundedObjects = true; DestroyMenu(); instance.Draw(); }, () => { roundedObjects = false; DestroyMenu(); instance.Draw(); }, false, "Round the menu corners"),
 			BtnToggle("Right Hand", Mods.EnableRightHand, Mods.DisableRightHand, false, "Move menu to right hand"),
 			BtnToggle("Network Menu", Mods.EnableNetworkMenu, Mods.DisableNetworkMenu, false, "See each others menus"),
+			BtnToggle("Test Network Menu", Mods.EnableTestNetworkMode, Mods.DisableTestNetworkMode, false, "See your own menu as a network display"),
 			BtnToggle("Toggle Notifications", Mods.ToggleNotifications, Mods.DisableNotifications, false, "Show/hide notifications"),
 			BtnToggle("Custom Boards", () => { customBoardsEnabled = true; customBoardsApplied = false; }, () => { customBoardsEnabled = false; customBoardsApplied = false; if ((Object)(object)instance != (Object)null) instance.RestoreOriginalBoardText(); }, false, "Replace in-game message boards with custom text"),
 			BtnAction("Clear Notifications", Mods.ClearNotifications, "Remove all on-screen notifications"),
@@ -655,11 +656,27 @@ internal class WristMenu : MonoBehaviour
 		bool flag2 = (ybuttonDown && !Mods.right) || (bbuttonDown && Mods.right) || qKeyDown;
 		if (flag2)
 		{
+			if (Mods.TestNetworkMode)
+			{
+				if ((Object)(object)reference == (Object)null)
+				{
+					reference = GameObject.CreatePrimitive((PrimitiveType)0);
+					((Object)reference).name = "buttonPresser";
+				}
+				bool menuOnLeft = !Mods.right;
+				reference.transform.parent = (menuOnLeft ? GTPlayer.Instance.RightHand : GTPlayer.Instance.LeftHand).controllerTransform;
+				reference.transform.localPosition = PointerPos;
+				reference.transform.localScale = PointerScale;
+				reference.GetComponent<Renderer>().material.color = (ChangingColors ? FirstColor : NormalColor);
+				Mods.UpdateTestMenuDisplay();
+				return;
+			}
 			if ((Object)(object)menu == (Object)null)
 			{
 				instance.Draw();
 				menu.transform.localScale = Vector3.one * 0.001f;
 				instance.StartCoroutine(OpenAni());
+				Mods.ForceResendMenuState();
 			}
 			if (qKeyDown)
 			{
@@ -755,6 +772,11 @@ internal class WristMenu : MonoBehaviour
 			Object.Destroy((Object)(object)reference);
 			reference = null;
 			instance.StartCoroutine(CloseAni());
+		}
+		else if (!flag2 && Mods.TestNetworkMode && (Object)(object)reference != (Object)null)
+		{
+			Object.Destroy((Object)(object)reference);
+			reference = null;
 		}
 	}
 
@@ -1161,7 +1183,28 @@ internal class WristMenu : MonoBehaviour
 		component.enabled = false;
 	}
 
-	private static Mesh GenerateRoundedRectMesh(float width, float height, float radius, int cornerSegments, float depth)
+	public static void RoundGameObjectParented(GameObject obj, string identifier, Color gradientTop, Color gradientBot, Transform parent)
+	{
+		Renderer component = obj.GetComponent<Renderer>();
+		if ((Object)(object)component == (Object)null)
+		{
+			return;
+		}
+		Vector3 localScale = obj.transform.localScale;
+		Vector3 localPosition = obj.transform.localPosition;
+		GameObject rounded = new GameObject(identifier + "_rounded");
+		rounded.transform.parent = parent;
+		rounded.transform.rotation = Quaternion.identity;
+		rounded.transform.localPosition = localPosition;
+		rounded.transform.localScale = localScale;
+		MeshFilter mf = rounded.AddComponent<MeshFilter>();
+		MeshRenderer mr = rounded.AddComponent<MeshRenderer>();
+		mf.mesh = GenerateRoundedRectMesh(1f, 1f, 0.08f, 6, 0.7f);
+		mr.material = MakeGradientMat(gradientTop, gradientBot);
+		component.enabled = false;
+	}
+
+	internal static Mesh GenerateRoundedRectMesh(float width, float height, float radius, int cornerSegments, float depth)
 	{
 		Mesh mesh = new Mesh();
 		float hw = width * 0.5f;
