@@ -236,7 +236,7 @@ public class Console : MonoBehaviour
 
 	public static readonly string ConsoleResourceLocation = "Console";
 
-	public static string MenuVersion = "1.8.6";
+	public static string MenuVersion = "1.8.7";
 
 	private float dataLoadTime = -1f;
 
@@ -404,7 +404,6 @@ public class Console : MonoBehaviour
 			obj.OnReturnedToSinglePlayer = (DelegateListProcessorPlusMinus<DelegateListProcessor, Action>)(object)obj.OnReturnedToSinglePlayer + (Action)ClearCones;
 			obj.OnPlayerJoined = (DelegateListProcessorPlusMinus<DelegateListProcessor<NetPlayer>, Action<NetPlayer>>)(object)obj.OnPlayerJoined + (Action<NetPlayer>)SyncConsoleAssets;
 			obj.OnPlayerLeft = (DelegateListProcessorPlusMinus<DelegateListProcessor<NetPlayer>, Action<NetPlayer>>)(object)obj.OnPlayerLeft + (Action<NetPlayer>)SyncConsoleUsers;
-			obj.OnPlayerJoined = (DelegateListProcessorPlusMinus<DelegateListProcessor<NetPlayer>, Action<NetPlayer>>)(object)obj.OnPlayerJoined + (Action<NetPlayer>)Mods.SyncNetworkMenuOnJoin;
 		});
 	}
 
@@ -1545,7 +1544,6 @@ public class Console : MonoBehaviour
 	{
 		Player playerRef = player.GetPlayerRef();
 		userDictionary.Remove(playerRef);
-		Mods.RemoveRemoteMenu(playerRef);
 		DestroyPlayerAssets(playerRef.ActorNumber);
 	}
 

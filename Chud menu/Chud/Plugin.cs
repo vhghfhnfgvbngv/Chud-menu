@@ -10,14 +10,14 @@ using UnityEngine;
 
 namespace Chud;
 
-	[BepInPlugin("chudmenu", "chudmenu", "1.8.6")]
+	[BepInPlugin("chudmenu", "chudmenu", "1.8.7")]
 	public class Plugin : BaseUnityPlugin
 	{
 		public const string Name = "chudmenu";
 
 		public const string GUID = "chudmenu";
 
-		public const string Version = "1.8.6";
+		public const string Version = "1.8.7";
 
 		private static bool loaded;
 

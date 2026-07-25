@@ -274,8 +274,6 @@ internal class WristMenu : MonoBehaviour
 			BtnToggle("Menu Animations", () => { animationsEnabled = true; }, () => { animationsEnabled = false; }, false, "Toggle menu open/close and button press animations"),
 			BtnToggle("Rounded Menu", () => { roundedObjects = true; DestroyMenu(); instance.Draw(); }, () => { roundedObjects = false; DestroyMenu(); instance.Draw(); }, false, "Round the menu corners"),
 			BtnToggle("Right Hand", Mods.EnableRightHand, Mods.DisableRightHand, false, "Move menu to right hand"),
-			BtnToggle("Network Menu", Mods.EnableNetworkMenu, Mods.DisableNetworkMenu, false, "See each others menus"),
-			BtnToggle("Test Network Menu", Mods.EnableTestNetworkMode, Mods.DisableTestNetworkMode, false, "See your own menu as a network display"),
 			BtnToggle("Toggle Notifications", Mods.ToggleNotifications, Mods.DisableNotifications, false, "Show/hide notifications"),
 			BtnToggle("Custom Boards", () => { customBoardsEnabled = true; customBoardsApplied = false; }, () => { customBoardsEnabled = false; customBoardsApplied = false; if ((Object)(object)instance != (Object)null) instance.RestoreOriginalBoardText(); }, false, "Replace in-game message boards with custom text"),
 			BtnAction("Clear Notifications", Mods.ClearNotifications, "Remove all on-screen notifications"),
@@ -656,27 +654,11 @@ internal class WristMenu : MonoBehaviour
 		bool flag2 = (ybuttonDown && !Mods.right) || (bbuttonDown && Mods.right) || qKeyDown;
 		if (flag2)
 		{
-			if (Mods.TestNetworkMode)
-			{
-				if ((Object)(object)reference == (Object)null)
-				{
-					reference = GameObject.CreatePrimitive((PrimitiveType)0);
-					((Object)reference).name = "buttonPresser";
-				}
-				bool menuOnLeft = !Mods.right;
-				reference.transform.parent = (menuOnLeft ? GTPlayer.Instance.RightHand : GTPlayer.Instance.LeftHand).controllerTransform;
-				reference.transform.localPosition = PointerPos;
-				reference.transform.localScale = PointerScale;
-				reference.GetComponent<Renderer>().material.color = (ChangingColors ? FirstColor : NormalColor);
-				Mods.UpdateTestMenuDisplay();
-				return;
-			}
 			if ((Object)(object)menu == (Object)null)
 			{
 				instance.Draw();
 				menu.transform.localScale = Vector3.one * 0.001f;
 				instance.StartCoroutine(OpenAni());
-				Mods.ForceResendMenuState();
 			}
 			if (qKeyDown)
 			{
@@ -768,15 +750,9 @@ internal class WristMenu : MonoBehaviour
 		}
 		else if (!flag2 && (Object)(object)menu != (Object)null && !Close)
 		{
-			Mods.SendMenuClose();
 			Object.Destroy((Object)(object)reference);
 			reference = null;
 			instance.StartCoroutine(CloseAni());
-		}
-		else if (!flag2 && Mods.TestNetworkMode && (Object)(object)reference != (Object)null)
-		{
-			Object.Destroy((Object)(object)reference);
-			reference = null;
 		}
 	}
 
@@ -1402,7 +1378,6 @@ internal class WristMenu : MonoBehaviour
 			}
 			DestroyMenu();
 			instance.Draw();
-			Mods.SendMenuState();
 			return;
 		case "PreviousPage":
 			if (pageNumber > 0)
@@ -1415,7 +1390,6 @@ internal class WristMenu : MonoBehaviour
 			}
 			DestroyMenu();
 			instance.Draw();
-			Mods.SendMenuState();
 			return;
 		case "DisconnectingButton":
 			PhotonNetwork.Disconnect();
@@ -1463,8 +1437,6 @@ internal class WristMenu : MonoBehaviour
 		{
 			buttonInfo.disableMethod();
 		}
-		Mods.SendButtonClick();
-		Mods.SendMenuState();
 		if (buttonInfo.enabled == true && !string.IsNullOrEmpty(buttonInfo.toolTip) && buttonInfo.toolTip != "This button doesn't have a tooltip/tutorial")
 		{
 			NotifiLib.SendNotification("[<color=#00ccff>MOD</color>] " + buttonInfo.buttonText + ": " + buttonInfo.toolTip, 2);

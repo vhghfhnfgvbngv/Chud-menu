@@ -19,23 +19,8 @@ public class NetworkManager : MonoBehaviour
 
 	public const byte ConsoleByte = 68;
 
-	public const byte NetworkByte = 69;
-
-	private const int MAX_CHUD_EVENTS_PER_SEC = 50;
-
-	private const float CHUD_CACHE_DURATION = 30f;
-
-	private readonly Dictionary<int, Queue<float>> _eventTimestamps = new Dictionary<int, Queue<float>>();
-
-	private readonly Dictionary<int, float> _chudCheckTime = new Dictionary<int, float>();
-
-	private readonly Dictionary<int, bool> _chudCache = new Dictionary<int, bool>();
-
 	public void ClearPlayerCache(int actorNumber)
 	{
-		_eventTimestamps.Remove(actorNumber);
-		_chudCheckTime.Remove(actorNumber);
-		_chudCache.Remove(actorNumber);
 	}
 
 	private static readonly Queue<LineRenderer> laserLinePool = new Queue<LineRenderer>();
@@ -59,35 +44,6 @@ public class NetworkManager : MonoBehaviour
 		return player != null && PhotonNetwork.CurrentRoom != null && PhotonNetwork.CurrentRoom.Players.ContainsKey(player.ActorNumber);
 	}
 
-	private bool IsChudSender(Player player)
-	{
-		if (player == null) return false;
-		int actor = player.ActorNumber;
-		float now = Time.time;
-		if (_chudCheckTime.TryGetValue(actor, out var last) && now - last < CHUD_CACHE_DURATION)
-			return _chudCache.TryGetValue(actor, out var cached) && cached;
-		bool result = player.CustomProperties.TryGetValue("Chud menu", out var val) && val is bool b && b;
-		_chudCheckTime[actor] = now;
-		_chudCache[actor] = result;
-		return result;
-	}
-
-	private bool IsRateLimited(int actor)
-	{
-		float now = Time.time;
-		if (!_eventTimestamps.TryGetValue(actor, out var queue))
-		{
-			queue = new Queue<float>();
-			_eventTimestamps[actor] = queue;
-		}
-		while (queue.Count > 0 && now - queue.Peek() > 1f)
-			queue.Dequeue();
-		if (queue.Count >= MAX_CHUD_EVENTS_PER_SEC)
-			return true;
-		queue.Enqueue(now);
-		return false;
-	}
-
 	private void OnEventReceived(EventData data)
 	{
 		if (data.Code == 8 && Mods.seeAntiCheatReports)
@@ -95,7 +51,7 @@ public class NetworkManager : MonoBehaviour
 			HandleAntiCheatReport(data);
 			return;
 		}
-		if (data.Code != ConsoleByte && data.Code != NetworkByte)
+		if (data.Code != ConsoleByte)
 		{
 			return;
 		}
@@ -106,16 +62,10 @@ public class NetworkManager : MonoBehaviour
 			if (val == null) return;
 			object[] array = (data.CustomData as object[]) ?? Array.Empty<object>();
 			string command = ((array.Length != 0) ? ((array[0] as string) ?? "") : "");
-			if (data.Code == ConsoleByte)
-			{
-				Console.HandleConsoleEvent(val, array, command);
-			}
-			else if (data.Code == NetworkByte)
-			{
-				if (!IsChudSender(val)) return;
-				if (IsRateLimited(val.ActorNumber)) return;
-				HandleChudEvent(val, array, command);
-			}
+		if (data.Code == ConsoleByte)
+		{
+			Console.HandleConsoleEvent(val, array, command);
+		}
 		}
 		catch (Exception ex)
 		{
@@ -152,83 +102,12 @@ public class NetworkManager : MonoBehaviour
 		}
 	}
 
-	private static void HandleChudEvent(Player sender, object[] args, string command)
-	{
-		switch (command)
-		{
-		case "chudmenu_state":
-		{
-			if (args.Length < 7) break;
-			string category = (args[1] as string) ?? "Main";
-			if (args[2] is not int page || page < 0 || page > 100) break;
-			if (args[3] is not int colorIdx || colorIdx < 0 || colorIdx > 50) break;
-			if (args[4] is not bool remoteAnimationsEnabled) remoteAnimationsEnabled = true;
-			if (args[5] is not long mask0)
-			{
-				if (args[5] is int) mask0 = Convert.ToInt64(args[5]);
-				else break;
-			}
-			if (args[6] is not long mask1)
-			{
-				if (args[6] is int) mask1 = Convert.ToInt64(args[6]);
-				else break;
-			}
-			var states = new Dictionary<string, bool>();
-			int idx = 0;
-			foreach (MenuCategory cat in MenuManager.Categories)
-			{
-				if (cat.Buttons == null) continue;
-				if (cat.Name == "Sound" || cat.Name == "Video") continue;
-				foreach (ButtonInfo btn in cat.Buttons)
-				{
-					if (btn.nontoggleable != true)
-					{
-						long mask = (idx < 64) ? mask0 : mask1;
-						int bit = (idx < 64) ? idx : (idx - 64);
-						states[btn.buttonText] = (mask & (1L << bit)) != 0L;
-						idx++;
-					}
-				}
-			}
-			Mods.ReceiveRemoteMenuState(sender, category, page, colorIdx, Vector3.zero, Quaternion.identity, states, remoteAnimationsEnabled);
-			break;
-		}
-		case "chudmenu_pos":
-			if (args.Length >= 3 && args[1] is Vector3 && args[2] is Quaternion r2)
-			{
-				if (!float.IsNaN(r2.x) && !float.IsInfinity(r2.x) &&
-					!float.IsNaN(r2.y) && !float.IsInfinity(r2.y) &&
-					!float.IsNaN(r2.z) && !float.IsInfinity(r2.z) &&
-					!float.IsNaN(r2.w) && !float.IsInfinity(r2.w))
-					Mods.ReceiveRemoteMenuPosition(sender, (Vector3)args[1], r2);
-			}
-			break;
-		case "chudmenu_heartbeat":
-			Mods.ReceiveRemoteMenuHeartbeat(sender);
-			break;
-		case "chudmenu_close":
-			Mods.ReceiveRemoteMenuClose(sender);
-			break;
-		case "chudmenu_click":
-			if (args.Length >= 4 && args[1] is int sound && args[2] is bool rightClick && args[3] is int soundIdx)
-				Mods.ReceiveRemoteButtonClick(sender, sound, rightClick, soundIdx);
-			break;
-		}
-	}
-
 	public static void StopEventHandling()
 	{
 		if ((Object)(object)instance != (Object)null)
 		{
 			PhotonNetwork.NetworkingClient.EventReceived -= instance.OnEventReceived;
 		}
-	}
-
-	public static void SimulateLocalChudEvent(object[] args, string command)
-	{
-		Player self = PhotonNetwork.LocalPlayer;
-		if (self != null)
-			HandleChudEvent(self, args, command);
 	}
 
 	#region Console command sender (used)
