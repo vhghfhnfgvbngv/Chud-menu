@@ -4000,100 +4000,100 @@ internal class Mods : MonoBehaviour
 		switch (index)
 		{
 		case 0:
-			result.NormalColor = new Color(0.08f, 0.08f, 0.1f);
-			result.ButtonColorEnabled = new Color(0.4f, 0.4f, 0.45f);
-			result.ButtonColorDisable = new Color(0.15f, 0.15f, 0.2f);
+			result.NormalColor = new Color(0.12f, 0.12f, 0.14f);
+			result.ButtonColorEnabled = new Color(0.55f, 0.55f, 0.6f);
+			result.ButtonColorDisable = new Color(0.22f, 0.22f, 0.28f);
 			result.EnableTextColor = Color.white;
-			result.DisableTextColor = new Color(0.55f, 0.55f, 0.6f);
-			result.NextPrevButtonColor = new Color(0.12f, 0.12f, 0.16f);
+			result.DisableTextColor = new Color(0.7f, 0.7f, 0.75f);
+			result.NextPrevButtonColor = new Color(0.18f, 0.18f, 0.22f);
 			break;
 		case 1:
-			result.NormalColor = new Color(0.06f, 0.06f, 0.08f);
-			result.ButtonColorEnabled = new Color(0.3f, 0.3f, 0.35f);
-			result.ButtonColorDisable = new Color(0.12f, 0.12f, 0.16f);
+			result.NormalColor = new Color(0.1f, 0.1f, 0.12f);
+			result.ButtonColorEnabled = new Color(0.45f, 0.45f, 0.5f);
+			result.ButtonColorDisable = new Color(0.18f, 0.18f, 0.22f);
 			result.EnableTextColor = new Color(0.85f, 0.85f, 0.9f);
-			result.DisableTextColor = new Color(0.4f, 0.4f, 0.45f);
-			result.NextPrevButtonColor = new Color(0.1f, 0.1f, 0.12f);
+			result.DisableTextColor = new Color(0.55f, 0.55f, 0.6f);
+			result.NextPrevButtonColor = new Color(0.14f, 0.14f, 0.16f);
 			break;
 		case 2:
-			result.NormalColor = new Color(0.15f, 0.15f, 0.18f);
-			result.ButtonColorEnabled = new Color(0.55f, 0.55f, 0.6f);
-			result.ButtonColorDisable = new Color(0.25f, 0.25f, 0.3f);
+			result.NormalColor = new Color(0.2f, 0.2f, 0.24f);
+			result.ButtonColorEnabled = new Color(0.65f, 0.65f, 0.7f);
+			result.ButtonColorDisable = new Color(0.32f, 0.32f, 0.38f);
 			result.EnableTextColor = new Color(0.95f, 0.95f, 1f);
 			result.DisableTextColor = new Color(0.6f, 0.6f, 0.65f);
-			result.NextPrevButtonColor = new Color(0.2f, 0.2f, 0.24f);
+			result.NextPrevButtonColor = new Color(0.26f, 0.26f, 0.3f);
 			break;
 		case 3:
-			result.NormalColor = new Color(0.12f, 0.02f, 0.02f);
-			result.ButtonColorEnabled = new Color(0.85f, 0.12f, 0.12f);
-			result.ButtonColorDisable = new Color(0.35f, 0.04f, 0.04f);
+			result.NormalColor = new Color(0.18f, 0.04f, 0.04f);
+			result.ButtonColorEnabled = new Color(0.9f, 0.2f, 0.2f);
+			result.ButtonColorDisable = new Color(0.5f, 0.08f, 0.08f);
 			result.EnableTextColor = new Color(1f, 0.6f, 0.6f);
-			result.DisableTextColor = new Color(0.55f, 0.2f, 0.2f);
-			result.NextPrevButtonColor = new Color(0.2f, 0.03f, 0.03f);
+			result.DisableTextColor = new Color(0.7f, 0.3f, 0.3f);
+			result.NextPrevButtonColor = new Color(0.28f, 0.06f, 0.06f);
 			break;
 		case 4:
-			result.NormalColor = new Color(0.12f, 0.06f, 0.02f);
+			result.NormalColor = new Color(0.18f, 0.1f, 0.04f);
 			result.ButtonColorEnabled = new Color(0.9f, 0.5f, 0.1f);
-			result.ButtonColorDisable = new Color(0.4f, 0.2f, 0.04f);
+			result.ButtonColorDisable = new Color(0.55f, 0.28f, 0.08f);
 			result.EnableTextColor = new Color(1f, 0.8f, 0.5f);
-			result.DisableTextColor = new Color(0.6f, 0.4f, 0.2f);
-			result.NextPrevButtonColor = new Color(0.22f, 0.1f, 0.03f);
+			result.DisableTextColor = new Color(0.75f, 0.5f, 0.3f);
+			result.NextPrevButtonColor = new Color(0.3f, 0.15f, 0.06f);
 			break;
 		case 5:
-			result.NormalColor = new Color(0.02f, 0.1f, 0.1f);
-			result.ButtonColorEnabled = new Color(0.1f, 0.7f, 0.65f);
-			result.ButtonColorDisable = new Color(0.04f, 0.3f, 0.28f);
+			result.NormalColor = new Color(0.04f, 0.16f, 0.16f);
+			result.ButtonColorEnabled = new Color(0.15f, 0.85f, 0.8f);
+			result.ButtonColorDisable = new Color(0.08f, 0.45f, 0.4f);
 			result.EnableTextColor = new Color(0.5f, 1f, 0.95f);
-			result.DisableTextColor = new Color(0.2f, 0.55f, 0.5f);
-			result.NextPrevButtonColor = new Color(0.03f, 0.18f, 0.16f);
+			result.DisableTextColor = new Color(0.3f, 0.7f, 0.65f);
+			result.NextPrevButtonColor = new Color(0.06f, 0.28f, 0.24f);
 			break;
 		case 6:
-			result.NormalColor = new Color(0.02f, 0.08f, 0.12f);
-			result.ButtonColorEnabled = new Color(0.1f, 0.6f, 0.8f);
-			result.ButtonColorDisable = new Color(0.04f, 0.25f, 0.35f);
+			result.NormalColor = new Color(0.04f, 0.14f, 0.18f);
+			result.ButtonColorEnabled = new Color(0.15f, 0.75f, 0.9f);
+			result.ButtonColorDisable = new Color(0.08f, 0.38f, 0.5f);
 			result.EnableTextColor = new Color(0.5f, 0.9f, 1f);
-			result.DisableTextColor = new Color(0.2f, 0.5f, 0.6f);
-			result.NextPrevButtonColor = new Color(0.03f, 0.14f, 0.2f);
+			result.DisableTextColor = new Color(0.3f, 0.65f, 0.75f);
+			result.NextPrevButtonColor = new Color(0.06f, 0.22f, 0.3f);
 			break;
 		case 7:
-			result.NormalColor = new Color(0.04f, 0.04f, 0.14f);
-			result.ButtonColorEnabled = new Color(0.2f, 0.35f, 0.85f);
-			result.ButtonColorDisable = new Color(0.08f, 0.12f, 0.4f);
+			result.NormalColor = new Color(0.08f, 0.08f, 0.2f);
+			result.ButtonColorEnabled = new Color(0.3f, 0.5f, 0.9f);
+			result.ButtonColorDisable = new Color(0.14f, 0.2f, 0.55f);
 			result.EnableTextColor = new Color(0.6f, 0.7f, 1f);
-			result.DisableTextColor = new Color(0.25f, 0.3f, 0.6f);
-			result.NextPrevButtonColor = new Color(0.06f, 0.06f, 0.22f);
+			result.DisableTextColor = new Color(0.35f, 0.42f, 0.75f);
+			result.NextPrevButtonColor = new Color(0.1f, 0.1f, 0.32f);
 			break;
 		case 8:
-			result.NormalColor = new Color(0.08f, 0.02f, 0.14f);
-			result.ButtonColorEnabled = new Color(0.5f, 0.15f, 0.8f);
-			result.ButtonColorDisable = new Color(0.2f, 0.05f, 0.35f);
+			result.NormalColor = new Color(0.14f, 0.04f, 0.2f);
+			result.ButtonColorEnabled = new Color(0.6f, 0.25f, 0.9f);
+			result.ButtonColorDisable = new Color(0.3f, 0.1f, 0.5f);
 			result.EnableTextColor = new Color(0.8f, 0.6f, 1f);
-			result.DisableTextColor = new Color(0.35f, 0.2f, 0.55f);
-			result.NextPrevButtonColor = new Color(0.14f, 0.04f, 0.22f);
+			result.DisableTextColor = new Color(0.5f, 0.3f, 0.7f);
+			result.NextPrevButtonColor = new Color(0.2f, 0.08f, 0.32f);
 			break;
 		case 9:
-			result.NormalColor = new Color(0.12f, 0.02f, 0.1f);
-			result.ButtonColorEnabled = new Color(0.75f, 0.15f, 0.6f);
-			result.ButtonColorDisable = new Color(0.32f, 0.05f, 0.25f);
+			result.NormalColor = new Color(0.18f, 0.04f, 0.16f);
+			result.ButtonColorEnabled = new Color(0.85f, 0.25f, 0.7f);
+			result.ButtonColorDisable = new Color(0.45f, 0.1f, 0.35f);
 			result.EnableTextColor = new Color(1f, 0.5f, 0.85f);
-			result.DisableTextColor = new Color(0.55f, 0.2f, 0.45f);
-			result.NextPrevButtonColor = new Color(0.2f, 0.03f, 0.16f);
+			result.DisableTextColor = new Color(0.7f, 0.3f, 0.55f);
+			result.NextPrevButtonColor = new Color(0.28f, 0.06f, 0.22f);
 			break;
 		case 10:
-			result.NormalColor = new Color(0.12f, 0.03f, 0.06f);
+			result.NormalColor = new Color(0.18f, 0.06f, 0.1f);
 			result.ButtonColorEnabled = new Color(0.85f, 0.25f, 0.5f);
-			result.ButtonColorDisable = new Color(0.38f, 0.08f, 0.2f);
+			result.ButtonColorDisable = new Color(0.5f, 0.14f, 0.28f);
 			result.EnableTextColor = new Color(1f, 0.6f, 0.8f);
-			result.DisableTextColor = new Color(0.6f, 0.25f, 0.4f);
-			result.NextPrevButtonColor = new Color(0.2f, 0.05f, 0.1f);
+			result.DisableTextColor = new Color(0.75f, 0.35f, 0.5f);
+			result.NextPrevButtonColor = new Color(0.28f, 0.08f, 0.16f);
 			break;
 		case 11:
-			result.NormalColor = new Color(0.1f, 0.06f, 0.02f);
-			result.ButtonColorEnabled = new Color(0.55f, 0.35f, 0.12f);
-			result.ButtonColorDisable = new Color(0.25f, 0.15f, 0.05f);
+			result.NormalColor = new Color(0.15f, 0.1f, 0.04f);
+			result.ButtonColorEnabled = new Color(0.7f, 0.45f, 0.2f);
+			result.ButtonColorDisable = new Color(0.35f, 0.22f, 0.1f);
 			result.EnableTextColor = new Color(0.9f, 0.75f, 0.5f);
-			result.DisableTextColor = new Color(0.5f, 0.4f, 0.25f);
-			result.NextPrevButtonColor = new Color(0.16f, 0.1f, 0.03f);
+			result.DisableTextColor = new Color(0.65f, 0.55f, 0.35f);
+			result.NextPrevButtonColor = new Color(0.22f, 0.14f, 0.06f);
 			break;
 		default:
 			result = GetMenuColors(0);
