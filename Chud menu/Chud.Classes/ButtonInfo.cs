@@ -22,5 +22,5 @@ public class ButtonInfo
 
 	public bool isGun = false;
 
-	public bool isLockOn = false;
+
 }

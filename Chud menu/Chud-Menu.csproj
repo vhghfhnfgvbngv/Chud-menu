@@ -52,11 +52,5 @@
     <Reference Include="UnityEngine.UnityWebRequestAudioModule" HintPath="$(GorillaTagDir)\UnityEngine.UnityWebRequestAudioModule.dll" />
     <Reference Include="UnityEngine.UnityWebRequestTextureModule" HintPath="$(GorillaTagDir)\UnityEngine.UnityWebRequestTextureModule.dll" />
     <Reference Include="Fusion.Runtime" HintPath="$(GorillaTagDir)\Fusion.Runtime.dll" />
-    <Reference Include="Fusion.Realtime" HintPath="$(GorillaTagDir)\Fusion.Realtime.dll" />
-    <Reference Include="Fusion.Sockets" HintPath="$(GorillaTagDir)\Fusion.Sockets.dll" />
-    <Reference Include="Fusion.Common" HintPath="$(GorillaTagDir)\Fusion.Common.dll" />
-  </ItemGroup>
-  <ItemGroup>
-    <PackageReference Include="NAudio" Version="2.2.1" />
   </ItemGroup>
 </Project>
