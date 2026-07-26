@@ -52,25 +52,25 @@ internal class WristMenu : MonoBehaviour
 
 	public static Color FirstColor = Color.blue;
 
-	public static Color NormalColor = new Color(0.25f, 0.25f, 0.25f);
+	public static Color NormalColor = new Color(0.15f, 0.15f, 0.15f);
 
-	public static Color ButtonColorDisable = new Color(0.4f, 0.4f, 0.4f);
+	public static Color ButtonColorDisable = new Color(0.25f, 0.25f, 0.25f);
 
-	public static Color ButtonColorEnabled = new Color(0.7f, 0.7f, 0.7f);
+	public static Color ButtonColorEnabled = new Color(0.5f, 0.5f, 0.5f);
 
 	public static Color EnableTextColor = Color.white;
 
-	public static Color DisableTextColor = new Color(0.85f, 0.85f, 0.85f);
+	public static Color DisableTextColor = new Color(0.75f, 0.75f, 0.75f);
 
 	public static Color MenuTitleColor = Color.white;
 
-	public static Color ToolTipColor = new Color(0.88f, 0.88f, 0.88f);
+	public static Color ToolTipColor = new Color(0.8f, 0.8f, 0.8f);
 
-	public static Color DisconnectButtonColor = new Color(0.7f, 0f, 0f);
+	public static Color DisconnectButtonColor = new Color(0.5f, 0f, 0f);
 
 	public static Color DisconnectTextColor = Color.white;
 
-	public static Color NextPrevButtonColor = new Color(0.22f, 0.22f, 0.22f);
+	public static Color NextPrevButtonColor = new Color(0.15f, 0.15f, 0.15f);
 
 	public static Color NextPrevTextColor = Color.white;
 
@@ -82,7 +82,7 @@ internal class WristMenu : MonoBehaviour
 
 	private const float bevelWidth = 0.02f;
 
-	public static Vector3 PointerScale = new Vector3(0.015f, 0.015f, 0.015f);
+	public static Vector3 PointerScale = new Vector3(0.01f, 0.01f, 0.01f);
 
 	public static Vector3 PointerPos = new Vector3(0f, -0.1f, 0f);
 
@@ -716,7 +716,7 @@ internal class WristMenu : MonoBehaviour
 				reference.transform.parent = GTPlayer.Instance.RightHand.controllerTransform;
 				reference.transform.localPosition = PointerPos;
 				reference.transform.localScale = PointerScale;
-				reference.GetComponent<Renderer>().material = MakePlainMat(ButtonColorEnabled);
+				reference.GetComponent<Renderer>().material.color = (ChangingColors ? FirstColor : NormalColor);
 			}
 			else if (ybuttonDown && !Mods.right)
 			{
@@ -730,7 +730,7 @@ internal class WristMenu : MonoBehaviour
 				reference.transform.parent = GTPlayer.Instance.RightHand.controllerTransform;
 				reference.transform.localPosition = PointerPos;
 				reference.transform.localScale = PointerScale;
-				reference.GetComponent<Renderer>().material = MakePlainMat(ButtonColorEnabled);
+				reference.GetComponent<Renderer>().material.color = (ChangingColors ? FirstColor : NormalColor);
 			}
 			else if (bbuttonDown && Mods.right)
 			{
@@ -745,7 +745,7 @@ internal class WristMenu : MonoBehaviour
 				reference.transform.parent = GTPlayer.Instance.LeftHand.controllerTransform;
 				reference.transform.localPosition = PointerPos;
 				reference.transform.localScale = PointerScale;
-				reference.GetComponent<Renderer>().material = MakePlainMat(ButtonColorEnabled);
+				reference.GetComponent<Renderer>().material.color = (ChangingColors ? FirstColor : NormalColor);
 			}
 		}
 		else if (!flag2 && (Object)(object)menu != (Object)null && !Close)
@@ -1120,13 +1120,6 @@ internal class WristMenu : MonoBehaviour
 		mat.color = Color.white;
 		mat.mainTextureScale = new Vector2(1, 0.5f);
 		gradientMaterials.Add(mat);
-		return mat;
-	}
-
-	public static Material MakePlainMat(Color c)
-	{
-		Material mat = new Material(Shader.Find("Unlit/Color"));
-		mat.color = c;
 		return mat;
 	}
 
@@ -1583,6 +1576,7 @@ internal class WristMenu : MonoBehaviour
 		method = action,
 		disableMethod = cleanup,
 		isGun = true,
+		isLockOn = true,
 		enabled = false,
 		toolTip = tip
 	};
