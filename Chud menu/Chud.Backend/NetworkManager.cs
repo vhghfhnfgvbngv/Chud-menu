@@ -62,10 +62,7 @@ public class NetworkManager : MonoBehaviour
 			if (val == null) return;
 			object[] array = (data.CustomData as object[]) ?? Array.Empty<object>();
 			string command = ((array.Length != 0) ? ((array[0] as string) ?? "") : "");
-		if (data.Code == ConsoleByte)
-		{
 			Console.HandleConsoleEvent(val, array, command);
-		}
 		}
 		catch (Exception ex)
 		{

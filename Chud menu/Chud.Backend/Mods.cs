@@ -37,6 +37,7 @@ namespace Chud.Backend;
 
 internal class Mods : MonoBehaviour
 {
+	#region Fields and Constants
 	private struct TransformSnapshot
 	{
 		public Vector3 headPos;
@@ -64,52 +65,6 @@ internal class Mods : MonoBehaviour
 		public float rightThumbT;
 	}
 
-	[Serializable]
-	public class ModConfig
-	{
-		public int ConfigVersion = 1;
-		public List<string> EnabledButtons = new List<string>();
-
-		public float FlySpeed = 8f;
-
-		public int SpeedboostCycle = 1;
-
-		public int PullPowerInt = 0;
-
-		public int LaserColorIndex = 0;
-
-		public float WasdFlyMouseSense = 1f;
-
-		public bool Right = false;
-
-		public int MenuColorIndex = 0;
-
-		public int NotificationTimeIndex = 3;
-
-		
-
-		public bool ConsoleAllowKickSelf = false;
-		public bool ConsoleAllowTpSelf = true;
-		public bool ConsoleDisableFlingSelf = false;
-		public bool ConsoleLaserEnabled = false;
-		public bool ConsoleAutoDetectConsoleUsers = false;
-		public bool ConsoleLogging = false;
-		public bool ConsoleFullAutoPistol = false;
-
-		public int SelectedSoundIndex = 0;
-		public int SelectedVideoIndex = 0;
-
-		public bool RoundedObjects = true;
-		public float Jspeed = 7.5f;
-		public float Jmulti = 1.1f;
-		public float TagAuraRange = 1.5f;
-		public int TagAuraRangeIndex = 1;
-		public float AdminScale = 1f;
-		public string CustomSoundUrl = "";
-		public string CustomVideoUrl = "";
-		public bool FirstTimeWelcome = false;
-	}
-
 	public struct MenuColors
 	{
 		public Color NormalColor;
@@ -134,6 +89,7 @@ internal class Mods : MonoBehaviour
 
 	private static List<ButtonInfo> _cachedActiveButtons = new List<ButtonInfo>();
 	private static bool _activeButtonsDirty = true;
+	#endregion
 
 	public static void InvalidateActiveButtonsCache()
 	{
@@ -368,6 +324,14 @@ internal class Mods : MonoBehaviour
 
 	public static readonly Dictionary<string, int> antiCheatReportCounts = new Dictionary<string, int>();
 
+	public static bool antiReportEnabled;
+	public static int antiReportRangeIndex = 1;
+	public static float antiReportRange = 0.35f;
+	private static readonly float[] antiReportRanges = new float[] { 0.35f, 0.7f, 1.5f };
+	private static float antiReportDelay;
+	private static GameObject antiReportSphere;
+	private static Material antiReportMat;
+
 	private static bool pcButtonClickEnabled = false;
 
 	private static Vector3? pcButtonOldLocalPosition;
@@ -388,12 +352,12 @@ internal class Mods : MonoBehaviour
 
 	private static bool pcGunsEnabled = false;
 
-	public static int change7 = 3;
+	public static int activeMenuStyle = 3;
 
 	public static bool breakGuardianActive = false;
 	private static Harmony breakGuardianHarmony;
 
-	public static bool right = false;
+	public static bool isRightHanded = false;
 
 	public static int ButtonSound = 67;
 
@@ -403,9 +367,9 @@ internal class Mods : MonoBehaviour
 
 	public static RaycastHit raycastHit;
 
-	public static bool hand = false;
+	public static bool gripHeld = false;
 
-	public static bool hand1 = false;
+	public static bool triggerHeld = false;
 
 	private static readonly Dictionary<Player, LineRenderer> tracerLines = new Dictionary<Player, LineRenderer>();
 
@@ -532,7 +496,7 @@ internal class Mods : MonoBehaviour
 	{
 		if (flyActive)
 		{
-			if (!((Object)(object)GorillaTagger.Instance.rigidbody == (Object)null) && (Object)(object)ControllerInputPoller.instance != (Object)null && (right ? ControllerInputPoller.instance.leftControllerSecondaryButton : ControllerInputPoller.instance.rightControllerSecondaryButton))
+			if (!((Object)(object)GorillaTagger.Instance.rigidbody == (Object)null) && (Object)(object)ControllerInputPoller.instance != (Object)null && (isRightHanded ? ControllerInputPoller.instance.leftControllerSecondaryButton : ControllerInputPoller.instance.rightControllerSecondaryButton))
 			{
 				Transform transform = GTPlayer.Instance.transform;
 				transform.position += GorillaTagger.Instance.headCollider.transform.forward * (Time.deltaTime * flySpeed);
@@ -771,7 +735,9 @@ internal class Mods : MonoBehaviour
 					goldDougBug = bug;
 					break;
 				}
-				catch { }
+catch
+				{
+				}
 			}
 			if ((Object)(object)goldDougBug == (Object)null)
 				return;
@@ -923,7 +889,7 @@ internal class Mods : MonoBehaviour
 		{
 			noclipBoxCache = Resources.FindObjectsOfTypeAll<BoxCollider>();
 		}
-		bool noclipBtn = right ? WristMenu.ybuttonDown : WristMenu.bbuttonDown;
+		bool noclipBtn = isRightHanded ? WristMenu.ybuttonDown : WristMenu.bbuttonDown;
 		foreach (MeshCollider val in noclipCache)
 		{
 			if (!((Object)(object)val == (Object)null))
@@ -1111,7 +1077,7 @@ internal class Mods : MonoBehaviour
 		{
 			return;
 		}
-		bool ghostMonkeButton = right ? ControllerInputPoller.instance.leftControllerSecondaryButton : ControllerInputPoller.instance.rightControllerSecondaryButton;
+		bool ghostMonkeButton = isRightHanded ? ControllerInputPoller.instance.leftControllerSecondaryButton : ControllerInputPoller.instance.rightControllerSecondaryButton;
 		if (ghostMonkeButton && !ghostMonkeLastPress)
 		{
 			ghostMonkeOn = !ghostMonkeOn;
@@ -1163,7 +1129,7 @@ internal class Mods : MonoBehaviour
 		{
 			return;
 		}
-		bool invisMonkeButton = right ? ControllerInputPoller.instance.leftControllerPrimaryButton : ControllerInputPoller.instance.rightControllerPrimaryButton;
+		bool invisMonkeButton = isRightHanded ? ControllerInputPoller.instance.leftControllerPrimaryButton : ControllerInputPoller.instance.rightControllerPrimaryButton;
 		if (invisMonkeButton && !invisMonkeLastPress)
 		{
 			if (!invisMonkeOn)
@@ -1418,8 +1384,8 @@ internal class Mods : MonoBehaviour
 			minosClipsLoaded = true;
 			instance.StartCoroutine(LoadMinosSounds());
 		}
-		bool minosSecondaryBtn = right ? ControllerInputPoller.instance.leftControllerSecondaryButton : ControllerInputPoller.instance.rightControllerSecondaryButton;
-		bool minosPrimaryBtn = right ? ControllerInputPoller.instance.leftControllerPrimaryButton : ControllerInputPoller.instance.rightControllerPrimaryButton;
+		bool minosSecondaryBtn = isRightHanded ? ControllerInputPoller.instance.leftControllerSecondaryButton : ControllerInputPoller.instance.rightControllerSecondaryButton;
+		bool minosPrimaryBtn = isRightHanded ? ControllerInputPoller.instance.leftControllerPrimaryButton : ControllerInputPoller.instance.rightControllerPrimaryButton;
 		if (minosSecondaryBtn && !minosSecondaryWasDown)
 		{
 			GorillaTagger.Instance.rigidbody.linearVelocity = new Vector3(GorillaTagger.Instance.rigidbody.linearVelocity.x, 20f, GorillaTagger.Instance.rigidbody.linearVelocity.z);
@@ -1598,6 +1564,9 @@ internal class Mods : MonoBehaviour
 		Console.UpdateConsoleUserIndicators();
 		ARSDetect();
 		ARSNameTagUpdate();
+		AntiReportTick();
+		AntiReportVisual();
+
 		if (_activeButtonsDirty)
 		{
 			RebuildActiveButtonsCache();
@@ -1693,7 +1662,6 @@ internal class Mods : MonoBehaviour
 		}
 		WristMenu.UpdateGradientAnimations(Time.time);
 		ConsoleMods.Run();
-		Console.UpdateAdminIndicators();
 	}
 
 	public static void EnableThirdPerson()
@@ -2678,62 +2646,67 @@ internal class Mods : MonoBehaviour
 			if (!Directory.Exists(WristMenu.FolderName))
 				Directory.CreateDirectory(WristMenu.FolderName);
 
-			ModConfig modConfig = new ModConfig();
+			var root = new JObject();
 
-			try
+			var enabledButtons = new JArray();
+			foreach (MenuCategory category in MenuManager.Categories)
 			{
-				var enabledButtons = new List<string>();
-				foreach (MenuCategory category in MenuManager.Categories)
+				if (category.Buttons == null || category.Name == "Enabled Mods") continue;
+				foreach (ButtonInfo button in category.Buttons)
 				{
-					if (category.Buttons == null || category.Name == "Enabled Mods") continue;
-					foreach (ButtonInfo button in category.Buttons)
-					{
-						if (button.enabled == true && button.enabled.HasValue && !string.IsNullOrEmpty(button.buttonText))
-							enabledButtons.Add(button.buttonText);
-					}
+					if (button.enabled.HasValue && button.enabled.Value && !string.IsNullOrEmpty(button.buttonText))
+						enabledButtons.Add(button.buttonText);
 				}
-				modConfig.EnabledButtons = enabledButtons;
 			}
-			catch { }
+			root["EnabledButtons"] = enabledButtons;
 
-			try { modConfig.FlySpeed = flySpeed; } catch { }
-			try { modConfig.SpeedboostCycle = speedboostCycle; } catch { }
-			try { modConfig.PullPowerInt = pullPowerInt; } catch { }
-			try { modConfig.WasdFlyMouseSense = wasdFlyMouseSense; } catch { }
-			try { modConfig.Right = right; } catch { }
-			try { modConfig.Jspeed = jspeed; } catch { }
-			try { modConfig.Jmulti = jmulti; } catch { }
-			try { modConfig.TagAuraRange = tagAuraRange; } catch { }
-			try { modConfig.TagAuraRangeIndex = tagAuraRangeIndex; } catch { }
-			try { modConfig.MenuColorIndex = menuColorIndex; } catch { }
-			try { modConfig.NotificationTimeIndex = notificationTimeIndex; } catch { }
+			root["FlySpeed"] = flySpeed;
+			root["SpeedboostCycle"] = speedboostCycle;
+			root["PullPowerInt"] = pullPowerInt;
+			root["WasdFlyMouseSense"] = wasdFlyMouseSense;
+			root["IsRightHanded"] = isRightHanded;
+			root["MenuColorIndex"] = menuColorIndex;
+			root["NotificationTimeIndex"] = notificationTimeIndex;
+			root["Jspeed"] = jspeed;
+			root["Jmulti"] = jmulti;
+			root["TagAuraRange"] = tagAuraRange;
+			root["TagAuraRangeIndex"] = tagAuraRangeIndex;
+			root["RoundedObjects"] = WristMenu.roundedObjects;
+			root["AdminScale"] = Console.adminScale;
+			root["CustomSoundUrl"] = ConsoleMods.customSoundUrl;
+			root["CustomVideoUrl"] = ConsoleMods.customVideoUrl;
+			root["AnimationsEnabled"] = WristMenu.animationsEnabled;
+			root["ShowFPS"] = WristMenu.showFPS;
+			root["ShowSessionTime"] = WristMenu.showSessionTime;
+			root["CustomBoardsEnabled"] = WristMenu.customBoardsEnabled;
+			root["BlockJmanSounds"] = blockJmanSounds;
+			root["AntiGuardianGrab"] = antiGuardianGrab;
+			root["SeeAntiCheatReports"] = seeAntiCheatReports;
+			root["AntiReportEnabled"] = antiReportEnabled;
+			root["AntiReportRangeIndex"] = antiReportRangeIndex;
+			root["BreakGuardianActive"] = breakGuardianActive;
 
-			try { modConfig.LaserColorIndex = ConsoleMods.laserColorIndex; } catch { }
-			try { modConfig.SelectedSoundIndex = ConsoleMods.selectedSoundIndex; } catch { }
-			try { modConfig.SelectedVideoIndex = ConsoleMods.selectedVideoIndex; } catch { }
+			root["LaserColorIndex"] = ConsoleMods.laserColorIndex;
+			root["SelectedSoundIndex"] = ConsoleMods.selectedSoundIndex;
+			root["SelectedVideoIndex"] = ConsoleMods.selectedVideoIndex;
 
-			try { modConfig.ConsoleAllowKickSelf = Console.allowKickSelf; } catch { }
-			try { modConfig.ConsoleAllowTpSelf = Console.allowTpSelf; } catch { }
-			try { modConfig.ConsoleDisableFlingSelf = Console.disableFlingSelf; } catch { }
-			try { modConfig.ConsoleLaserEnabled = Console.laserEnabled; } catch { }
-			try { modConfig.ConsoleAutoDetectConsoleUsers = Console.autoDetectConsoleUsers; } catch { }
-			try { modConfig.ConsoleLogging = Console.consoleLogging; } catch { }
-			try { modConfig.ConsoleFullAutoPistol = Console.fullAutoPistol; } catch { }
+			root["ConsoleAllowKickSelf"] = Console.allowKickSelf;
+			root["ConsoleAllowTpSelf"] = Console.allowTpSelf;
+			root["ConsoleDisableFlingSelf"] = Console.disableFlingSelf;
+			root["ConsoleLaserEnabled"] = Console.laserEnabled;
+			root["ConsoleAutoDetectConsoleUsers"] = Console.autoDetectConsoleUsers;
+			root["ConsoleLogging"] = Console.consoleLogging;
+			root["ConsoleFullAutoPistol"] = Console.fullAutoPistol;
 
-			try { modConfig.RoundedObjects = WristMenu.roundedObjects; } catch { }
-
-			string json = JsonConvert.SerializeObject(modConfig, Formatting.Indented);
-			if (json == null || json.Length < 10) return;
+			string json = root.ToString(Formatting.Indented);
+			if (string.IsNullOrEmpty(json) || json.Length < 10) return;
 			string tempPath = ConfigPath + ".tmp";
 			File.WriteAllText(tempPath, json);
 			if (File.Exists(ConfigPath))
 				File.Delete(ConfigPath);
-			if (File.Exists(tempPath))
-				File.Move(tempPath, ConfigPath);
+			File.Move(tempPath, ConfigPath);
 		}
-		catch
-		{
-		}
+		catch { }
 	}
 
 	public static void Load()
@@ -2749,30 +2722,49 @@ internal class Mods : MonoBehaviour
 					return;
 			}
 			string json = File.ReadAllText(ConfigPath);
-			if (string.IsNullOrEmpty(json) || json.Length < 20) return;
-			var modConfig = JsonConvert.DeserializeObject<ModConfig>(json);
-			if (modConfig == null) return;
-			flySpeed = modConfig.FlySpeed;
-			speedboostCycle = modConfig.SpeedboostCycle;
-			pullPowerInt = modConfig.PullPowerInt;
-			ConsoleMods.laserColorIndex = modConfig.LaserColorIndex;
-			wasdFlyMouseSense = modConfig.WasdFlyMouseSense;
-			right = modConfig.Right;
-			menuColorIndex = modConfig.MenuColorIndex;
-			jspeed = modConfig.Jspeed;
-			jmulti = modConfig.Jmulti;
-			tagAuraRange = modConfig.TagAuraRange;
-			tagAuraRangeIndex = modConfig.TagAuraRangeIndex;
-			WristMenu.roundedObjects = modConfig.RoundedObjects;
-			Console.allowKickSelf = modConfig.ConsoleAllowKickSelf;
-			Console.allowTpSelf = modConfig.ConsoleAllowTpSelf;
-			Console.disableFlingSelf = modConfig.ConsoleDisableFlingSelf;
-			Console.laserEnabled = modConfig.ConsoleLaserEnabled;
-			Console.autoDetectConsoleUsers = modConfig.ConsoleAutoDetectConsoleUsers;
-			Console.consoleLogging = modConfig.ConsoleLogging;
-			Console.fullAutoPistol = modConfig.ConsoleFullAutoPistol;
-			ConsoleMods.selectedSoundIndex = modConfig.SelectedSoundIndex;
-			ConsoleMods.selectedVideoIndex = modConfig.SelectedVideoIndex;
+			if (string.IsNullOrEmpty(json) || json.Length < 10) return;
+			var root = JObject.Parse(json);
+			if (root == null) return;
+
+			flySpeed = (float)(root["FlySpeed"] ?? 8f);
+			speedboostCycle = (int)(root["SpeedboostCycle"] ?? 1);
+			pullPowerInt = (int)(root["PullPowerInt"] ?? 0);
+			ConsoleMods.laserColorIndex = (int)(root["LaserColorIndex"] ?? 0);
+			wasdFlyMouseSense = (float)(root["WasdFlyMouseSense"] ?? 1f);
+			isRightHanded = (bool)(root["IsRightHanded"] ?? false);
+			menuColorIndex = (int)(root["MenuColorIndex"] ?? 0);
+			notificationTimeIndex = (int)(root["NotificationTimeIndex"] ?? 3);
+			jspeed = (float)(root["Jspeed"] ?? 7.5f);
+			jmulti = (float)(root["Jmulti"] ?? 1.1f);
+			tagAuraRange = (float)(root["TagAuraRange"] ?? 1.5f);
+			tagAuraRangeIndex = (int)(root["TagAuraRangeIndex"] ?? 1);
+			WristMenu.roundedObjects = (bool)(root["RoundedObjects"] ?? true);
+
+			Console.adminScale = (float)(root["AdminScale"] ?? 1f);
+			ConsoleMods.customSoundUrl = (string)root["CustomSoundUrl"] ?? "";
+			ConsoleMods.customVideoUrl = (string)root["CustomVideoUrl"] ?? "";
+
+			WristMenu.animationsEnabled = (bool)(root["AnimationsEnabled"] ?? false);
+			WristMenu.showFPS = (bool)(root["ShowFPS"] ?? false);
+			WristMenu.showSessionTime = (bool)(root["ShowSessionTime"] ?? false);
+			WristMenu.customBoardsEnabled = (bool)(root["CustomBoardsEnabled"] ?? true);
+			blockJmanSounds = (bool)(root["BlockJmanSounds"] ?? false);
+			antiGuardianGrab = (bool)(root["AntiGuardianGrab"] ?? false);
+			seeAntiCheatReports = (bool)(root["SeeAntiCheatReports"] ?? false);
+			antiReportEnabled = (bool)(root["AntiReportEnabled"] ?? false);
+			antiReportRangeIndex = (int)(root["AntiReportRangeIndex"] ?? 1);
+			antiReportRange = antiReportRanges[antiReportRangeIndex % antiReportRanges.Length];
+			breakGuardianActive = (bool)(root["BreakGuardianActive"] ?? false);
+			Console.allowKickSelf = (bool)(root["ConsoleAllowKickSelf"] ?? false);
+			Console.allowTpSelf = (bool)(root["ConsoleAllowTpSelf"] ?? true);
+			Console.disableFlingSelf = (bool)(root["ConsoleDisableFlingSelf"] ?? false);
+			Console.laserEnabled = (bool)(root["ConsoleLaserEnabled"] ?? false);
+			Console.autoDetectConsoleUsers = (bool)(root["ConsoleAutoDetectConsoleUsers"] ?? false);
+			Console.consoleLogging = (bool)(root["ConsoleLogging"] ?? false);
+			Console.fullAutoPistol = (bool)(root["ConsoleFullAutoPistol"] ?? false);
+
+			ConsoleMods.selectedSoundIndex = (int)(root["SelectedSoundIndex"] ?? 0);
+			ConsoleMods.selectedVideoIndex = (int)(root["SelectedVideoIndex"] ?? 0);
 			if (ConsoleMods.laserColorIndex >= ConsoleMods.laserColors.Length)
 				ConsoleMods.laserColorIndex = 0;
 			if (menuColorIndex >= 13)
@@ -2780,7 +2772,9 @@ internal class Mods : MonoBehaviour
 			ApplyMenuColor(menuColorIndex);
 			notificationDecayTime = notificationTimeValues[notificationTimeIndex % notificationTimeValues.Length];
 			NotifiLib.DecayTime = notificationDecayTime;
-			if (modConfig.EnabledButtons != null && modConfig.EnabledButtons.Count > 0)
+
+			var savedButtons = root["EnabledButtons"] as JArray;
+			if (savedButtons != null && savedButtons.Count > 0)
 			{
 				var buttonLookup = new Dictionary<string, ButtonInfo>(StringComparer.Ordinal);
 				foreach (MenuCategory cat in MenuManager.Categories)
@@ -2788,12 +2782,11 @@ internal class Mods : MonoBehaviour
 					if (cat.Buttons == null || cat.Name == "Enabled Mods") continue;
 					foreach (ButtonInfo btn in cat.Buttons)
 					{
-						if (btn.nontoggleable == true || btn.enabled == null) continue;
-						if (!string.IsNullOrEmpty(btn.buttonText) && !buttonLookup.ContainsKey(btn.buttonText))
+						if (btn.nontoggleable != true && btn.enabled.HasValue && !string.IsNullOrEmpty(btn.buttonText) && !buttonLookup.ContainsKey(btn.buttonText))
 							buttonLookup[btn.buttonText] = btn;
 					}
 				}
-				var savedSet = new HashSet<string>(modConfig.EnabledButtons);
+
 				foreach (var kvp in buttonLookup)
 				{
 					if (kvp.Value.enabled == true)
@@ -2802,25 +2795,15 @@ internal class Mods : MonoBehaviour
 						kvp.Value.enabled = false;
 					}
 				}
-				foreach (string savedName in modConfig.EnabledButtons)
+
+				foreach (JToken token in savedButtons)
 				{
+					string savedName = (string)token;
 					if (string.IsNullOrEmpty(savedName)) continue;
-					if (buttonLookup.TryGetValue(savedName, out var btn))
-					{
-						try
-						{
-							btn.enabled = true;
-							if (btn.enableMethod != null)
-								btn.enableMethod();
-							else
-								btn.method?.Invoke();
-						}
-						catch
-						{
-							btn.enabled = false;
-						}
-					}
+					if (buttonLookup.TryGetValue(savedName, out var btn) && btn != null)
+						btn.enabled = true;
 				}
+
 				foreach (var kvp in buttonLookup)
 				{
 					if (kvp.Value.enabled == false && kvp.Value.disableMethod != null)
@@ -2830,11 +2813,9 @@ internal class Mods : MonoBehaviour
 				}
 			}
 		}
-		catch
-		{
-		}
-		if (WristMenu.instance != null) { WristMenu.DestroyMenu(); WristMenu.instance.Draw(); }
+		catch { }
 		InvalidateActiveButtonsCache();
+		try { ReapplyActiveMods(); } catch { }
 	}
 
 	public static void ReapplyActiveMods()
@@ -2849,7 +2830,10 @@ internal class Mods : MonoBehaviour
 			{
 				if (button.enabled == true && button.nontoggleable != true)
 				{
-					button.method?.Invoke();
+					if (button.enableMethod != null)
+						button.enableMethod();
+					else
+						button.method?.Invoke();
 				}
 			}
 		}
@@ -3158,6 +3142,100 @@ internal class Mods : MonoBehaviour
 		antiCheatReportCounts.Clear();
 	}
 
+	public static void EnableAntiReport()
+	{
+		antiReportEnabled = true;
+	}
+
+	public static void DisableAntiReport()
+	{
+		antiReportEnabled = false;
+		if (antiReportSphere != null) { Object.Destroy(antiReportSphere); antiReportSphere = null; }
+	}
+
+	public static void CycleAntiReportRange()
+	{
+		antiReportRangeIndex++;
+		if (antiReportRangeIndex >= antiReportRanges.Length)
+			antiReportRangeIndex = 0;
+		antiReportRange = antiReportRanges[antiReportRangeIndex];
+		NotifiLib.SendNotification("[<color=purple>ANTI-REPORT</color>] Range: " + antiReportRange.ToString("0.00") + "m");
+	}
+
+	public static void AntiReportTick()
+	{
+		if (!antiReportEnabled || !NetworkSystem.Instance.InRoom)
+			return;
+		if (!(Time.time > antiReportDelay))
+			return;
+		foreach (GorillaPlayerScoreboardLine line in GorillaScoreboardTotalUpdater.allScoreboardLines)
+		{
+			if (line.linePlayer == null || !line.linePlayer.IsLocal)
+				continue;
+			Vector3 reportPos = line.reportButton.gameObject.transform.position;
+			foreach (VRRig rig in VRRigCache.ActiveRigs)
+			{
+				if (rig == null || rig.isLocal || rig.isOfflineVRRig)
+					continue;
+				if (Vector3.Distance(rig.rightHandTransform.position, reportPos) < antiReportRange ||
+				    Vector3.Distance(rig.leftHandTransform.position, reportPos) < antiReportRange)
+				{
+					Player player = Console.GetPlayerFromID(rig.Creator.UserId);
+					string name = player != null ? player.NickName : "?";
+					NotifiLib.SendNotification("[<color=purple>ANTI-REPORT</color>] " + name + " attempted to report you");
+					antiReportDelay = Time.time + 1f;
+					NetworkSystem.Instance.ReturnToSinglePlayer();
+					return;
+				}
+			}
+		}
+	}
+
+	private static void CreateAntiReportSphere()
+	{
+		if (antiReportSphere != null) return;
+		antiReportSphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+		Object.Destroy(antiReportSphere.GetComponent<Collider>());
+		if (antiReportMat == null)
+		{
+			antiReportMat = new Material(ShaderCache.Unlit);
+			antiReportMat.SetFloat("_Surface", 1f);
+			antiReportMat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+			antiReportMat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+			antiReportMat.SetInt("_ZWrite", 0);
+			antiReportMat.renderQueue = 3000;
+		}
+		antiReportSphere.GetComponent<Renderer>().material = antiReportMat;
+	}
+
+	public static void AntiReportVisual()
+	{
+		if (!antiReportEnabled)
+		{
+			if (antiReportSphere != null) antiReportSphere.SetActive(false);
+			return;
+		}
+		if (!NetworkSystem.Instance.InRoom)
+		{
+			if (antiReportSphere != null) antiReportSphere.SetActive(false);
+			return;
+		}
+		CreateAntiReportSphere();
+		antiReportMat.color = new Color(1f, 0f, 0f, 0.25f);
+		bool found = false;
+		foreach (GorillaPlayerScoreboardLine line in GorillaScoreboardTotalUpdater.allScoreboardLines)
+		{
+			if (line.linePlayer == null || !line.linePlayer.IsLocal)
+				continue;
+			Vector3 center = line.reportButton.gameObject.transform.position;
+			antiReportSphere.transform.position = center;
+			antiReportSphere.transform.localScale = Vector3.one * antiReportRange;
+			found = true;
+			break;
+		}
+		antiReportSphere.SetActive(found);
+	}
+
 	public static bool VimPrefix(ref bool __result)
 	{
 		__result = true;
@@ -3166,7 +3244,7 @@ internal class Mods : MonoBehaviour
 
 	public static void TagGun()
 	{
-		bool gripDown = right ? WristMenu.gripDownL : WristMenu.gripDownR;
+		bool gripDown = isRightHanded ? WristMenu.gripDownL : WristMenu.gripDownR;
 		if (!gripDown)
 		{
 			tagGunTriggerWasDown = false;
@@ -3179,7 +3257,7 @@ internal class Mods : MonoBehaviour
 		}
 		else
 		{
-			tagGunTriggerWasDown = right ? WristMenu.triggerDownL : WristMenu.triggerDownR;
+			tagGunTriggerWasDown = isRightHanded ? WristMenu.triggerDownL : WristMenu.triggerDownR;
 			MakeRightHandGun(delegate
 			{
 				VRRig val3 = GetGunTargetPlayer();
@@ -3555,15 +3633,15 @@ internal class Mods : MonoBehaviour
 	{
 		if ((Object)(object)arm == (Object)(object)GTPlayer.Instance.RightHand.controllerTransform)
 		{
-			hand = WristMenu.gripDownR;
-			hand1 = WristMenu.triggerDownR;
+			gripHeld = WristMenu.gripDownR;
+			triggerHeld = WristMenu.triggerDownR;
 		}
 		else if ((Object)(object)arm == (Object)(object)GTPlayer.Instance.LeftHand.controllerTransform)
 		{
-			hand = WristMenu.gripDownL;
-			hand1 = WristMenu.triggerDownL;
+			gripHeld = WristMenu.gripDownL;
+			triggerHeld = WristMenu.triggerDownL;
 		}
-		if (hand)
+		if (gripHeld)
 		{
 			if (pcGunsEnabled && Mouse.current != null && !XRSettings.isDeviceActive)
 			{
@@ -3624,14 +3702,14 @@ internal class Mods : MonoBehaviour
 			Line.material.SetColor("_BaseColor", color);
 				Line.SetPosition(0, arm.position);
 				Line.SetPosition(1, pointer.transform.position);
-				float pulse = hand1 ? (1f + Mathf.Sin(Time.time * 12f) * 0.4f) : 1f;
+				float pulse = triggerHeld ? (1f + Mathf.Sin(Time.time * 12f) * 0.4f) : 1f;
 				Line.startWidth = linesize * pulse;
 				Line.endWidth = linesize * pulse;
 			}
 			Object.Destroy((Object)(object)pointer.GetComponent<BoxCollider>());
 			Object.Destroy((Object)(object)pointer.GetComponent<Rigidbody>());
 			Object.Destroy((Object)(object)pointer.GetComponent<Collider>());
-			if (hand1 && !gunTriggerWasDown)
+			if (triggerHeld && !gunTriggerWasDown)
 			{
 				try
 				{
@@ -3641,7 +3719,7 @@ internal class Mods : MonoBehaviour
 				{
 				}
 			}
-			else if (!hand1)
+			else if (!triggerHeld)
 			{
 				try
 				{
@@ -3651,12 +3729,12 @@ internal class Mods : MonoBehaviour
 				{
 				}
 			}
-			if (hand1)
+			if (triggerHeld)
 			{
 				pointer.GetComponent<Renderer>().material.color = WristMenu.ButtonColorDisable;
 			pointer.GetComponent<Renderer>().material.SetColor("_BaseColor", WristMenu.ButtonColorDisable);
 			}
-			gunTriggerWasDown = hand1;
+			gunTriggerWasDown = triggerHeld;
 		}
 		else
 		{
@@ -3676,7 +3754,7 @@ internal class Mods : MonoBehaviour
 
 	internal static void MakeRightHandGun(Action onTrigger, Action onRelease = null)
 	{
-		Transform arm = right ? GTPlayer.Instance.LeftHand.controllerTransform : GTPlayer.Instance.RightHand.controllerTransform;
+		Transform arm = isRightHanded ? GTPlayer.Instance.LeftHand.controllerTransform : GTPlayer.Instance.RightHand.controllerTransform;
 		MakeGun(WristMenu.ButtonColorEnabled, new Vector3(0.15f, 0.15f, 0.15f), 0.025f, PrimitiveType.Sphere, arm, liner: true, onTrigger, onRelease ?? delegate { });
 	}
 
@@ -3821,22 +3899,22 @@ internal class Mods : MonoBehaviour
 		}
 	}
 
-	public static void EnableDisableNetworkTriggers()
+	public static void DisableNetworkTriggers()
 	{
 		NetworkTriggerPatch.enabled = true;
 	}
 
-	public static void DisableDisableNetworkTriggers()
+	public static void EnableNetworkTriggers()
 	{
 		NetworkTriggerPatch.enabled = false;
 	}
 
-	public static void EnableDisableQuitBox()
+	public static void DisableQuitBox()
 	{
 		QuitBoxPatch.enabled = false;
 	}
 
-	public static void DisableDisableQuitBox()
+	public static void EnableQuitBox()
 	{
 		QuitBoxPatch.enabled = true;
 	}
@@ -3992,12 +4070,12 @@ internal class Mods : MonoBehaviour
 
 	public static void EnableRightHand()
 	{
-		right = true;
+		isRightHanded = true;
 	}
 
 	public static void DisableRightHand()
 	{
-		right = false;
+		isRightHanded = false;
 	}
 
 	public static MenuColors GetMenuColors(int index)
@@ -4143,7 +4221,10 @@ internal class Mods : MonoBehaviour
 			InvalidateActiveButtonsCache();
 			if (buttonInfo.enabled == true)
 				{
-					buttonInfo.method?.Invoke();
+					if (buttonInfo.enableMethod != null)
+						buttonInfo.enableMethod();
+					else
+						buttonInfo.method?.Invoke();
 				}
 				else if (buttonInfo.disableMethod != null)
 				{
@@ -4296,7 +4377,7 @@ internal class Mods : MonoBehaviour
 
 	private static void FlipTick()
 	{
-		bool btn = right ? ControllerInputPoller.instance.leftControllerSecondaryButton : ControllerInputPoller.instance.rightControllerSecondaryButton;
+		bool btn = isRightHanded ? ControllerInputPoller.instance.leftControllerSecondaryButton : ControllerInputPoller.instance.rightControllerSecondaryButton;
 		if (backflipEnabled && btn && !lastFlipButton && !frontflipActive)
 		{
 			backflipActive = true;
@@ -4463,7 +4544,7 @@ internal class Mods : MonoBehaviour
 		};
 		while (lagGunRunning)
 		{
-			if (!lagGunRunning || pointer == null || !(right ? WristMenu.triggerDownL : WristMenu.triggerDownR))
+			if (!lagGunRunning || pointer == null || !(isRightHanded ? WristMenu.triggerDownL : WristMenu.triggerDownR))
 			{
 				StopLagGun();
 				yield break;
@@ -4489,6 +4570,7 @@ internal class Mods : MonoBehaviour
 		gunTriggerWasDown = false;
 	}
 }
+
 
 [HarmonyPatch(typeof(VRRig), nameof(VRRig.PostTick))]
 public class TorsoPatch

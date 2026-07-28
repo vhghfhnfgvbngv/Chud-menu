@@ -13,7 +13,7 @@ internal class BtnCollider : MonoBehaviour
 	{
 		if (Time.frameCount >= framePressCooldown + WristMenu.ClickCooldown && collider.name == "buttonPresser")
 		{
-			GorillaTagger.Instance.StartVibration(Mods.right, 0.01f, 0.001f);
+			GorillaTagger.Instance.StartVibration(Mods.isRightHanded, 0.01f, 0.001f);
 			if (WristMenu.animationsEnabled)
 			{
 				this.StartCoroutine(PressAni());

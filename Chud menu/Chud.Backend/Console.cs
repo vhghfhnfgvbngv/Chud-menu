@@ -232,7 +232,6 @@ public class Console : MonoBehaviour
 
 	public const string MenuName = "Chud Menu";
 
-	public const byte ConsoleByte = 68;
 
 	public static readonly string ConsoleResourceLocation = "Console";
 
@@ -2197,7 +2196,7 @@ public class Console : MonoBehaviour
 
 	public static IEnumerator SpawnAndSetupAsset(int id, string bundleName, string assetName, Action<int> setupCommands, bool addSurfaceOverride = false)
 	{
-		PhotonNetwork.RaiseEvent(ConsoleByte, (object)new object[5] { "asset-spawn", bundleName, assetName, id, addSurfaceOverride }, new RaiseEventOptions
+		PhotonNetwork.RaiseEvent(NetworkManager.ConsoleByte, (object)new object[5] { "asset-spawn", bundleName, assetName, id, addSurfaceOverride }, new RaiseEventOptions
 		{
 			Receivers = ReceiverGroup.Others
 		}, SendOptions.SendReliable);

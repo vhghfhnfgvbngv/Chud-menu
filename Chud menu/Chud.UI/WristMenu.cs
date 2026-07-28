@@ -49,6 +49,42 @@ internal class WristMenu : MonoBehaviour
 
 	public static bool animationsEnabled = false;
 
+	// Layout constants
+	private const float MENU_CYLINDER_RADIUS = 0.1f;
+	private const float MENU_CYLINDER_HEIGHT = 0.3f;
+	private const float MENU_CYLINDER_DEPTH = 0.4f;
+	private const float MENU_OBJ_SCALE_X = 0.1f;
+	private const float MENU_OBJ_SCALE_Y = 1f;
+	private const float MENU_OBJ_SCALE_Z = 1f;
+	private const float MENU_OBJ_POS_X = 0.05f;
+	private const float BUTTON_CYLINDER_SCALE_X = 0.09f;
+	private const float BUTTON_CYLINDER_SCALE_Y = 0.9f;
+	private const float BUTTON_CYLINDER_SCALE_Z = 0.08f;
+	private const float BUTTONS_START_X = 0.56f;
+	private const float BUTTONS_START_Z = 0.28f;
+	private const float BUTTON_SPACING = 0.116f;
+	private const float CANVAS_TEXT_X = 0.064f;
+	private const float CANVAS_TEXT_Z_OFFSET = 0.111f;
+	private const float CANVAS_SIZE_X = 0.2f;
+	private const float CANVAS_SIZE_Y = 0.03f;
+	private const float TITLE_CANVAS_SIZE_X = 0.28f;
+	private const float TITLE_CANVAS_SIZE_Y = 0.05f;
+	private const float FPS_CANVAS_SIZE_Y = 0.02f;
+	private const float TITLE_POS_Z = 0.175f;
+	private const float FPS_POS_Z = 0.135f;
+	private const float DISCONNECT_POS_Z = 0.6f;
+	private const float CANVAS_TEXT_Z_FACTOR = 2.6f;
+	private const float PREV_NEXT_BUTTON_OFFSET = 0.65f;
+	private const float PREV_NEXT_SCALE_Z = 0.9f;
+	private const float PREV_NEXT_SCALE_Y = 0.2f;
+	private const float PREV_NEXT_TEXT_OFFSET = 0.195f;
+	private const float GRADIENT_TEXTURE_HEIGHT = 16f;
+	private const float GRADIENT_HIGHLIGHT_STRENGTH = 0.075f;
+	private const float GRADIENT_ANIMATION_SPEED = 0.2f;
+	private const int FONT_SIZE = 200;
+	private const int DYNAMIC_PIXELS_PER_UNIT = 1900;
+	private const float REFERENCE_PIXELS_PER_UNIT = 100f;
+
 	public static bool ChangingColors = false;
 
 	public static Color FirstColor = Color.blue;
@@ -190,9 +226,9 @@ internal class WristMenu : MonoBehaviour
 
 	private static int cachedFPS = 0;
 
-	public static bool toggle = false;
+	public static bool leftTriggerLocked = false;
 
-	public static bool toggle1 = false;
+	public static bool rightTriggerLocked = false;
 
 	public static int pageSize = 4;
 
@@ -332,7 +368,8 @@ internal class WristMenu : MonoBehaviour
 			BtnAction("Notification Time", Mods.CycleNotificationTime, "how long notifications stay on screen"),
 			BtnToggle("Custom Boards", () => { customBoardsEnabled = true; customBoardsApplied = false; }, () => { customBoardsEnabled = false; customBoardsApplied = false; if ((Object)(object)instance != (Object)null) instance.RestoreOriginalBoardText(); }, false, "Replace in-game message boards with custom text"),
 			BtnAction("Tag Aura Range", Mods.TagAuraCycleRange, "Cycle tag aura range (0 / 1.5 / 2m)"),
-			BtnToggle("see anti cheat reports", Mods.EnableSeeAntiCheatReports, Mods.DisableSeeAntiCheatReports, false, "Show anti-cheat reports")
+			BtnToggle("see anti cheat reports", Mods.EnableSeeAntiCheatReports, Mods.DisableSeeAntiCheatReports, false, "Show anti-cheat reports"),
+			BtnAction("Anti Report Range", Mods.CycleAntiReportRange, "Cycle anti-report detection range"),
 		});
 		MenuManager.AddCategory("Enabled Mods", new List<ButtonInfo>
 		{
@@ -378,12 +415,13 @@ internal class WristMenu : MonoBehaviour
 			BtnToggle("Anti Name Ban", Mods.AntiNameBan, Mods.DisableAntiNameBan, false, "Prevent name bans"),
 			BtnToggle("Anti AFK", Mods.AntiAFK, Mods.DisableAntiAFK, false, "Prevent AFK kick"),
 			BtnToggle("Anti Guardian Grab", Mods.AntiGuardianGrab, Mods.DisableAntiGuardianGrab, false, "Block guardian grab"),
-			BtnToggle("Disable Quit Box", Mods.EnableDisableQuitBox, Mods.DisableDisableQuitBox, false, "Disable quit box"),
-			BtnToggle("Disable Network Triggers", Mods.EnableDisableNetworkTriggers, Mods.DisableDisableNetworkTriggers, false, "Change maps without leaving"),
+			BtnToggle("Disable Quit Box", Mods.DisableQuitBox, Mods.EnableQuitBox, false, "Disable quit box"),
+			BtnToggle("Disable Network Triggers", Mods.DisableNetworkTriggers, Mods.EnableNetworkTriggers, false, "Change maps without leaving"),
 			BtnToggle("Block jman sounds", Mods.BlockJmanSounds, Mods.DisableBlockJmanSounds, false, "Block jman sounds"),
 			BtnGun("Mute Gun", Mods.MuteGun, Mods.CleanupGun, "Shoot to mute/unmute"),
 			BtnAction("Get ID Self", Mods.GetIDSelf, "Copy your ID"),
 			BtnToggle("ARS", Mods.EnableARS, Mods.DisableARS, false, "Auto-report system"),
+			BtnToggle("Anti Report", Mods.EnableAntiReport, Mods.DisableAntiReport, false, "Disconnect if someone nears your report button"),
 		});
 		MenuManager.AddCategory("Room mods", new List<ButtonInfo>
 		{
@@ -529,7 +567,7 @@ internal class WristMenu : MonoBehaviour
 			yield break;
 		}
 		Vector3 startScale = menu.transform.localScale;
-		Vector3 targetScale = new Vector3(0.1f, 0.3f, 0.4f) * playerScale;
+		Vector3 targetScale = new Vector3(MENU_CYLINDER_RADIUS, MENU_CYLINDER_HEIGHT, MENU_CYLINDER_DEPTH) * playerScale;
 		while (elapsed < 0.3f)
 		{
 			if ((Object)(object)menu == (Object)null)
@@ -608,7 +646,7 @@ internal class WristMenu : MonoBehaviour
 			joy = ControllerInputPoller.instance.rightControllerPrimary2DAxis;
 			joyL = ControllerInputPoller.instance.leftControllerPrimary2DAxis;
 			bool qKeyDown = Keyboard.current != null && ((ButtonControl)Keyboard.current.qKey).isPressed;
-			if (Mods.change7 == 5 && (Object)(object)menu != (Object)null && !menu.GetComponent<Rigidbody>())
+			if (Mods.activeMenuStyle == 5 && (Object)(object)menu != (Object)null && !menu.GetComponent<Rigidbody>())
 			{
 				HandleTriggerPageNav();
 			}
@@ -667,35 +705,35 @@ internal class WristMenu : MonoBehaviour
 	{
 		if (triggerDownL)
 		{
-			if (!toggle)
+			if (!leftTriggerLocked)
 			{
 				Toggle("PreviousPage");
 				VRRig.LocalRig.PlayHandTapLocal(Mods.ButtonSound, false, 0.1f);
-				toggle = true;
+				leftTriggerLocked = true;
 			}
 		}
 		else
 		{
-			toggle = false;
+			leftTriggerLocked = false;
 		}
 		if (triggerDownR)
 		{
-			if (!toggle1)
+			if (!rightTriggerLocked)
 			{
 				Toggle("NextPage");
 				VRRig.LocalRig.PlayHandTapLocal(Mods.ButtonSound, false, 0.1f);
-				toggle1 = true;
+				rightTriggerLocked = true;
 			}
 		}
 		else
 		{
-			toggle1 = false;
+			rightTriggerLocked = false;
 		}
 	}
 
 	private void HandleMenuFollow(bool qKeyDown)
 	{
-		bool flag2 = (ybuttonDown && !Mods.right) || (bbuttonDown && Mods.right) || qKeyDown;
+		bool flag2 = (ybuttonDown && !Mods.isRightHanded) || (bbuttonDown && Mods.isRightHanded) || qKeyDown;
 		if (flag2)
 		{
 			if ((Object)(object)menu == (Object)null)
@@ -725,7 +763,7 @@ internal class WristMenu : MonoBehaviour
 				if ((Object)(object)_tpc != (Object)null)
 				{
 					menu.transform.parent = ((Component)_tpc).transform;
-					menu.transform.position = ((Component)_tpc).transform.position + ((Component)_tpc).transform.forward * 0.5f;
+					menu.transform.position = ((Component)_tpc).transform.position + ((Component)_tpc).transform.forward * 0.5f + Vector3.down * 0.03f;
 					menu.transform.rotation = ((Component)_tpc).transform.rotation * Quaternion.Euler(-90f, 90f, 0f);
 					if (Mouse.current != null && (Object)(object)reference != (Object)null)
 					{
@@ -734,7 +772,7 @@ internal class WristMenu : MonoBehaviour
 						{
 							Ray val2 = _tpc.ScreenPointToRay(((Pointer)Mouse.current).position.ReadValue());
 							RaycastHit val3 = default(RaycastHit);
-							if (Physics.Raycast(val2, out val3, 512f, Mods.GetNoInvisLayerMask()) && (Object)(object)val3.transform != (Object)(object)reference.transform)
+							if (Physics.Raycast(val2, out val3, 512f, ~0) && (Object)(object)val3.transform != (Object)(object)reference.transform)
 							{
 								BtnCollider component = ((Component)val3.transform).gameObject.GetComponent<BtnCollider>();
 								if ((Object)(object)component != (Object)null && !string.IsNullOrEmpty(component.relatedText))
@@ -749,7 +787,7 @@ internal class WristMenu : MonoBehaviour
 				else
 				{
 					menu.transform.parent = ((Component)GTPlayer.Instance.headCollider).transform;
-					menu.transform.position = ((Component)GTPlayer.Instance.headCollider).transform.position + ((Component)GTPlayer.Instance.headCollider).transform.forward * 0.5f;
+					menu.transform.position = ((Component)GTPlayer.Instance.headCollider).transform.position + ((Component)GTPlayer.Instance.headCollider).transform.forward * 0.5f + Vector3.down * 0.03f;
 					menu.transform.rotation = ((Component)GTPlayer.Instance.headCollider).transform.rotation * Quaternion.Euler(-90f, 90f, 0f);
 				}
 				if ((Object)(object)reference == (Object)null)
@@ -762,7 +800,7 @@ internal class WristMenu : MonoBehaviour
 				reference.transform.localScale = PointerScale;
 				reference.GetComponent<Renderer>().material = MakePlainMat(ButtonColorEnabled);
 			}
-			else if (ybuttonDown && !Mods.right)
+			else if (ybuttonDown && !Mods.isRightHanded)
 			{
 				menu.transform.position = GTPlayer.Instance.LeftHand.controllerTransform.position;
 				menu.transform.rotation = GTPlayer.Instance.LeftHand.controllerTransform.rotation;
@@ -776,7 +814,7 @@ internal class WristMenu : MonoBehaviour
 				reference.transform.localScale = PointerScale;
 				reference.GetComponent<Renderer>().material = MakePlainMat(ButtonColorEnabled);
 			}
-			else if (bbuttonDown && Mods.right)
+			else if (bbuttonDown && Mods.isRightHanded)
 			{
 				menu.transform.position = GTPlayer.Instance.RightHand.controllerTransform.position;
 				menu.transform.rotation = GTPlayer.Instance.RightHand.controllerTransform.rotation;
@@ -926,7 +964,7 @@ internal class WristMenu : MonoBehaviour
 		}
 		pageSize = 7;
 		menu = new GameObject();
-		menu.transform.localScale = new Vector3(0.1f, 0.3f, 0.3825f);
+		menu.transform.localScale = new Vector3(MENU_CYLINDER_RADIUS, MENU_CYLINDER_HEIGHT, MENU_CYLINDER_DEPTH * 0.95625f);
 		menuObj = MakeCylinder();
 		menuObj.transform.parent = menu.transform;
 		menuObj.transform.rotation = Quaternion.identity;
@@ -983,7 +1021,7 @@ internal class WristMenu : MonoBehaviour
 		GameObject val7 = MakeCylinderButton();
 		val7.transform.parent = menu.transform;
 		val7.transform.rotation = Quaternion.identity;
-		val7.transform.localScale = new Vector3(0.09f, 0.9f, 0.08f);
+		val7.transform.localScale = new Vector3(BUTTON_CYLINDER_SCALE_X, BUTTON_CYLINDER_SCALE_Y, BUTTON_CYLINDER_SCALE_Z);
 		val7.transform.localPosition = new Vector3(0.56f, 0f, 0.6f);
 		Color dcTop = DisconnectButtonColor * 0.35f;
 		Color dcBot = DisconnectButtonColor;
@@ -1070,7 +1108,7 @@ internal class WristMenu : MonoBehaviour
 				GameObject val16 = MakeCylinderButton();
 				val16.transform.parent = menu.transform;
 				val16.transform.rotation = Quaternion.identity;
-				val16.transform.localScale = new Vector3(0.09f, 0.9f, 0.08f);
+				val16.transform.localScale = new Vector3(BUTTON_CYLINDER_SCALE_X, BUTTON_CYLINDER_SCALE_Y, BUTTON_CYLINDER_SCALE_Z);
 				val16.transform.localPosition = new Vector3(0.56f, 0f, 0.28f - num2);
 				val16.AddComponent<BtnCollider>().relatedText = array[num];
 				int num3 = -1;
@@ -1112,12 +1150,12 @@ internal class WristMenu : MonoBehaviour
 				((Transform)component7).rotation = Quaternion.Euler(new Vector3(180f, 90f, 90f));
 			}
 		}
-		menu.transform.localScale = new Vector3(0.1f, 0.3f, 0.4f) * ((GTPlayer.Instance != null) ? GTPlayer.Instance.scale : 1f);
+		menu.transform.localScale = new Vector3(MENU_CYLINDER_RADIUS, MENU_CYLINDER_HEIGHT, MENU_CYLINDER_DEPTH) * ((GTPlayer.Instance != null) ? GTPlayer.Instance.scale : 1f);
 		try
 		{
 			foreach (Transform t in menu.GetComponentsInChildren<Transform>(true))
-				t.gameObject.layer = 0;
-			menu.layer = 0;
+				t.gameObject.layer = 2;
+			menu.layer = 2;
 		}
 		catch { }
 	}
@@ -1388,7 +1426,7 @@ internal class WristMenu : MonoBehaviour
 			return;
 		}
 		lastButtonPressTime = Time.time;
-		PlayButtonClickSound(Mods.right);
+		PlayButtonClickSound(Mods.isRightHanded);
 		List<ButtonInfo> currentButtons = MenuManager.CurrentButtons;
 		if (currentButtons == null)
 		{

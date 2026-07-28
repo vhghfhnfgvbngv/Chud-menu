@@ -58,3 +58,14 @@ internal class OnJoinedRoom : HarmonyPatch
 		}
 	}
 }
+
+[HarmonyPatch(typeof(MonoBehaviourPunCallbacks), "OnLeftRoom")]
+internal class OnLocalLeftRoom : HarmonyPatch
+{
+	private static void Prefix()
+	{
+		Mods.DisableAntiReport();
+	}
+}
+
+
