@@ -1121,9 +1121,8 @@ internal class WristMenu : MonoBehaviour
 		try
 		{
 			foreach (Transform t in menu.GetComponentsInChildren<Transform>(true))
-				t.gameObject.layer = 2;
-			menu.layer = 2;
-			Physics.IgnoreLayerCollision(2, 0, true);
+				t.gameObject.layer = 0;
+			menu.layer = 0;
 		}
 		catch { }
 	}
