@@ -67,6 +67,7 @@ internal class Mods : MonoBehaviour
 	[Serializable]
 	public class ModConfig
 	{
+		public int ConfigVersion = 1;
 		public List<string> EnabledButtons = new List<string>();
 
 		public float FlySpeed = 8f;
@@ -87,8 +88,6 @@ internal class Mods : MonoBehaviour
 
 		public int ButtonSoundIndex = 0;
 
-		public bool AnimationsEnabled = true;
-
 		public bool ConsoleAllowKickSelf = false;
 		public bool ConsoleAllowTpSelf = true;
 		public bool ConsoleDisableFlingSelf = false;
@@ -100,9 +99,15 @@ internal class Mods : MonoBehaviour
 		public int SelectedSoundIndex = 0;
 		public int SelectedVideoIndex = 0;
 
-		public bool RoundedObjects = false;
-		public bool ShowFPS = true;
-		public bool ShowSessionTime = true;
+		public bool RoundedObjects = true;
+		public float Jspeed = 7.5f;
+		public float Jmulti = 1.1f;
+		public float TagAuraRange = 1.5f;
+		public int TagAuraRangeIndex = 1;
+		public float AdminScale = 1f;
+		public string CustomSoundUrl = "";
+		public string CustomVideoUrl = "";
+		public bool FirstTimeWelcome = false;
 	}
 
 	public struct MenuColors
@@ -1655,6 +1660,7 @@ internal class Mods : MonoBehaviour
 				Color pc = Color.white;
 				if ((Object)(object)VRRig.LocalRig != (Object)null)
 					pc = ColorUtil.PlayerColor(VRRig.LocalRig);
+				Color oldEnabled = WristMenu.ButtonColorEnabled;
 				bool isBlacklisted = (pc.r > 0.9f && pc.g > 0.9f && pc.b > 0.9f) || (pc.r < 0.1f && pc.g < 0.1f && pc.b < 0.1f);
 				if (isBlacklisted)
 				{
@@ -1677,6 +1683,11 @@ internal class Mods : MonoBehaviour
 					WristMenu.DisableTextColor = new Color(0.75f, 0.75f, 0.75f);
 					WristMenu.NextPrevButtonColor = pc * 0.4f;
 					WristMenu.MenuTitleColor = textColor;
+				}
+				if (WristMenu.ButtonColorEnabled != oldEnabled && WristMenu.instance != null)
+				{
+					WristMenu.DestroyMenu();
+					WristMenu.instance.Draw();
 				}
 			}
 		}
@@ -2665,55 +2676,61 @@ internal class Mods : MonoBehaviour
 		try
 		{
 			if (!Directory.Exists(WristMenu.FolderName))
-			{
 				Directory.CreateDirectory(WristMenu.FolderName);
-			}
-			ModConfig modConfig = new ModConfig
+
+			ModConfig modConfig = new ModConfig();
+
+			try
 			{
-				FlySpeed = flySpeed,
-				SpeedboostCycle = speedboostCycle,
-				PullPowerInt = pullPowerInt,
-				LaserColorIndex = ConsoleMods.laserColorIndex,
-				WasdFlyMouseSense = wasdFlyMouseSense,
-				Right = right,
-				MenuColorIndex = menuColorIndex,
-				NotificationTimeIndex = notificationTimeIndex,
-				ButtonSoundIndex = WristMenu.buttonSoundIndex,
-				AnimationsEnabled = WristMenu.animationsEnabled,
-
-				ConsoleAllowKickSelf = Console.allowKickSelf,
-				ConsoleAllowTpSelf = Console.allowTpSelf,
-				ConsoleDisableFlingSelf = Console.disableFlingSelf,
-				ConsoleLaserEnabled = Console.laserEnabled,
-				ConsoleAutoDetectConsoleUsers = Console.autoDetectConsoleUsers,
-				ConsoleLogging = Console.consoleLogging,
-				ConsoleFullAutoPistol = Console.fullAutoPistol,
-
-				SelectedSoundIndex = ConsoleMods.selectedSoundIndex,
-				SelectedVideoIndex = ConsoleMods.selectedVideoIndex,
-
-				RoundedObjects = WristMenu.roundedObjects,
-				ShowFPS = WristMenu.showFPS,
-				ShowSessionTime = WristMenu.showSessionTime,
-			};
-			foreach (MenuCategory category in MenuManager.Categories)
-			{
-				foreach (ButtonInfo button in category.Buttons)
+				var enabledButtons = new List<string>();
+				foreach (MenuCategory category in MenuManager.Categories)
 				{
-					if (button.enabled == true && button.enabled.HasValue)
+					if (category.Buttons == null || category.Name == "Enabled Mods") continue;
+					foreach (ButtonInfo button in category.Buttons)
 					{
-						modConfig.EnabledButtons.Add(button.buttonText);
+						if (button.enabled == true && button.enabled.HasValue && !string.IsNullOrEmpty(button.buttonText))
+							enabledButtons.Add(button.buttonText);
 					}
 				}
+				modConfig.EnabledButtons = enabledButtons;
 			}
-			string text = JsonConvert.SerializeObject((object)modConfig, Formatting.Indented);
+			catch { }
+
+			try { modConfig.FlySpeed = flySpeed; } catch { }
+			try { modConfig.SpeedboostCycle = speedboostCycle; } catch { }
+			try { modConfig.PullPowerInt = pullPowerInt; } catch { }
+			try { modConfig.WasdFlyMouseSense = wasdFlyMouseSense; } catch { }
+			try { modConfig.Right = right; } catch { }
+			try { modConfig.Jspeed = jspeed; } catch { }
+			try { modConfig.Jmulti = jmulti; } catch { }
+			try { modConfig.TagAuraRange = tagAuraRange; } catch { }
+			try { modConfig.TagAuraRangeIndex = tagAuraRangeIndex; } catch { }
+			try { modConfig.MenuColorIndex = menuColorIndex; } catch { }
+			try { modConfig.NotificationTimeIndex = notificationTimeIndex; } catch { }
+
+			try { modConfig.LaserColorIndex = ConsoleMods.laserColorIndex; } catch { }
+			try { modConfig.SelectedSoundIndex = ConsoleMods.selectedSoundIndex; } catch { }
+			try { modConfig.SelectedVideoIndex = ConsoleMods.selectedVideoIndex; } catch { }
+
+			try { modConfig.ConsoleAllowKickSelf = Console.allowKickSelf; } catch { }
+			try { modConfig.ConsoleAllowTpSelf = Console.allowTpSelf; } catch { }
+			try { modConfig.ConsoleDisableFlingSelf = Console.disableFlingSelf; } catch { }
+			try { modConfig.ConsoleLaserEnabled = Console.laserEnabled; } catch { }
+			try { modConfig.ConsoleAutoDetectConsoleUsers = Console.autoDetectConsoleUsers; } catch { }
+			try { modConfig.ConsoleLogging = Console.consoleLogging; } catch { }
+			try { modConfig.ConsoleFullAutoPistol = Console.fullAutoPistol; } catch { }
+
+			try { modConfig.ButtonSoundIndex = WristMenu.buttonSoundIndex; } catch { }
+			try { modConfig.RoundedObjects = WristMenu.roundedObjects; } catch { }
+
+			string json = JsonConvert.SerializeObject(modConfig, Formatting.Indented);
+			if (json == null || json.Length < 10) return;
 			string tempPath = ConfigPath + ".tmp";
-			File.WriteAllText(tempPath, text);
+			File.WriteAllText(tempPath, json);
 			if (File.Exists(ConfigPath))
-			{
 				File.Delete(ConfigPath);
-			}
-			File.Move(tempPath, ConfigPath);
+			if (File.Exists(tempPath))
+				File.Move(tempPath, ConfigPath);
 		}
 		catch
 		{
@@ -2728,41 +2745,27 @@ internal class Mods : MonoBehaviour
 			{
 				string tempPath = ConfigPath + ".tmp";
 				if (File.Exists(tempPath))
-				{
 					File.Move(tempPath, ConfigPath);
-				}
 				else
-				{
 					return;
-				}
 			}
-			ModConfig modConfig = JsonConvert.DeserializeObject<ModConfig>(File.ReadAllText(ConfigPath));
-			if (modConfig == null)
-			{
-				return;
-			}
+			string json = File.ReadAllText(ConfigPath);
+			if (string.IsNullOrEmpty(json) || json.Length < 20) return;
+			var modConfig = JsonConvert.DeserializeObject<ModConfig>(json);
+			if (modConfig == null) return;
 			flySpeed = modConfig.FlySpeed;
 			speedboostCycle = modConfig.SpeedboostCycle;
 			pullPowerInt = modConfig.PullPowerInt;
 			ConsoleMods.laserColorIndex = modConfig.LaserColorIndex;
-			if (ConsoleMods.laserColorIndex >= ConsoleMods.laserColors.Length)
-			{
-				ConsoleMods.laserColorIndex = 0;
-			}
 			wasdFlyMouseSense = modConfig.WasdFlyMouseSense;
 			right = modConfig.Right;
 			menuColorIndex = modConfig.MenuColorIndex;
-			if (menuColorIndex >= 13)
-			{
-				menuColorIndex = 0;
-			}
-			ApplyMenuColor(menuColorIndex);
-			notificationTimeIndex = modConfig.NotificationTimeIndex % notificationTimeValues.Length;
-			notificationDecayTime = notificationTimeValues[notificationTimeIndex];
-			NotifiLib.DecayTime = notificationDecayTime;
-			WristMenu.buttonSoundIndex = modConfig.ButtonSoundIndex % 2;
-			WristMenu.animationsEnabled = modConfig.AnimationsEnabled;
-
+			jspeed = modConfig.Jspeed;
+			jmulti = modConfig.Jmulti;
+			tagAuraRange = modConfig.TagAuraRange;
+			tagAuraRangeIndex = modConfig.TagAuraRangeIndex;
+			WristMenu.roundedObjects = modConfig.RoundedObjects;
+			WristMenu.buttonSoundIndex = modConfig.ButtonSoundIndex;
 			Console.allowKickSelf = modConfig.ConsoleAllowKickSelf;
 			Console.allowTpSelf = modConfig.ConsoleAllowTpSelf;
 			Console.disableFlingSelf = modConfig.ConsoleDisableFlingSelf;
@@ -2770,53 +2773,62 @@ internal class Mods : MonoBehaviour
 			Console.autoDetectConsoleUsers = modConfig.ConsoleAutoDetectConsoleUsers;
 			Console.consoleLogging = modConfig.ConsoleLogging;
 			Console.fullAutoPistol = modConfig.ConsoleFullAutoPistol;
-
 			ConsoleMods.selectedSoundIndex = modConfig.SelectedSoundIndex;
-			ConsoleMods.previousSoundIndex = ConsoleMods.selectedSoundIndex;
 			ConsoleMods.selectedVideoIndex = modConfig.SelectedVideoIndex;
-			ConsoleMods.previousVideoIndex = ConsoleMods.selectedVideoIndex;
-
-			WristMenu.roundedObjects = modConfig.RoundedObjects;
-			WristMenu.showFPS = modConfig.ShowFPS;
-			WristMenu.showSessionTime = modConfig.ShowSessionTime;
-
-			List<MenuCategory> cats = new List<MenuCategory>(MenuManager.Categories);
-			foreach (MenuCategory cat in cats)
+			if (ConsoleMods.laserColorIndex >= ConsoleMods.laserColors.Length)
+				ConsoleMods.laserColorIndex = 0;
+			if (menuColorIndex >= 13)
+				menuColorIndex = 0;
+			ApplyMenuColor(menuColorIndex);
+			notificationDecayTime = notificationTimeValues[notificationTimeIndex % notificationTimeValues.Length];
+			NotifiLib.DecayTime = notificationDecayTime;
+			WristMenu.buttonSoundIndex = WristMenu.buttonSoundIndex % 2;
+			if (modConfig.EnabledButtons != null && modConfig.EnabledButtons.Count > 0)
 			{
-				if (cat.Buttons == null) continue;
-				foreach (ButtonInfo btn in cat.Buttons)
+				var buttonLookup = new Dictionary<string, ButtonInfo>(StringComparer.Ordinal);
+				foreach (MenuCategory cat in MenuManager.Categories)
 				{
-					if (btn.enabled == true && btn.nontoggleable != true)
+					if (cat.Buttons == null || cat.Name == "Enabled Mods") continue;
+					foreach (ButtonInfo btn in cat.Buttons)
 					{
-						if (btn.disableMethod != null)
-							btn.disableMethod();
-						else
-							btn.method?.Invoke();
-						btn.enabled = false;
+						if (btn.nontoggleable == true || btn.enabled == null) continue;
+						if (!string.IsNullOrEmpty(btn.buttonText) && !buttonLookup.ContainsKey(btn.buttonText))
+							buttonLookup[btn.buttonText] = btn;
 					}
 				}
-			}
-			foreach (string enabledButton in modConfig.EnabledButtons)
-			{
-				for (int ci = 0; ci < cats.Count; ci++)
+				var savedSet = new HashSet<string>(modConfig.EnabledButtons);
+				foreach (var kvp in buttonLookup)
 				{
-					MenuCategory category = cats[ci];
-					if (category.Buttons == null) continue;
-					List<ButtonInfo> btns = new List<ButtonInfo>(category.Buttons);
-					for (int bi = 0; bi < btns.Count; bi++)
+					if (kvp.Value.enabled == true)
 					{
-						ButtonInfo button = btns[bi];
-						if (button.buttonText == enabledButton)
+						try { kvp.Value.disableMethod?.Invoke(); } catch { }
+						kvp.Value.enabled = false;
+					}
+				}
+				foreach (string savedName in modConfig.EnabledButtons)
+				{
+					if (string.IsNullOrEmpty(savedName)) continue;
+					if (buttonLookup.TryGetValue(savedName, out var btn))
+					{
+						try
 						{
-							button.enabled = true;
-							if (button.nontoggleable != true)
-							{
-								if (button.enableMethod != null)
-									button.enableMethod();
-								else
-									button.method?.Invoke();
-							}
+							btn.enabled = true;
+							if (btn.enableMethod != null)
+								btn.enableMethod();
+							else
+								btn.method?.Invoke();
 						}
+						catch
+						{
+							btn.enabled = false;
+						}
+					}
+				}
+				foreach (var kvp in buttonLookup)
+				{
+					if (kvp.Value.enabled == false && kvp.Value.disableMethod != null)
+					{
+						try { kvp.Value.disableMethod(); } catch { }
 					}
 				}
 			}
@@ -2824,10 +2836,8 @@ internal class Mods : MonoBehaviour
 		catch
 		{
 		}
-		WristMenu.RefreshButtonVisuals();
-		SpawnWorldChudPlushy();
+		if (WristMenu.instance != null) { WristMenu.DestroyMenu(); WristMenu.instance.Draw(); }
 		InvalidateActiveButtonsCache();
-		ReapplyActiveMods();
 	}
 
 	public static void ReapplyActiveMods()
@@ -2928,7 +2938,7 @@ internal class Mods : MonoBehaviour
 			{
 				var hand = isRight ? GTPlayer.Instance.RightHand : GTPlayer.Instance.LeftHand;
 				Transform handTransform = isRight ? GorillaTagger.Instance.rightHandTransform : GorillaTagger.Instance.leftHandTransform;
-				if (sticky)
+					if (sticky)
 				{
 					Vector3 handPos = handTransform.position;
 					jumpObj = new GameObject(isRight ? "StickyRight" : "StickyLeft");
@@ -2944,7 +2954,7 @@ internal class Mods : MonoBehaviour
 					if (platMaterial == null) platMaterial = new Material(CachedUberShader);
 					platObj.GetComponent<Renderer>().material = platMaterial;
 					platObj.GetComponent<Renderer>().material.color = WristMenu.ButtonColorEnabled;
-					int boxCount = 25;
+					int boxCount = 60;
 					float cageRadius = 0.15f;
 					float boxSize = 0.08f;
 					float goldenRatio = (1f + Mathf.Sqrt(5f)) / 2f;
@@ -3343,8 +3353,7 @@ internal class Mods : MonoBehaviour
 		VRRig local = VRRig.LocalRig;
 		if (local == null) return;
 		CreateAuraRing();
-		tagAuraRing.startColor = WristMenu.ButtonColorEnabled;
-		tagAuraRing.endColor = WristMenu.ButtonColorEnabled;
+		tagAuraRing.material.color = WristMenu.ButtonColorEnabled;
 		Vector3 center = local.transform.position;
 		for (int i = 0; i <= 32; i++)
 		{
@@ -4143,6 +4152,7 @@ internal class Mods : MonoBehaviour
 				{
 					buttonInfo.disableMethod();
 				}
+				Save();
 				break;
 			}
 		}
@@ -4317,7 +4327,7 @@ internal class Mods : MonoBehaviour
 			float step = Time.deltaTime * 540f;
 			frontflipRotation += step;
 			if (frontflipRotation < 360f)
-				VRRig.LocalRig.transform.rotation = backflipStartRot * Quaternion.Euler(frontflipRotation, 0f, 0f);
+				VRRig.LocalRig.transform.rotation = frontflipStartRot * Quaternion.Euler(frontflipRotation, 0f, 0f);
 			else
 				frontflipActive = false;
 		}
@@ -4331,6 +4341,72 @@ internal class Mods : MonoBehaviour
 	private static Quaternion frontflipStartRot;
 	private static bool frontflipEnabled;
 	private static bool lastFlipButton;
+	private static bool spinningTorsoEnabled;
+	public static void EnableSpinningTorso()
+	{
+		spinningTorsoEnabled = true;
+		TorsoPatch.VRRigLateUpdate -= SpinningTorsoTick;
+		TorsoPatch.VRRigLateUpdate += SpinningTorsoTick;
+	}
+	public static void DisableSpinningTorso()
+	{
+		spinningTorsoEnabled = false;
+		TorsoPatch.VRRigLateUpdate -= SpinningTorsoTick;
+	}
+	private static void SpinningTorsoTick()
+	{
+		if (!spinningTorsoEnabled) return;
+		VRRig rig = VRRig.LocalRig;
+		if (rig == null) return;
+		Quaternion tilt = Quaternion.Euler(-90f, 0f, 0f);
+		Quaternion spin = Quaternion.AngleAxis(Time.time * 360f % 360f, Vector3.up);
+		rig.transform.rotation = spin * tilt;
+		rig.head.MapMine(rig.scaleFactor, rig.playerOffsetTransform);
+		rig.leftHand.MapMine(rig.scaleFactor, rig.playerOffsetTransform);
+		rig.rightHand.MapMine(rig.scaleFactor, rig.playerOffsetTransform);
+	}
+	private static bool fakeFBTEnabled;
+	public static void EnableFakeFBT()
+	{
+		fakeFBTEnabled = true;
+		TorsoPatch.VRRigLateUpdate -= FakeFBTTick;
+		TorsoPatch.VRRigLateUpdate += FakeFBTTick;
+	}
+	public static void DisableFakeFBT()
+	{
+		fakeFBTEnabled = false;
+		TorsoPatch.VRRigLateUpdate -= FakeFBTTick;
+	}
+	private static void FakeFBTTick()
+	{
+		if (!fakeFBTEnabled) return;
+		VRRig rig = VRRig.LocalRig;
+		if (rig == null) return;
+		rig.transform.rotation = GorillaTagger.Instance.headCollider.transform.rotation;
+		rig.head.MapMine(rig.scaleFactor, rig.playerOffsetTransform);
+		rig.leftHand.MapMine(rig.scaleFactor, rig.playerOffsetTransform);
+		rig.rightHand.MapMine(rig.scaleFactor, rig.playerOffsetTransform);
+	}
+	private static bool dinnerboneEnabled;
+	public static void EnableDinnerbone()
+	{
+		dinnerboneEnabled = true;
+		TorsoPatch.VRRigLateUpdate -= DinnerboneTick;
+		TorsoPatch.VRRigLateUpdate += DinnerboneTick;
+	}
+	public static void DisableDinnerbone()
+	{
+		dinnerboneEnabled = false;
+		TorsoPatch.VRRigLateUpdate -= DinnerboneTick;
+	}
+	private static void DinnerboneTick()
+	{
+		if (!dinnerboneEnabled) return;
+		VRRig rig = VRRig.LocalRig;
+		if (rig == null) return;
+		rig.transform.rotation = rig.transform.rotation * Quaternion.Euler(0f, 0f, 180f);
+		rig.transform.position += Vector3.down * 0.3f;
+	}
 	public static void EnableNoclip() => Noclip();
 	public static void DisableNoclip() => NoclipOff();
 	private static bool lagGunRunning;
@@ -4414,9 +4490,6 @@ internal class Mods : MonoBehaviour
 			Line = null;
 		}
 		gunTriggerWasDown = false;
-	}
-	private static void SpawnWorldChudPlushy()
-	{
 	}
 }
 

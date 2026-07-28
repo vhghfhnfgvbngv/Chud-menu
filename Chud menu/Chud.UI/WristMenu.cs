@@ -7,6 +7,7 @@ using Chud.Backend;
 using Chud.Classes;
 using GorillaLocomotion;
 using GTAG_NotificationLib;
+using Newtonsoft.Json;
 using Photon.Pun;
 using TMPro;
 using UnityEngine;
@@ -46,7 +47,7 @@ internal class WristMenu : MonoBehaviour
 
 	private const float CLOSE_ANIMATION_SPEED = 0.3f;
 
-	public static bool animationsEnabled = true;
+	public static bool animationsEnabled = false;
 
 	public static bool ChangingColors = false;
 
@@ -74,7 +75,62 @@ internal class WristMenu : MonoBehaviour
 
 	public static Color NextPrevTextColor = Color.white;
 
-	public static bool roundedObjects = false;
+	public static bool roundedObjects = true;
+
+	private static Mesh _cylinderMesh;
+	private static Mesh CylinderMesh
+	{
+		get
+		{
+			if (_cylinderMesh == null)
+			{
+				GameObject temp = GameObject.CreatePrimitive((PrimitiveType)3);
+				_cylinderMesh = temp.GetComponent<MeshFilter>().sharedMesh;
+				Object.DestroyImmediate(temp);
+			}
+			return _cylinderMesh;
+		}
+	}
+
+	private static GameObject MakeCylinder()
+	{
+		GameObject go = new GameObject();
+		go.AddComponent<MeshFilter>().mesh = CylinderMesh;
+		go.AddComponent<MeshRenderer>();
+		return go;
+	}
+
+	private static GameObject MakeCylinderButton()
+	{
+		GameObject go = MakeCylinder();
+		go.AddComponent<BoxCollider>().isTrigger = true;
+		return go;
+	}
+
+	private static Mesh _sphereMesh;
+	private static Mesh SphereMesh
+	{
+		get
+		{
+			if (_sphereMesh == null)
+			{
+				GameObject temp = GameObject.CreatePrimitive((PrimitiveType)0);
+				_sphereMesh = temp.GetComponent<MeshFilter>().sharedMesh;
+				Object.DestroyImmediate(temp);
+			}
+			return _sphereMesh;
+		}
+	}
+
+	private static GameObject MakeSphereButtonPresser()
+	{
+		GameObject go = new GameObject();
+		go.layer = 2;
+		go.AddComponent<MeshFilter>().mesh = SphereMesh;
+		go.AddComponent<MeshRenderer>();
+		go.AddComponent<SphereCollider>().isTrigger = true;
+		return go;
+	}
 
 	internal static List<Material> gradientMaterials = new List<Material>();
 
@@ -163,9 +219,9 @@ internal class WristMenu : MonoBehaviour
 
 	private static Camera _tpc;
 
-	public static bool showFPS = true;
+	public static bool showFPS = false;
 
-	public static bool showSessionTime = true;
+	public static bool showSessionTime = false;
 
 	public static Text titiel;
 
@@ -201,11 +257,6 @@ internal class WristMenu : MonoBehaviour
 			{
 				customButtonClick = DownloadHandlerAudioClip.GetContent(req);
 				customAudioLoaded = true;
-				NotifiLib.SendNotification("[<color=green>CHUD</color>] Custom button sound loaded", 2);
-			}
-			else
-			{
-				NotifiLib.SendNotification("[<color=red>CHUD</color>] Failed to load custom button sound", 2);
 			}
 		}
 		finally
@@ -251,8 +302,8 @@ internal class WristMenu : MonoBehaviour
 	{
 		MenuManager.AddCategory("Main", new List<ButtonInfo>
 		{
-			Nav("Settings", "Settings"),
 			BtnAction("Join Discord", () => Application.OpenURL("https://discord.gg/2J7JrpQTg4"), "Join the Chud Menu Discord"),
+			Nav("Settings", "Settings"),
 			Nav("Enabled Mods", "Enabled Mods"),
 			Nav("Movement Mods", "Movement Mods"),
 			Nav("Visual Mods", "Visual Mods"),
@@ -260,35 +311,32 @@ internal class WristMenu : MonoBehaviour
 			Nav("Useful Mods", "Useful Mods"),
 			Nav("Rig Mods", "Rig Mods"),
 			Nav("Infection Mods", "Infection Mods"),
-			Nav("Master Mods", "Master Mods"),
 			Nav("Room mods", "Room mods"),
-			Nav("Credits", "Credits"),
-			Nav("Soundboard", "Soundboard")
+			Nav("Master Mods", "Master Mods"),
+			Nav("Soundboard", "Soundboard"),
+			Nav("Credits", "Credits")
 		});
 		MenuManager.AddCategory("Settings", new List<ButtonInfo>
 		{
 			Nav("Exit Settings", "Settings"),
-			BtnAction("Save Mods", Mods.Save, "Save all enabled mods and settings"),
-			BtnAction("Load Mods", Mods.Load, "Load saved mods and settings"),
 			BtnAction("Change Menu Color", Mods.CycleMenuColor, "Change color of menu"),
 			BtnToggle("Menu Animations", () => { animationsEnabled = true; }, () => { animationsEnabled = false; }, false, "Toggle menu open/close and button press animations"),
-			BtnToggle("Rounded Menu", () => { roundedObjects = true; DestroyMenu(); instance.Draw(); }, () => { roundedObjects = false; DestroyMenu(); instance.Draw(); }, false, "Round the menu corners"),
 			BtnToggle("Right Hand", Mods.EnableRightHand, Mods.DisableRightHand, false, "Move menu to right hand"),
-			BtnToggle("Toggle Notifications", Mods.ToggleNotifications, Mods.DisableNotifications, false, "Show/hide notifications"),
-			BtnToggle("Custom Boards", () => { customBoardsEnabled = true; customBoardsApplied = false; }, () => { customBoardsEnabled = false; customBoardsApplied = false; if ((Object)(object)instance != (Object)null) instance.RestoreOriginalBoardText(); }, false, "Replace in-game message boards with custom text"),
-			BtnAction("Clear Notifications", Mods.ClearNotifications, "Remove all on-screen notifications"),
-			BtnAction("Notification Time", Mods.CycleNotificationTime, "how long notifications stay on screen"),
-			BtnAction("Tag Aura Range", Mods.TagAuraCycleRange, "Cycle tag aura range (0 / 1.5 / 2m)"),
 			BtnToggle("Show FPS", () => showFPS = true, () => showFPS = false, false, "Show FPS counter"),
 			BtnToggle("Show Session Time", () => showSessionTime = true, () => showSessionTime = false, false, "Show session duration"),
-			BtnAction("Change Button Click Sound", () => { buttonSoundIndex = (buttonSoundIndex + 1) % 2; NotifiLib.SendNotification("[<color=green>CHUD</color>] Button sound: " + ((buttonSoundIndex == 0) ? "Normal" : "Custom"), 2); }, "Cycle button click sound"),
 			BtnAction("Change Speed Amount", () => Mods.ChangeSpeedBoostAmount(), "Cycle speed boost multiplier"),
 			BtnAction("Change Fly Speed", () => Mods.ChangeFlySpeed(), "Cycle fly speed (max 20)"),
-			new ButtonInfo { buttonText = "No Mouse Lock", enableMethod = () => Mods.SetWASDFlyNoMouseLock(true), disableMethod = () => Mods.SetWASDFlyNoMouseLock(false), enabled = false, toolTip = "Prevent WASD fly from locking mouse on right click" },
 			BtnAction("Change WASD Sense", Mods.ChangeWASDFlyMouseSense, "Cycle WASD fly sensitivity"),
 			BtnAction("Change Pull Power", () => Mods.ChangePullModPower(), "Cycle pull mod strength"),
+			new ButtonInfo { buttonText = "No Mouse Lock", enableMethod = () => Mods.SetWASDFlyNoMouseLock(true), disableMethod = () => Mods.SetWASDFlyNoMouseLock(false), enabled = false, toolTip = "Prevent WASD fly from locking mouse on right click" },
 			BtnToggle("PC Guns", Mods.EnablePCGuns, Mods.DisablePCGuns, false, "Use guns with mouse"),
 			BtnToggle("PC Button Click", Mods.EnablePCButtonClick, Mods.DisablePCButtonClick, false, "Click buttons with mouse"),
+			BtnToggle("Toggle Notifications", Mods.ToggleNotifications, Mods.DisableNotifications, false, "Show/hide notifications"),
+			BtnAction("Clear Notifications", Mods.ClearNotifications, "Remove all on-screen notifications"),
+			BtnAction("Notification Time", Mods.CycleNotificationTime, "how long notifications stay on screen"),
+			BtnToggle("Custom Boards", () => { customBoardsEnabled = true; customBoardsApplied = false; }, () => { customBoardsEnabled = false; customBoardsApplied = false; if ((Object)(object)instance != (Object)null) instance.RestoreOriginalBoardText(); }, false, "Replace in-game message boards with custom text"),
+			BtnAction("Tag Aura Range", Mods.TagAuraCycleRange, "Cycle tag aura range (0 / 1.5 / 2m)"),
+			BtnAction("Change Button Click Sound", () => { buttonSoundIndex = (buttonSoundIndex + 1) % 2; NotifiLib.SendNotification("[<color=green>CHUD</color>] Button sound: " + ((buttonSoundIndex == 0) ? "Gorilla tag button sound" : "Simple button sound"), 2); }, "Cycle button click sound"),
 			BtnToggle("see anti cheat reports", Mods.EnableSeeAntiCheatReports, Mods.DisableSeeAntiCheatReports, false, "Show anti-cheat reports")
 		});
 		MenuManager.AddCategory("Enabled Mods", new List<ButtonInfo>
@@ -304,9 +352,9 @@ internal class WristMenu : MonoBehaviour
 			BtnFrameToggle("Speed Boost", Mods.SpeedBoost, Mods.DisableSpeedBoost, "Hold grip to run fast"),
 			BtnFrameToggle("No Gravity", Mods.NoGravity, Mods.DisableNoGravity, "Disable gravity"),
 			BtnFrameToggle("Noclip", Mods.EnableNoclip, Mods.DisableNoclip, "Walk through walls"),
-			BtnFrameAction("Pull Mod", Mods.PullMod, "Pull forward while gripping"),
 			BtnFrameAction("Platforms", Mods.Platforms, "Place platforms"),
 			BtnFrameAction("Sticky Platforms", Mods.StickyPlatforms, "Sticky ver of plats"),
+			BtnFrameAction("Pull Mod", Mods.PullMod, "Pull forward while gripping"),
 			BtnGun("TP Gun", Mods.TPGun, Mods.CleanupGun, "Shoot to teleport"),
 			BtnAction("Teleport to Stump", Mods.TeleportToSpawn, "Teleport to the forest stump"),
 			BtnFrameToggle("Minos Prime", Mods.MinosPrime, Mods.DisableMinosPrime, "Right B to jump, then Right A to slam")
@@ -361,17 +409,18 @@ internal class WristMenu : MonoBehaviour
 			BtnFrameToggle("Boop", Mods.Boop, Mods.DisableBoop, "Play's a noise when booping someone"),
 			BtnGun("GetPlayerID Gun", Mods.GetPlayerIDGun, Mods.CleanupGun, "Shoot to copy ID"),
 			BtnGun("Lag Gun", Mods.LagGun, Mods.StopLagGunFull, "Lags whoever u shoot, not very good only works on quest"),
-
-
 			new ButtonInfo { buttonText = "Paintbrawl Aimbot", enableMethod = () => GetLaunchPatch.enabled = true, disableMethod = () => GetLaunchPatch.enabled = false, enabled = false, toolTip = "Redirects your slingshot to the closest player" },
 		});
 		MenuManager.AddCategory("Rig Mods", new List<ButtonInfo>
 		{
 			Nav("Exit Rig Mods", "Rig Mods"),
-		BtnFrameToggle("Ghost Monke", Mods.GhostMonke, Mods.DisableGhostMonke, "Press B to freeze your rig"),
-		BtnFrameToggle("Invis Monke", Mods.InvisMonke, Mods.DisableInvisMonke, "Press A to be invisible"),
+			BtnFrameToggle("Ghost Monke", Mods.GhostMonke, Mods.DisableGhostMonke, "Press B to freeze your rig"),
+			BtnFrameToggle("Invis Monke", Mods.InvisMonke, Mods.DisableInvisMonke, "Press A to be invisible"),
 			BtnToggle("Backflip", Mods.EnableBackflip, Mods.DisableBackflip, false, "Press B"),
 			BtnToggle("Frontflip", Mods.EnableFrontflip, Mods.DisableFrontflip, false, "Press B"),
+			BtnToggle("Spinning Torso", Mods.EnableSpinningTorso, Mods.DisableSpinningTorso, false, "Makes your torso spin around"),
+			BtnToggle("Fake FBT", Mods.EnableFakeFBT, Mods.DisableFakeFBT, false, "Fake Full Body Tracking"),
+			BtnToggle("Dinnerbone", Mods.EnableDinnerbone, Mods.DisableDinnerbone, false, "Flip yourself upside down"),
 		});
 		MenuManager.AddCategory("Infection Mods", new List<ButtonInfo>
 		{
@@ -464,7 +513,7 @@ internal class WristMenu : MonoBehaviour
 		MenuManager.AddCategory("Credits", new List<ButtonInfo>
 		{
 			Nav("Exit Credits", "Credits"),
-			BtnAction("Jolyne", () => NotifiLib.SendNotification("[<color=#00ccff>MOD</color>] Jolyne: Menu owner", 2), "Menu owner"),
+			BtnAction("Jolyne (Only menu owner/Maker)", () => NotifiLib.SendNotification("[<color=#00ccff>MOD</color>] Jolyne: Menu owner", 2), "Menu owner"),
 			BtnAction("DeepSeek V4", () => NotifiLib.SendNotification("[<color=#00ccff>MOD</color>] DeepSeek V4: Made most of the mods on the menu", 2), "Made most of the mods on the menu"),
 			BtnAction("Seralyth", () => NotifiLib.SendNotification("[<color=#00ccff>MOD</color>] Seralyth: has skidded code from Seralyth", 2), "has skidded code from Seralyth"),
 			BtnAction("Industry", () => NotifiLib.SendNotification("[<color=#00ccff>MOD</color>] Industry: ARS system by Industry", 2), "ARS system by Industry"),
@@ -710,7 +759,7 @@ internal class WristMenu : MonoBehaviour
 				}
 				if ((Object)(object)reference == (Object)null)
 				{
-					reference = GameObject.CreatePrimitive((PrimitiveType)0);
+					reference = MakeSphereButtonPresser();
 					((Object)reference).name = "buttonPresser";
 				}
 				reference.transform.parent = GTPlayer.Instance.RightHand.controllerTransform;
@@ -724,7 +773,7 @@ internal class WristMenu : MonoBehaviour
 				menu.transform.rotation = GTPlayer.Instance.LeftHand.controllerTransform.rotation;
 				if ((Object)(object)reference == (Object)null)
 				{
-					reference = GameObject.CreatePrimitive((PrimitiveType)0);
+					reference = MakeSphereButtonPresser();
 					((Object)reference).name = "buttonPresser";
 				}
 				reference.transform.parent = GTPlayer.Instance.RightHand.controllerTransform;
@@ -739,7 +788,7 @@ internal class WristMenu : MonoBehaviour
 				menu.transform.RotateAround(menu.transform.position, menu.transform.forward, 180f);
 				if ((Object)(object)reference == (Object)null)
 				{
-					reference = GameObject.CreatePrimitive((PrimitiveType)0);
+					reference = MakeSphereButtonPresser();
 					((Object)reference).name = "buttonPresser";
 				}
 				reference.transform.parent = GTPlayer.Instance.LeftHand.controllerTransform;
@@ -808,7 +857,7 @@ internal class WristMenu : MonoBehaviour
 				if (!_adminInitialized)
 				{
 					string text2 = (ServerData.SuperAdministrators.Contains(text) ? "super admin " : "");
-					NotifiLib.SendNotification("[<color=green>CHUD</color>] Welcome " + text2 + text, 3);
+					NotifiLib.SendNotification("[<color=green>CHUD</color>] Welcome " + text2 + text, 2);
 					_adminInitialized = true;
 				}
 				if (menuCategory != null && !flag3)
@@ -881,14 +930,9 @@ internal class WristMenu : MonoBehaviour
 			RebuildEnabledMods();
 		}
 		pageSize = 7;
-		menu = GameObject.CreatePrimitive((PrimitiveType)3);
-		Object.Destroy((Object)(object)menu.GetComponent<Rigidbody>());
-		Object.Destroy((Object)(object)menu.GetComponent<Collider>());
-		Object.Destroy((Object)(object)menu.GetComponent<Renderer>());
+		menu = new GameObject();
 		menu.transform.localScale = new Vector3(0.1f, 0.3f, 0.3825f);
-		menuObj = GameObject.CreatePrimitive((PrimitiveType)3);
-		Object.Destroy((Object)(object)menuObj.GetComponent<Rigidbody>());
-		Object.Destroy((Object)(object)menuObj.GetComponent<Collider>());
+		menuObj = MakeCylinder();
 		menuObj.transform.parent = menu.transform;
 		menuObj.transform.rotation = Quaternion.identity;
 		menuObj.transform.localScale = new Vector3(0.1f, 1f, 1f);
@@ -897,10 +941,7 @@ internal class WristMenu : MonoBehaviour
 		Color bgBot = NormalColor;
 		bgRenderer.material = MakeGradientMat(bgTop, bgBot);
 		menuObj.transform.position = new Vector3(0.05f, 0f, 0f);
-		if (roundedObjects)
-		{
-			RoundGameObject(menuObj, "__background__", bgTop, bgBot);
-		}
+		RoundGameObject(menuObj, "__background__", bgTop, bgBot);
 		canvasObj = new GameObject();
 		canvasObj.transform.parent = menu.transform;
 		Canvas val2 = canvasObj.AddComponent<Canvas>();
@@ -944,10 +985,7 @@ internal class WristMenu : MonoBehaviour
 		((Transform)component3).position = new Vector3(0.06f, 0f, 0.135f);
 		((Transform)component3).rotation = Quaternion.Euler(new Vector3(180f, 90f, 90f));
 		List<ButtonInfo> currentButtons = MenuManager.CurrentButtons;
-		GameObject val7 = GameObject.CreatePrimitive((PrimitiveType)3);
-		Object.Destroy((Object)(object)val7.GetComponent<Rigidbody>());
-		Collider val7c = val7.GetComponent<Collider>();
-		if (val7c != null) val7c.isTrigger = true;
+		GameObject val7 = MakeCylinderButton();
 		val7.transform.parent = menu.transform;
 		val7.transform.rotation = Quaternion.identity;
 		val7.transform.localScale = new Vector3(0.09f, 0.9f, 0.08f);
@@ -956,16 +994,14 @@ internal class WristMenu : MonoBehaviour
 		Color dcBot = DisconnectButtonColor;
 		val7.GetComponent<Renderer>().material = MakeGradientMat(dcTop, dcBot);
 		val7.AddComponent<BtnCollider>().relatedText = "DisconnectingButton";
-		if (roundedObjects)
-		{
-			RoundGameObject(val7, "DisconnectingButton", dcTop, dcBot);
-		}
+		RoundGameObject(val7, "DisconnectingButton", dcTop, dcBot);
 		GameObject val8 = new GameObject();
 		val8.transform.parent = canvasObj.transform;
 		Text val9 = val8.AddComponent<Text>();
 		val9.font = MenuFont;
 		val9.text = "Disconnect";
 		val9.fontSize = 200;
+		val9.supportRichText = true;
 		((Graphic)val9).color = DisconnectTextColor;
 		val9.alignment = (TextAnchor)4;
 		val9.resizeTextForBestFit = true;
@@ -975,12 +1011,9 @@ internal class WristMenu : MonoBehaviour
 		RectTransform component4 = ((Component)val9).GetComponent<RectTransform>();
 		((Transform)component4).localPosition = Vector3.zero;
 		component4.sizeDelta = new Vector2(0.2f, 0.03f);
-		((Transform)component4).localPosition = new Vector3(0.064f, 0f, 0.23f);
+		((Transform)component4).localPosition = new Vector3(0.064f, 0f, 0.111f - (0.28f - 0.6f) / 2.6f);
 		((Transform)component4).rotation = Quaternion.Euler(new Vector3(180f, 90f, 90f));
-		GameObject val10 = GameObject.CreatePrimitive((PrimitiveType)3);
-		Object.Destroy((Object)(object)val10.GetComponent<Rigidbody>());
-		Collider val10c = val10.GetComponent<Collider>();
-		if (val10c != null) val10c.isTrigger = true;
+		GameObject val10 = MakeCylinderButton();
 		val10.transform.parent = menu.transform;
 		val10.transform.rotation = Quaternion.identity;
 		val10.transform.localScale = new Vector3(0.09f, 0.2f, 0.9f);
@@ -989,10 +1022,7 @@ internal class WristMenu : MonoBehaviour
 		Color npBot = NextPrevButtonColor;
 		val10.GetComponent<Renderer>().material = MakeGradientMat(npTop, npBot);
 		val10.AddComponent<BtnCollider>().relatedText = "PreviousPage";
-		if (roundedObjects)
-		{
-			RoundGameObject(val10, "PreviousPage", npTop, npBot);
-		}
+		RoundGameObject(val10, "PreviousPage", npTop, npBot);
 		GameObject val11 = new GameObject();
 		val11.transform.parent = canvasObj.transform;
 		Text val12 = val11.AddComponent<Text>();
@@ -1010,20 +1040,14 @@ internal class WristMenu : MonoBehaviour
 		component5.sizeDelta = new Vector2(0.2f, 0.03f);
 		((Transform)component5).localPosition = new Vector3(0.064f, 0.195f, 0f);
 		((Transform)component5).rotation = Quaternion.Euler(new Vector3(180f, 90f, 90f));
-		GameObject val13 = GameObject.CreatePrimitive((PrimitiveType)3);
-		Object.Destroy((Object)(object)val13.GetComponent<Rigidbody>());
-		Collider val13c = val13.GetComponent<Collider>();
-		if (val13c != null) val13c.isTrigger = true;
+		GameObject val13 = MakeCylinderButton();
 		val13.transform.parent = menu.transform;
 		val13.transform.rotation = Quaternion.identity;
 		val13.transform.localScale = new Vector3(0.09f, 0.2f, 0.9f);
 		val13.transform.localPosition = new Vector3(0.56f, -0.65f, 0f);
 		val13.GetComponent<Renderer>().material = MakeGradientMat(npTop, npBot);
 		val13.AddComponent<BtnCollider>().relatedText = "NextPage";
-		if (roundedObjects)
-		{
-			RoundGameObject(val13, "NextPage", npTop, npBot);
-		}
+		RoundGameObject(val13, "NextPage", npTop, npBot);
 		GameObject val14 = new GameObject();
 		val14.transform.parent = canvasObj.transform;
 		Text val15 = val14.AddComponent<Text>();
@@ -1048,10 +1072,7 @@ internal class WristMenu : MonoBehaviour
 			for (int num = 0; num < array.Length; num++)
 			{
 				float num2 = (float)num * ((pageSize == 7) ? 0.116f : 0.1f);
-				GameObject val16 = GameObject.CreatePrimitive((PrimitiveType)3);
-				Object.Destroy((Object)(object)val16.GetComponent<Rigidbody>());
-				Collider val16c = val16.GetComponent<Collider>();
-				if (val16c != null) val16c.isTrigger = true;
+				GameObject val16 = MakeCylinderButton();
 				val16.transform.parent = menu.transform;
 				val16.transform.rotation = Quaternion.identity;
 				val16.transform.localScale = new Vector3(0.09f, 0.9f, 0.08f);
@@ -1075,10 +1096,7 @@ internal class WristMenu : MonoBehaviour
 				Color btnTop = btnBase * 0.35f;
 				Color btnBot = btnBase;
 				val16.GetComponent<Renderer>().material = MakeGradientMat(btnTop, btnBot);
-				if (roundedObjects)
-				{
-					RoundGameObject(val16, array[num], btnTop, btnBot);
-				}
+				RoundGameObject(val16, array[num], btnTop, btnBot);
 				GameObject val17 = new GameObject();
 				val17.transform.parent = canvasObj.transform;
 				Text val18 = val17.AddComponent<Text>();
@@ -1100,6 +1118,14 @@ internal class WristMenu : MonoBehaviour
 			}
 		}
 		menu.transform.localScale = new Vector3(0.1f, 0.3f, 0.4f) * ((GTPlayer.Instance != null) ? GTPlayer.Instance.scale : 1f);
+		try
+		{
+			foreach (Transform t in menu.GetComponentsInChildren<Transform>(true))
+				t.gameObject.layer = 2;
+			menu.layer = 2;
+			Physics.IgnoreLayerCollision(2, 0, true);
+		}
+		catch { }
 	}
 
 	public static Material MakeGradientMat(Color top, Color bot)
@@ -1160,7 +1186,7 @@ internal class WristMenu : MonoBehaviour
 		rounded.transform.localScale = localScale;
 		MeshFilter mf = rounded.AddComponent<MeshFilter>();
 		MeshRenderer mr = rounded.AddComponent<MeshRenderer>();
-		mf.mesh = GenerateRoundedRectMesh(1f, 1f, 0.08f, 6, 0.7f);
+		mf.mesh = GenerateRoundedRectMesh(1f, 1f, 0.08f, 6, 0.85f);
 		mr.material = MakeGradientMat(gradientTop, gradientBot);
 		roundedRenderers[identifier] = new List<Renderer> { mr };
 		component.enabled = false;
@@ -1182,7 +1208,7 @@ internal class WristMenu : MonoBehaviour
 		rounded.transform.localScale = localScale;
 		MeshFilter mf = rounded.AddComponent<MeshFilter>();
 		MeshRenderer mr = rounded.AddComponent<MeshRenderer>();
-		mf.mesh = GenerateRoundedRectMesh(1f, 1f, 0.08f, 6, 0.7f);
+		mf.mesh = GenerateRoundedRectMesh(1f, 1f, 0.08f, 6, 0.85f);
 		mr.material = MakeGradientMat(gradientTop, gradientBot);
 		component.enabled = false;
 	}
@@ -1299,6 +1325,14 @@ internal class WristMenu : MonoBehaviour
 		this.StartCoroutine(LoadMenuImage());
 		this.StartCoroutine(LoadCustomButtonClickAudio());
 		Draw();
+		Mods.Load();
+		StartCoroutine(ShowWelcomeDelayed());
+	}
+
+	private System.Collections.IEnumerator ShowWelcomeDelayed()
+	{
+		yield return new WaitForSeconds(2f);
+		NotifiLib.SendNotification("Thanks for choosing Chud Menu please enjoy :3", 2);
 	}
 
 	public static void RebuildEnabledMods()
@@ -1452,6 +1486,7 @@ internal class WristMenu : MonoBehaviour
 		{
 			UpdateButtonVisual(relatedText, buttonInfo.enabled.Value);
 		}
+		Mods.Save();
 	}
 
 	internal static void UpdateButtonVisual(string buttonText, bool isEnabled)
