@@ -86,7 +86,7 @@ internal class Mods : MonoBehaviour
 
 		public int NotificationTimeIndex = 3;
 
-		public int ButtonSoundIndex = 0;
+		
 
 		public bool ConsoleAllowKickSelf = false;
 		public bool ConsoleAllowTpSelf = true;
@@ -2720,7 +2720,6 @@ internal class Mods : MonoBehaviour
 			try { modConfig.ConsoleLogging = Console.consoleLogging; } catch { }
 			try { modConfig.ConsoleFullAutoPistol = Console.fullAutoPistol; } catch { }
 
-			try { modConfig.ButtonSoundIndex = WristMenu.buttonSoundIndex; } catch { }
 			try { modConfig.RoundedObjects = WristMenu.roundedObjects; } catch { }
 
 			string json = JsonConvert.SerializeObject(modConfig, Formatting.Indented);
@@ -2765,7 +2764,6 @@ internal class Mods : MonoBehaviour
 			tagAuraRange = modConfig.TagAuraRange;
 			tagAuraRangeIndex = modConfig.TagAuraRangeIndex;
 			WristMenu.roundedObjects = modConfig.RoundedObjects;
-			WristMenu.buttonSoundIndex = modConfig.ButtonSoundIndex;
 			Console.allowKickSelf = modConfig.ConsoleAllowKickSelf;
 			Console.allowTpSelf = modConfig.ConsoleAllowTpSelf;
 			Console.disableFlingSelf = modConfig.ConsoleDisableFlingSelf;
@@ -2782,7 +2780,6 @@ internal class Mods : MonoBehaviour
 			ApplyMenuColor(menuColorIndex);
 			notificationDecayTime = notificationTimeValues[notificationTimeIndex % notificationTimeValues.Length];
 			NotifiLib.DecayTime = notificationDecayTime;
-			WristMenu.buttonSoundIndex = WristMenu.buttonSoundIndex % 2;
 			if (modConfig.EnabledButtons != null && modConfig.EnabledButtons.Count > 0)
 			{
 				var buttonLookup = new Dictionary<string, ButtonInfo>(StringComparer.Ordinal);

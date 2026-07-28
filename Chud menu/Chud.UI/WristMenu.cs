@@ -29,7 +29,7 @@ internal class WristMenu : MonoBehaviour
 
 	public static AudioClip customButtonClick;
 
-	public static int buttonSoundIndex = 0;
+	
 
 	private static AudioSource buttonClickAudioSource;
 
@@ -221,7 +221,7 @@ internal class WristMenu : MonoBehaviour
 
 	public static bool showFPS = false;
 
-	public static bool showSessionTime = false;
+		public static bool showSessionTime = false;
 
 	public static Text titiel;
 
@@ -267,7 +267,7 @@ internal class WristMenu : MonoBehaviour
 
 	public static void PlayButtonClickSound(bool rightHand)
 	{
-		if (buttonSoundIndex == 1 && (Object)(object)customButtonClick != (Object)null)
+		if ((Object)(object)customButtonClick != (Object)null)
 		{
 			if ((Object)(object)buttonClickAudioSource == (Object)null)
 			{
@@ -278,10 +278,6 @@ internal class WristMenu : MonoBehaviour
 				Object.DontDestroyOnLoad((Object)(object)val);
 			}
 			buttonClickAudioSource.PlayOneShot(customButtonClick, 0.5f);
-		}
-		else
-		{
-			VRRig.LocalRig.PlayHandTapLocal(Mods.ButtonSound, !rightHand, 0.1f);
 		}
 	}
 
@@ -336,7 +332,6 @@ internal class WristMenu : MonoBehaviour
 			BtnAction("Notification Time", Mods.CycleNotificationTime, "how long notifications stay on screen"),
 			BtnToggle("Custom Boards", () => { customBoardsEnabled = true; customBoardsApplied = false; }, () => { customBoardsEnabled = false; customBoardsApplied = false; if ((Object)(object)instance != (Object)null) instance.RestoreOriginalBoardText(); }, false, "Replace in-game message boards with custom text"),
 			BtnAction("Tag Aura Range", Mods.TagAuraCycleRange, "Cycle tag aura range (0 / 1.5 / 2m)"),
-			BtnAction("Change Button Click Sound", () => { buttonSoundIndex = (buttonSoundIndex + 1) % 2; NotifiLib.SendNotification("[<color=green>CHUD</color>] Button sound: " + ((buttonSoundIndex == 0) ? "Gorilla tag button sound" : "Simple button sound"), 2); }, "Cycle button click sound"),
 			BtnToggle("see anti cheat reports", Mods.EnableSeeAntiCheatReports, Mods.DisableSeeAntiCheatReports, false, "Show anti-cheat reports")
 		});
 		MenuManager.AddCategory("Enabled Mods", new List<ButtonInfo>
