@@ -443,6 +443,7 @@ internal class WristMenu : MonoBehaviour
 			BtnGun("GetPlayerID Gun", Mods.GetPlayerIDGun, Mods.CleanupGun, "Shoot to copy ID"),
 			BtnGun("Lag Gun", Mods.LagGun, Mods.StopLagGunFull, "Lags whoever u shoot, not very good only works on quest"),
 			new ButtonInfo { buttonText = "Paintbrawl Aimbot", enableMethod = () => GetLaunchPatch.enabled = true, disableMethod = () => GetLaunchPatch.enabled = false, enabled = false, toolTip = "Redirects your slingshot to the closest player" },
+			BtnToggle("Spider Monkey", Mods.EnableSpiderMonkey, Mods.DisableSpiderMonkey, false, "Walk on any surface you touch"),
 		});
 		MenuManager.AddCategory("Rig Mods", new List<ButtonInfo>
 		{

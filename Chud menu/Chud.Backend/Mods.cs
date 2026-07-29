@@ -4486,6 +4486,40 @@ catch
 		rig.transform.rotation = rig.transform.rotation * Quaternion.Euler(0f, 0f, 180f);
 		rig.transform.position += Vector3.down * 0.3f;
 	}
+	private static bool spiderMonkeyEnabled;
+	private static Quaternion spiderMonkeyRot;
+	private static Quaternion spiderMonkeyTargetRot;
+	private static readonly FieldInfo _lastHitInfoHand = AccessTools.Field(typeof(GTPlayer), "lastHitInfoHand");
+	public static void EnableSpiderMonkey()
+	{
+		spiderMonkeyEnabled = true;
+		spiderMonkeyRot = Quaternion.identity;
+		spiderMonkeyTargetRot = Quaternion.identity;
+		TorsoPatch.VRRigLateUpdate -= SpiderMonkeyTick;
+		TorsoPatch.VRRigLateUpdate += SpiderMonkeyTick;
+	}
+	public static void DisableSpiderMonkey()
+	{
+		spiderMonkeyEnabled = false;
+		TorsoPatch.VRRigLateUpdate -= SpiderMonkeyTick;
+		GTPlayer.Instance.UnsetGravityOverride(GTPlayer.Instance);
+		GTPlayerTransform.ApplyRotationOverride(Quaternion.identity, Time.frameCount);
+	}
+	private static void SpiderMonkeyTick()
+	{
+		if (!spiderMonkeyEnabled) return;
+		if (GTPlayer.Instance.IsHandTouching(true) || GTPlayer.Instance.IsHandTouching(false))
+		{
+			RaycastHit ray = (RaycastHit)_lastHitInfoHand.GetValue(GTPlayer.Instance);
+			Vector3 up = ray.normal.normalized;
+			Vector3 forward = Vector3.Cross(Vector3.right, up);
+			spiderMonkeyTargetRot = Quaternion.LookRotation(forward, up);
+		}
+		float t = 1f - Mathf.Exp(-5f * Time.deltaTime);
+		spiderMonkeyRot = Quaternion.Slerp(spiderMonkeyRot, spiderMonkeyTargetRot, t);
+		GTPlayerTransform.ApplyRotationOverride(spiderMonkeyRot, Time.frameCount);
+		GTPlayer.Instance.SetGravityOverride(GTPlayer.Instance, p => p.AddForce(spiderMonkeyRot * Physics.gravity, ForceMode.Acceleration));
+	}
 	public static void EnableNoclip() => Noclip();
 	public static void DisableNoclip() => NoclipOff();
 	private static bool lagGunRunning;

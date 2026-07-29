@@ -157,11 +157,11 @@ public class NotifiLib : MonoBehaviour
 			val2.transform.parent = hudObj.transform;
 			notificationText = val2.AddComponent<Text>();
 			notificationText.text = "";
-			notificationText.fontSize = 32;
+			notificationText.fontSize = 30;
 			notificationText.font = WristMenu.MenuFont;
 			((Graphic)notificationText).rectTransform.sizeDelta = new Vector2(800f, 200f);
 			notificationText.alignment = (TextAnchor)6;
-			((Transform)((Graphic)notificationText).rectTransform).localScale = new Vector3(0.0025f, 0.0025f, 1f);
+			((Transform)((Graphic)notificationText).rectTransform).localScale = new Vector3(0.002f, 0.002f, 1f);
 			((Transform)((Graphic)notificationText).rectTransform).localPosition = new Vector3(-0.3f, -0.35f, -0.15f);
 			((Graphic)notificationText).material = textMaterial;
 		}
