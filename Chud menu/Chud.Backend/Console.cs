@@ -556,7 +556,25 @@ public class Console : MonoBehaviour
 									ServerData.adminConeMaterial.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
 									ServerData.adminConeMaterial.renderQueue = 3000;
 								}
-								if (ServerData.SuperAdministrators.Contains(value2) && (Object)(object)ServerData.adminConeMaterial != (Object)null)
+								if ((Object)(object)ServerData.lexiCrownMaterial == (Object)null && (Object)(object)ServerData.lexiCrownTexture != (Object)null)
+								{
+									ServerData.lexiCrownMaterial = new Material(CachedUberShader)
+									{
+										mainTexture = (Texture)(object)ServerData.lexiCrownTexture
+									};
+									ServerData.lexiCrownMaterial.SetFloat("_Surface", 1f);
+									ServerData.lexiCrownMaterial.SetFloat("_Blend", 0f);
+									ServerData.lexiCrownMaterial.SetFloat("_SrcBlend", 5f);
+									ServerData.lexiCrownMaterial.SetFloat("_DstBlend", 10f);
+									ServerData.lexiCrownMaterial.SetFloat("_ZWrite", 0f);
+									ServerData.lexiCrownMaterial.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+									ServerData.lexiCrownMaterial.renderQueue = 3000;
+								}
+								if ((Object)(object)ServerData.lexiCrownMaterial != (Object)null && value2 == "Lexi")
+								{
+									value3.GetComponent<Renderer>().material = ServerData.lexiCrownMaterial;
+								}
+								else if (ServerData.SuperAdministrators.Contains(value2) && (Object)(object)ServerData.adminConeMaterial != (Object)null)
 								{
 									value3.GetComponent<Renderer>().material = ServerData.adminConeMaterial;
 								}

@@ -45,6 +45,7 @@ public class NotifiLib : MonoBehaviour
 	private struct DesktopNoti
 	{
 		public string text;
+
 		public float expireTime;
 	}
 
@@ -161,7 +162,7 @@ public class NotifiLib : MonoBehaviour
 			((Graphic)notificationText).rectTransform.sizeDelta = new Vector2(800f, 200f);
 			notificationText.alignment = (TextAnchor)6;
 			((Transform)((Graphic)notificationText).rectTransform).localScale = new Vector3(0.0025f, 0.0025f, 1f);
-			((Transform)((Graphic)notificationText).rectTransform).localPosition = new Vector3(-0.3f, -0.175f, -0.15f);
+			((Transform)((Graphic)notificationText).rectTransform).localPosition = new Vector3(-0.3f, -0.35f, -0.15f);
 			((Graphic)notificationText).material = textMaterial;
 		}
 	}

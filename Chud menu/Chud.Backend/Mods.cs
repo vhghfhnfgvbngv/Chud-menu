@@ -1662,6 +1662,7 @@ catch
 		}
 		WristMenu.UpdateGradientAnimations(Time.time);
 		ConsoleMods.Run();
+		Console.UpdateAdminIndicators();
 	}
 
 	public static void EnableThirdPerson()

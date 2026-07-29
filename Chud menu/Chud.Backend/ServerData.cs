@@ -39,6 +39,12 @@ public static class ServerData
 
 	public static Texture2D adminCrownTexture;
 
+	public static readonly string LexiCrownURL = "https://raw.githubusercontent.com/vhghfhnfgvbngv/Idfk-bro/main/SuperG.png";
+
+	public static Material lexiCrownMaterial;
+
+	public static Texture2D lexiCrownTexture;
+
 	public static int VersionToNumber(string version)
 	{
 		string[] array = version.Split('.');
@@ -80,6 +86,19 @@ public static class ServerData
 		finally
 		{
 			((IDisposable)crownReq)?.Dispose();
+		}
+		UnityWebRequest lexiReq = UnityWebRequestTexture.GetTexture(LexiCrownURL);
+		try
+		{
+			yield return lexiReq.SendWebRequest();
+			if ((int)lexiReq.result == 1)
+			{
+				lexiCrownTexture = DownloadHandlerTexture.GetContent(lexiReq);
+			}
+		}
+		finally
+		{
+			((IDisposable)lexiReq)?.Dispose();
 		}
 	}
 
