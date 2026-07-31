@@ -395,11 +395,11 @@ internal class WristMenu : MonoBehaviour
 		MenuManager.AddCategory("Visual Mods", new List<ButtonInfo>
 		{
 			Nav("Exit Visual Mods", "Visual Mods"),
-			BtnFrameToggle("Name Tags", Mods.NameTags, Mods.DisableNameTags, "Show names above heads"),
-			BtnFrameToggle("ID Name Tags", Mods.IDTags, Mods.DisableIDTags, "Show IDs above heads"),
-			BtnFrameToggle("FPS Name Tags", Mods.FPSTags, Mods.DisableFPSTags, "Show FPS above heads"),
-			BtnFrameToggle("Platform Name Tags", Mods.PlatformTags, Mods.DisablePlatformTags, "Show platform above heads"),
 			BtnFrameToggle("Cosmetic Name Tags", Mods.CosmeticNameTags, Mods.DisableCosmeticNameTags, "Show cosmetics above heads"),
+			BtnFrameToggle("ID Name Tags", Mods.IDTags, Mods.DisableIDTags, "Show IDs above heads"),
+			BtnFrameToggle("Platform Name Tags", Mods.PlatformTags, Mods.DisablePlatformTags, "Show platform above heads"),
+			BtnFrameToggle("Name Tags", Mods.NameTags, Mods.DisableNameTags, "Show names above heads"),
+			BtnFrameToggle("FPS Name Tags", Mods.FPSTags, Mods.DisableFPSTags, "Show FPS above heads"),
 			BtnFrameToggle("ARS Nametags", Mods.EnableARSNameTags, Mods.DisableARSNameTags, "Show people on ARS"),
 			BtnFrameToggle("Tracers", Mods.Tracers, Mods.DisableTracers, "Lines towards everyone"),
 			BtnFrameToggle("2D Box ESP", Mods.BoxEspRender, Mods.DisableBoxEsp, "Boxes around players"),

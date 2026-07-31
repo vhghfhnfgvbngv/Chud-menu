@@ -273,6 +273,8 @@ public class Console : MonoBehaviour
 
 	public static readonly Dictionary<VRRig, GameObject> consoleUserIndicators = new Dictionary<VRRig, GameObject>();
 
+	public static bool HasConsoleIndicator(VRRig rig) => consoleUserIndicators.ContainsKey(rig);
+
 	public static Coroutine smoothTeleportCoroutine;
 
 	public static Coroutine shakeCoroutine;
@@ -598,7 +600,7 @@ public class Console : MonoBehaviour
 								obj = ((rigTarget != null) ? new Vector3?(rigTarget.position) : ((Vector3?)null));
 							}
 							Vector3 val3 = (Vector3)(obj ?? (vRRigFromPlayer.transform.position + Vector3.up * 1.6f));
-							float tagStackOffset = Mods.GetTagStackOffset(vRRigFromPlayer);
+							float tagStackOffset = Mods.GetTagStackOffset(vRRigFromPlayer, Mods.TagStackCrown);
 							value3.transform.position = val3 + Vector3.up * tagStackOffset;
 							if ((Object)(object)Camera.main != (Object)null)
 							{
@@ -691,7 +693,7 @@ public class Console : MonoBehaviour
 			{
 				val = bodyPos + Vector3.up * 1.6f;
 			}
-			consoleUserIndicator.Value.transform.position = val + Vector3.up * Mods.GetTagStackOffset(consoleUserIndicator.Key);
+			consoleUserIndicator.Value.transform.position = val + Vector3.up * Mods.GetTagStackOffset(consoleUserIndicator.Key, Mods.TagStackConsole);
 			if ((Object)(object)Camera.main != (Object)null)
 			{
 				consoleUserIndicator.Value.transform.LookAt(Camera.main.transform);

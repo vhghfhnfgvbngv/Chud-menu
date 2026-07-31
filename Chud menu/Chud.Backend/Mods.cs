@@ -232,9 +232,16 @@ internal class Mods : MonoBehaviour
 
 	private static FieldInfo _fpsField;
 
-	private static readonly Dictionary<VRRig, int> tagStackCounter = new Dictionary<VRRig, int>();
-
-	private static int tagStackFrame = -1;
+	// Name tag stack order, bottom (closest to head) to top.
+	// 0 Console -> 1 Cosmetics -> 2 ID -> 3 Platform -> 4 Name -> 5 FPS -> 6 ARS -> 7 Admin crown
+	public const int TagStackConsole = 0;
+	public const int TagStackCosmetics = 1;
+	public const int TagStackId = 2;
+	public const int TagStackPlatform = 3;
+	public const int TagStackName = 4;
+	public const int TagStackFps = 5;
+	public const int TagStackArs = 6;
+	public const int TagStackCrown = 7;
 
 	private static readonly Dictionary<string, string> cosmeticNames = new Dictionary<string, string>
 	{
@@ -1561,9 +1568,12 @@ catch
 			UpdateJoystickFly();
 		}
 		UpdateCosmeticNotifier();
+		// TAG STACK ORDER (bottom to top, i.e. closest to head first):
+		// Console -> Cosmetics -> ID -> Platform -> Name -> FPS -> ARS
+		// This call runs FIRST, so Console sits at the BOTTOM of the stack (offset 0.55, closest to head).
+		// DO NOT move this below the tag buttons below or Console ends up at the TOP.
 		Console.UpdateConsoleUserIndicators();
 		ARSDetect();
-		ARSNameTagUpdate();
 		AntiReportTick();
 		AntiReportVisual();
 
@@ -1585,6 +1595,9 @@ catch
 				flag = true;
 			}
 		}
+		// ARS runs AFTER the tag buttons, so ARS sits at the TOP of the tag stack (farthest from head).
+		// DO NOT move this above the buttons loop or ARS drops to the BOTTOM.
+		ARSNameTagUpdate();
 		if (spazAllActive || spazSelfActive)
 		{
 			if (spazAllActive)
@@ -2028,19 +2041,45 @@ catch
 		return (_fpsField != null) ? ((int)_fpsField.GetValue(rig)) : 0;
 	}
 
-	public static float GetTagStackOffset(VRRig rig)
+	public static float GetTagStackOffset(VRRig rig, int slot)
 	{
-		if (Time.frameCount != tagStackFrame)
+		int rank = 0;
+		for (int s = 0; s < slot; s++)
 		{
-			tagStackCounter.Clear();
-			tagStackFrame = Time.frameCount;
+			if (IsTagActiveForRig(rig, s))
+			{
+				rank++;
+			}
 		}
-		tagStackCounter.TryGetValue(rig, out var value);
-		tagStackCounter[rig] = value + 1;
-		return 0.55f + (float)value * 0.15f;
+		return 0.55f + (float)rank * 0.15f;
 	}
 
-	public static Vector3 GetTagPosition(VRRig rig)
+	private static bool IsTagActiveForRig(VRRig rig, int slot)
+	{
+		switch (slot)
+		{
+			case TagStackConsole:
+				return Console.HasConsoleIndicator(rig);
+			case TagStackCosmetics:
+				return cosmeticNameTagObjects.ContainsKey(rig);
+			case TagStackId:
+				return idNameTagObjects.ContainsKey(rig);
+			case TagStackPlatform:
+				return platformNameTagObjects.ContainsKey(rig);
+			case TagStackName:
+				return nameTagObjects.ContainsKey(rig);
+			case TagStackFps:
+				return fpsNameTagObjects.ContainsKey(rig);
+			case TagStackArs:
+				return arsTagObjects.ContainsKey(rig);
+			case TagStackCrown:
+				return Console.conePool.ContainsKey(rig);
+			default:
+				return false;
+		}
+	}
+
+	public static Vector3 GetTagPosition(VRRig rig, int slot)
 	{
 		VRMap head = rig.head;
 		Vector3? obj;
@@ -2054,7 +2093,7 @@ catch
 			obj = ((rigTarget != null) ? new Vector3?(rigTarget.position) : ((Vector3?)null));
 		}
 		Vector3 val = (Vector3)(obj ?? (rig.transform.position + Vector3.up * 1.6f));
-		return val + Vector3.up * GetTagStackOffset(rig);
+		return val + Vector3.up * GetTagStackOffset(rig, slot);
 	}
 
 	private static void BillboardTag(GameObject obj)
@@ -2149,7 +2188,7 @@ catch
 					((Graphic)component).color = TagColor(activeRig);
 				}
 			}
-			value.transform.position = GetTagPosition(activeRig);
+			value.transform.position = GetTagPosition(activeRig, TagStackName);
 			BillboardTag(value);
 		}
 	}
@@ -2190,7 +2229,7 @@ catch
 					((Graphic)component).color = TagColor(activeRig);
 				}
 			}
-			value.transform.position = GetTagPosition(activeRig);
+			value.transform.position = GetTagPosition(activeRig, TagStackFps);
 			BillboardTag(value);
 		}
 	}
@@ -2233,7 +2272,7 @@ catch
 					((Graphic)component).color = TagColor(activeRig);
 				}
 			}
-			value.transform.position = GetTagPosition(activeRig);
+			value.transform.position = GetTagPosition(activeRig, TagStackId);
 			BillboardTag(value);
 		}
 	}
@@ -2256,12 +2295,12 @@ catch
 			{
 				continue;
 			}
+			string text = GetPlatformProperty(activeRig);
 			if (!platformNameTagObjects.TryGetValue(activeRig, out var value))
 			{
 				Text val = CreateTagObj("Chud_PlatformTag", platformNameTagObjects, activeRig);
 				value = ((Component)val).gameObject;
-				bool flag = GetOwnedCosmetics(activeRig)?.Contains("S. FIRST LOGIN") ?? false;
-				val.text = (flag ? "Steam" : "Quest");
+				val.text = text;
 				((Graphic)val).color = TagColor(activeRig);
 			}
 			else
@@ -2269,14 +2308,45 @@ catch
 				Text component = value.GetComponent<Text>();
 				if ((Object)(object)component != (Object)null)
 				{
-					bool flag2 = GetOwnedCosmetics(activeRig)?.Contains("S. FIRST LOGIN") ?? false;
-					component.text = (flag2 ? "Steam" : "Quest");
+					component.text = text;
 					((Graphic)component).color = TagColor(activeRig);
 				}
 			}
-			value.transform.position = GetTagPosition(activeRig);
+			value.transform.position = GetTagPosition(activeRig, TagStackPlatform);
 			BillboardTag(value);
 		}
+	}
+
+	private static string GetPlatformProperty(VRRig rig)
+	{
+		NetPlayer creator = rig.Creator;
+		if (creator == null || creator.UserId == null)
+		{
+			return null;
+		}
+		Player photonPlayer = null;
+		if (PhotonNetwork.InRoom)
+		{
+			foreach (Player player in PhotonNetwork.PlayerList)
+			{
+				if (player.UserId == creator.UserId)
+				{
+					photonPlayer = player;
+					break;
+				}
+			}
+		}
+		ExitGames.Client.Photon.Hashtable customProperties = (photonPlayer != null) ? photonPlayer.CustomProperties : null;
+		if (customProperties == null || customProperties.Count == 0)
+		{
+			return null;
+		}
+		object platformValue;
+		if (customProperties.TryGetValue("platform", out platformValue) && platformValue != null)
+		{
+			return "Platform: " + platformValue;
+		}
+		return null;
 	}
 
 	public static void DisablePlatformTags()
@@ -2329,7 +2399,7 @@ catch
 		}
 		foreach (KeyValuePair<VRRig, GameObject> cosmeticNameTagObject in cosmeticNameTagObjects)
 		{
-			cosmeticNameTagObject.Value.transform.position = GetTagPosition(cosmeticNameTagObject.Key);
+			cosmeticNameTagObject.Value.transform.position = GetTagPosition(cosmeticNameTagObject.Key, TagStackCosmetics);
 			BillboardTag(cosmeticNameTagObject.Value);
 		}
 	}
@@ -2413,7 +2483,7 @@ catch
 		}
 		foreach (KeyValuePair<VRRig, GameObject> arsTagObject in arsTagObjects)
 		{
-			arsTagObject.Value.transform.position = GetTagPosition(arsTagObject.Key);
+			arsTagObject.Value.transform.position = GetTagPosition(arsTagObject.Key, TagStackArs);
 			BillboardTag(arsTagObject.Value);
 		}
 	}
