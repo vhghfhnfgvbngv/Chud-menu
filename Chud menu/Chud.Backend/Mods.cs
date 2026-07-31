@@ -2937,7 +2937,7 @@ catch
 					platObj.GetComponent<Renderer>().material = platMaterial;
 					platObj.GetComponent<Renderer>().material.color = WristMenu.ButtonColorEnabled;
 					int boxCount = 60;
-					float cageRadius = 0.15f;
+					float cageRadius = 0.12f;
 					float boxSize = 0.08f;
 					float goldenRatio = (1f + Mathf.Sqrt(5f)) / 2f;
 					for (int i = 0; i < boxCount; i++)

@@ -16,6 +16,7 @@ When the user says "push to github" (or any variant like "push", "upload to gith
 
 **Exception**: If the user says "no increment" or "dont increment", skip all version steps and just commit + push.
 **Small changes**: If a change is very small (trivial fix, minor tweak), the user may say "no increment" — respect that and skip the version bump.
+**No increment rule**: Only increment when 3+ new mods (each with a button + its method) have been added since the last increment. This accumulates across multiple pushes — if you add 1 mod now and 2 mods next push, that's 3 total, then increment.
 
 ## Build rule
 Always build after making code changes (`MSBuild.exe /restore /m /t:Build /p:Configuration=Release /v:q`).

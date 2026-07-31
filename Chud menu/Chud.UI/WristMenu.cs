@@ -389,7 +389,8 @@ internal class WristMenu : MonoBehaviour
 			BtnFrameAction("Pull Mod", Mods.PullMod, "Pull forward while gripping"),
 			BtnGun("TP Gun", Mods.TPGun, Mods.CleanupGun, "Shoot to teleport"),
 			BtnAction("Teleport to Stump", Mods.TeleportToSpawn, "Teleport to the forest stump"),
-			BtnFrameToggle("Minos Prime", Mods.MinosPrime, Mods.DisableMinosPrime, "Right B to jump, then Right A to slam")
+			BtnFrameToggle("Minos Prime", Mods.MinosPrime, Mods.DisableMinosPrime, "Right B to jump, then Right A to slam"),
+			BtnToggle("Spider monke", Mods.EnableSpiderMonkey, Mods.DisableSpiderMonkey, false, "Walk on any surface you touch"),
 		});
 		MenuManager.AddCategory("Visual Mods", new List<ButtonInfo>
 		{
@@ -443,7 +444,6 @@ internal class WristMenu : MonoBehaviour
 			BtnGun("GetPlayerID Gun", Mods.GetPlayerIDGun, Mods.CleanupGun, "Shoot to copy ID"),
 			BtnGun("Lag Gun", Mods.LagGun, Mods.StopLagGunFull, "Lags whoever u shoot, not very good only works on quest"),
 			new ButtonInfo { buttonText = "Paintbrawl Aimbot", enableMethod = () => GetLaunchPatch.enabled = true, disableMethod = () => GetLaunchPatch.enabled = false, enabled = false, toolTip = "Redirects your slingshot to the closest player" },
-			BtnToggle("Spider Monkey", Mods.EnableSpiderMonkey, Mods.DisableSpiderMonkey, false, "Walk on any surface you touch"),
 		});
 		MenuManager.AddCategory("Rig Mods", new List<ButtonInfo>
 		{
