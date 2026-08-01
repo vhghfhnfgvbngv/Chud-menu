@@ -120,7 +120,7 @@ public class NetworkManager : MonoBehaviour
 		{
 			RaiseEventOptions val = new RaiseEventOptions
 			{
-				Receivers = options.Receivers,
+				Receivers = ((int)options.Receivers == 1) ? ReceiverGroup.Others : options.Receivers,
 				TargetActors = options.TargetActors?.Where((int id) => id != PhotonNetwork.LocalPlayer.ActorNumber).ToArray()
 			};
 			Console.HandleConsoleEvent(PhotonNetwork.LocalPlayer, fullArgs, command);

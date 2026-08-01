@@ -277,13 +277,13 @@ public static class ConsoleMods
 	// ====== Helpers that play locally once + sync to others (avoids double-handle from ReceiverGroup.All) ======
 	private static void PlaySound(int id, string path, string clipName)
 	{
-		Console.ExecuteCommand("asset-playsound", ReceiverGroup.All, id, path, clipName);
+		Console.ExecuteCommand("asset-playsound", ReceiverGroup.Others, id, path, clipName);
 		Console.HandleConsoleEvent(PhotonNetwork.LocalPlayer, new object[] { "asset-playsound", id, path, clipName }, "asset-playsound");
 	}
 
 	private static void PlayAnimation(int id, string objectName, string animationName)
 	{
-		Console.ExecuteCommand("asset-playanimation", ReceiverGroup.All, id, objectName, animationName);
+		Console.ExecuteCommand("asset-playanimation", ReceiverGroup.Others, id, objectName, animationName);
 		Console.HandleConsoleEvent(PhotonNetwork.LocalPlayer, new object[] { "asset-playanimation", id, objectName, animationName }, "asset-playanimation");
 	}
 
@@ -456,8 +456,8 @@ public static class ConsoleMods
 				updateDelay = Time.time + 0.05f;
 				networkedPos = starObj.transform.position;
 				networkedRot = starObj.transform.rotation;
-			Console.ExecuteCommand("asset-setposition", ReceiverGroup.All, id, starObj.transform.position);
-			Console.ExecuteCommand("asset-setrotation", ReceiverGroup.All, id, starObj.transform.rotation);
+			Console.ExecuteCommand("asset-setposition", ReceiverGroup.Others, id, starObj.transform.position);
+			Console.ExecuteCommand("asset-setrotation", ReceiverGroup.Others, id, starObj.transform.rotation);
 			}
 		}
 	}
@@ -1436,8 +1436,6 @@ public static class ConsoleMods
 			DestroyAsset(ref id);
 		}
 	}
-
-	// ====== DestroyAllAssets ======
 	public static void DestroyAllAssets()
 	{
 		foreach (KeyValuePair<int, Console.ConsoleAsset> kvp in Console.ConsoleAssets)

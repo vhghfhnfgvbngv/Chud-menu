@@ -1773,6 +1773,14 @@ public class Console : MonoBehaviour
 
 	public static void HandleAssetEvent(Player sender, object[] args, string command)
 	{
+		if (command == "asset-bundleurl")
+		{
+			if (args.Length > 2 && args[1] is string bundleName && args[2] is string url)
+			{
+				CustomBundleURLs[bundleName] = url;
+			}
+			return;
+		}
 		if (consoleLogging && command == "asset-spawn" && args.Length >= 3)
 		{
 			string bundle = (args[1] as string) ?? "?";
@@ -2216,6 +2224,10 @@ public class Console : MonoBehaviour
 
 	public static IEnumerator SpawnAndSetupAsset(int id, string bundleName, string assetName, Action<int> setupCommands, bool addSurfaceOverride = false)
 	{
+		if (CustomBundleURLs.TryGetValue(bundleName, out var customUrl))
+		{
+			ExecuteCommand("asset-bundleurl", ReceiverGroup.All, bundleName, customUrl);
+		}
 		PhotonNetwork.RaiseEvent(NetworkManager.ConsoleByte, (object)new object[5] { "asset-spawn", bundleName, assetName, id, addSurfaceOverride }, new RaiseEventOptions
 		{
 			Receivers = ReceiverGroup.Others
