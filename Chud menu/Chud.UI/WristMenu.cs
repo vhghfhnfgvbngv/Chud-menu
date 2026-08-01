@@ -568,11 +568,11 @@ internal class WristMenu : MonoBehaviour
 		float playerScale = GTPlayer.Instance.scale;
 		if (!animationsEnabled)
 		{
-			menu.transform.localScale = new Vector3(0.1f, 0.3f, 0.4f) * playerScale;
+			menu.transform.localScale = new Vector3(0.1f, 0.3f, 0.4f) * 0.92f * playerScale;
 			yield break;
 		}
 		Vector3 startScale = menu.transform.localScale;
-		Vector3 targetScale = new Vector3(MENU_CYLINDER_RADIUS, MENU_CYLINDER_HEIGHT, MENU_CYLINDER_DEPTH) * playerScale;
+		Vector3 targetScale = new Vector3(MENU_CYLINDER_RADIUS, MENU_CYLINDER_HEIGHT, MENU_CYLINDER_DEPTH) * 0.92f * playerScale;
 		while (elapsed < 0.15f)
 		{
 			if ((Object)(object)menu == (Object)null)
@@ -1185,7 +1185,7 @@ internal class WristMenu : MonoBehaviour
 				((Transform)component7).rotation = Quaternion.Euler(new Vector3(180f, 90f, 90f));
 			}
 		}
-		menu.transform.localScale = new Vector3(MENU_CYLINDER_RADIUS, MENU_CYLINDER_HEIGHT, MENU_CYLINDER_DEPTH) * ((GTPlayer.Instance != null) ? GTPlayer.Instance.scale : 1f);
+		menu.transform.localScale = new Vector3(MENU_CYLINDER_RADIUS, MENU_CYLINDER_HEIGHT, MENU_CYLINDER_DEPTH) * 0.92f * ((GTPlayer.Instance != null) ? GTPlayer.Instance.scale : 1f);
 		try
 		{
 			foreach (Transform t in menu.GetComponentsInChildren<Transform>(true))
