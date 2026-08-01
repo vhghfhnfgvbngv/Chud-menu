@@ -208,6 +208,10 @@ internal class WristMenu : MonoBehaviour
 
 	public static GameObject reference = null;
 
+	private static GameObject _menuAnchor = null;
+
+	private static Transform _menuFollowHand = null;
+
 	public static int pageNumber = 0;
 
 	public static WristMenu instance;
@@ -569,13 +573,13 @@ internal class WristMenu : MonoBehaviour
 		}
 		Vector3 startScale = menu.transform.localScale;
 		Vector3 targetScale = new Vector3(MENU_CYLINDER_RADIUS, MENU_CYLINDER_HEIGHT, MENU_CYLINDER_DEPTH) * playerScale;
-		while (elapsed < 0.3f)
+		while (elapsed < 0.15f)
 		{
 			if ((Object)(object)menu == (Object)null)
 			{
 				yield break;
 			}
-			float t = elapsed / 0.3f;
+			float t = elapsed / 0.15f;
 			float s = 1.70158f;
 			t -= 1f;
 			float bounce = t * t * ((s + 1f) * t + s) + 1f;
@@ -604,13 +608,13 @@ internal class WristMenu : MonoBehaviour
 		float elapsed = 0f;
 		Vector3 startScale = menu.transform.localScale;
 		Vector3 targetScale = Vector3.zero;
-		while (elapsed < 0.3f)
+		while (elapsed < 0.15f)
 		{
 			if ((Object)(object)menu == (Object)null)
 			{
 				yield break;
 			}
-			float t = elapsed / 0.3f;
+			float t = elapsed / 0.15f;
 			float s = 1.70158f;
 			float bounce = t * t * ((s + 1f) * t - s);
 			menu.transform.localScale = Vector3.LerpUnclamped(startScale, targetScale, bounce);
@@ -629,6 +633,12 @@ internal class WristMenu : MonoBehaviour
 			Object.Destroy((Object)(object)reference);
 		}
 		reference = null;
+		if ((Object)(object)_menuAnchor != (Object)null)
+		{
+			Object.Destroy((Object)(object)_menuAnchor);
+		}
+		_menuAnchor = null;
+		_menuFollowHand = null;
 		Close = false;
 	}
 
@@ -636,8 +646,7 @@ internal class WristMenu : MonoBehaviour
 	{
 		try
 		{
-			gripDownL = ControllerInputPoller.instance.leftGrab;
-			gripDownR = ControllerInputPoller.instance.rightGrab;
+			gripDownL = ControllerInputPoller.instance.leftGrab;			gripDownR = ControllerInputPoller.instance.rightGrab;
 			triggerDownL = ControllerInputPoller.instance.leftControllerIndexFloat == 1f;
 			triggerDownR = ControllerInputPoller.instance.rightControllerIndexFloat == 1f;
 			abuttonDown = ControllerInputPoller.instance.rightControllerPrimaryButton;
@@ -702,6 +711,15 @@ internal class WristMenu : MonoBehaviour
 		}
 	}
 
+	private void LateUpdate()
+	{
+		if ((Object)(object)_menuAnchor != (Object)null && (Object)(object)_menuFollowHand != (Object)null)
+		{
+			_menuAnchor.transform.position = _menuFollowHand.position;
+			_menuAnchor.transform.rotation = _menuFollowHand.rotation;
+		}
+	}
+
 	private void HandleTriggerPageNav()
 	{
 		if (triggerDownL)
@@ -745,6 +763,7 @@ internal class WristMenu : MonoBehaviour
 			}
 			if (qKeyDown)
 			{
+				_menuFollowHand = null;
 				if ((Object)(object)_tpc == (Object)null)
 				{
 					GameObject val = GameObject.Find("Player Objects/Third Person Camera/Shoulder Camera");
@@ -803,8 +822,16 @@ internal class WristMenu : MonoBehaviour
 			}
 			else if (ybuttonDown && !Mods.isRightHanded)
 			{
-				menu.transform.position = GTPlayer.Instance.LeftHand.controllerTransform.position;
-				menu.transform.rotation = GTPlayer.Instance.LeftHand.controllerTransform.rotation;
+				if ((Object)(object)_menuAnchor == (Object)null)
+				{
+					_menuAnchor = new GameObject("menuAnchor");
+				}
+				_menuFollowHand = GTPlayer.Instance.LeftHand.controllerTransform;
+				menu.transform.parent = _menuAnchor.transform;
+				menu.transform.localPosition = Vector3.zero;
+				menu.transform.localRotation = Quaternion.identity;
+				_menuAnchor.transform.position = _menuFollowHand.position;
+				_menuAnchor.transform.rotation = _menuFollowHand.rotation;
 				if ((Object)(object)reference == (Object)null)
 				{
 					reference = MakeSphereButtonPresser();
@@ -817,9 +844,16 @@ internal class WristMenu : MonoBehaviour
 			}
 			else if (bbuttonDown && Mods.isRightHanded)
 			{
-				menu.transform.position = GTPlayer.Instance.RightHand.controllerTransform.position;
-				menu.transform.rotation = GTPlayer.Instance.RightHand.controllerTransform.rotation;
-				menu.transform.RotateAround(menu.transform.position, menu.transform.forward, 180f);
+				if ((Object)(object)_menuAnchor == (Object)null)
+				{
+					_menuAnchor = new GameObject("menuAnchor");
+				}
+				_menuFollowHand = GTPlayer.Instance.RightHand.controllerTransform;
+				menu.transform.parent = _menuAnchor.transform;
+				menu.transform.localPosition = Vector3.zero;
+				menu.transform.localRotation = Quaternion.Euler(0f, 0f, 180f);
+				_menuAnchor.transform.position = _menuFollowHand.position;
+				_menuAnchor.transform.rotation = _menuFollowHand.rotation;
 				if ((Object)(object)reference == (Object)null)
 				{
 					reference = MakeSphereButtonPresser();
