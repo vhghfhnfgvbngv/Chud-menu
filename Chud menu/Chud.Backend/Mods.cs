@@ -198,8 +198,6 @@ internal class Mods : MonoBehaviour
 
 	private static AudioSource minosLocalSource = null;
 
-	private static string MinosSoundDir => Path.Combine(Environment.CurrentDirectory, WristMenu.FolderName) + "\\";
-
 	private const string MinosCrushUrl = "https://raw.githubusercontent.com/vhghfhnfgvbngv/plmokni/main/CRUSH%20!.mp3";
 
 	private const string MinosSlamUrl = "https://raw.githubusercontent.com/vhghfhnfgvbngv/plmokni/main/slam%20sound.mp3";
@@ -499,12 +497,14 @@ internal class Mods : MonoBehaviour
 		{
 			if (!((Object)(object)GorillaTagger.Instance.rigidbody == (Object)null) && (Object)(object)ControllerInputPoller.instance != (Object)null && (isRightHanded ? ControllerInputPoller.instance.leftControllerSecondaryButton : ControllerInputPoller.instance.rightControllerSecondaryButton))
 			{
+				RegisterFlyGravityOverride();
 				Transform transform = GTPlayer.Instance.transform;
 				transform.position += GorillaTagger.Instance.headCollider.transform.forward * (Time.deltaTime * flySpeed);
 				_flyDesiredVelocity = Vector3.zero;
 			}
 			else
 			{
+				UnregisterFlyGravityOverride();
 				_flyDesiredVelocity = Vector3.zero;
 			}
 		}
@@ -1483,73 +1483,31 @@ catch
 
 	private static IEnumerator LoadMinosSounds()
 	{
-		if (!Directory.Exists(MinosSoundDir))
-		{
-			Directory.CreateDirectory(MinosSoundDir);
-		}
-		string crushPath = MinosSoundDir + "CRUSH !.mp3";
-		string slamPath = MinosSoundDir + "slam sound.mp3";
-		if (!File.Exists(crushPath))
-		{
-			UnityWebRequest req = UnityWebRequest.Get("https://raw.githubusercontent.com/vhghfhnfgvbngv/plmokni/main/CRUSH%20!.mp3");
-			try
-			{
-				req.downloadHandler = (DownloadHandler)new DownloadHandlerBuffer();
-				yield return req.SendWebRequest();
-				if ((int)req.result == 1)
-				{
-					File.WriteAllBytes(crushPath, req.downloadHandler.data);
-				}
-			}
-			finally
-			{
-				((IDisposable)req)?.Dispose();
-			}
-		}
-		if (!File.Exists(slamPath))
-		{
-			UnityWebRequest req2 = UnityWebRequest.Get("https://raw.githubusercontent.com/vhghfhnfgvbngv/plmokni/main/slam%20sound.mp3");
-			try
-			{
-				req2.downloadHandler = (DownloadHandler)new DownloadHandlerBuffer();
-				yield return req2.SendWebRequest();
-				if ((int)req2.result == 1)
-				{
-					File.WriteAllBytes(slamPath, req2.downloadHandler.data);
-				}
-			}
-			finally
-			{
-				((IDisposable)req2)?.Dispose();
-			}
-		}
-		string crushFileUrl = "file:///" + crushPath.Replace("\\", "/");
-		UnityWebRequest req3 = UnityWebRequestMultimedia.GetAudioClip(crushFileUrl, AudioType.MPEG);
+		UnityWebRequest req1 = UnityWebRequestMultimedia.GetAudioClip(MinosCrushUrl, AudioType.MPEG);
 		try
 		{
-			yield return req3.SendWebRequest();
-			if ((int)req3.result == 1)
+			yield return req1.SendWebRequest();
+			if ((int)req1.result == 1)
 			{
-				minosCrushClip = DownloadHandlerAudioClip.GetContent(req3);
+				minosCrushClip = DownloadHandlerAudioClip.GetContent(req1);
 			}
 		}
 		finally
 		{
-			((IDisposable)req3)?.Dispose();
+			((IDisposable)req1)?.Dispose();
 		}
-		string slamFileUrl = "file:///" + slamPath.Replace("\\", "/");
-		UnityWebRequest req4 = UnityWebRequestMultimedia.GetAudioClip(slamFileUrl, AudioType.MPEG);
+		UnityWebRequest req2 = UnityWebRequestMultimedia.GetAudioClip(MinosSlamUrl, AudioType.MPEG);
 		try
 		{
-			yield return req4.SendWebRequest();
-			if ((int)req4.result == 1)
+			yield return req2.SendWebRequest();
+			if ((int)req2.result == 1)
 			{
-				minosSlamClip = DownloadHandlerAudioClip.GetContent(req4);
+				minosSlamClip = DownloadHandlerAudioClip.GetContent(req2);
 			}
 		}
 		finally
 		{
-			((IDisposable)req4)?.Dispose();
+			((IDisposable)req2)?.Dispose();
 		}
 	}
 
@@ -4556,6 +4514,9 @@ catch
 	private static int lagGunTargetActor = -1;
 	private static VRRig lagGunLockedTarget;
 
+	private static bool copyMovementActive;
+	private static VRRig copyMovementTarget;
+
 	private static readonly byte[] lagPayload = new byte[128];
 
 	public static void LagGun()
@@ -4617,6 +4578,75 @@ catch
 			for (int i = 0; i < 100; i++)
 				PhotonNetwork.RaiseEvent(3, lagPayload, opts, SendOptions.SendUnreliable);
 			yield return new WaitForSeconds(0.2f);
+		}
+	}
+
+	public static void CopyMovementGun()
+	{
+		MakeRightHandGun(delegate
+		{
+			VRRig rig = GetGunTargetPlayer();
+			if (rig != null && !rig.isLocal)
+			{
+				copyMovementTarget = rig;
+				copyMovementActive = true;
+				TorsoPatch.VRRigLateUpdate -= CopyMovementTick;
+				TorsoPatch.VRRigLateUpdate += CopyMovementTick;
+			}
+		}, delegate
+		{
+			StopCopyMovementGun();
+		});
+		if (copyMovementTarget != null && pointer != null && Line != null)
+		{
+			pointer.transform.position = ((Component)copyMovementTarget).transform.position;
+			Line.SetPosition(1, ((Component)copyMovementTarget).transform.position);
+		}
+	}
+
+	public static void StopCopyMovementGun()
+	{
+		TorsoPatch.VRRigLateUpdate -= CopyMovementTick;
+		if (copyMovementActive && (Object)(object)VRRig.LocalRig != (Object)null)
+		{
+			VRRig.LocalRig.enabled = true;
+		}
+		copyMovementActive = false;
+		copyMovementTarget = null;
+	}
+
+	public static void StopCopyMovementGunFull()
+	{
+		StopCopyMovementGun();
+		CleanupGun();
+	}
+
+	private static void CopyMovementTick()
+	{
+		if (!copyMovementActive || (Object)(object)copyMovementTarget == (Object)null || (Object)(object)VRRig.LocalRig == (Object)null)
+		{
+			return;
+		}
+		if (!(isRightHanded ? WristMenu.gripDownL : WristMenu.gripDownR))
+		{
+			StopCopyMovementGun();
+			return;
+		}
+		VRRig target = copyMovementTarget;
+		VRRig local = VRRig.LocalRig;
+		local.enabled = false;
+		local.transform.SetPositionAndRotation(target.transform.position, target.transform.rotation);
+		if (target.head != null && (Object)(object)target.head.rigTarget != (Object)null && local.head != null && (Object)(object)local.head.rigTarget != (Object)null)
+		{
+			local.head.rigTarget.transform.SetPositionAndRotation(target.head.rigTarget.transform.position, target.head.rigTarget.transform.rotation);
+		}
+		if (target.leftHand != null && (Object)(object)target.leftHand.rigTarget != (Object)null && local.leftHand != null && (Object)(object)local.leftHand.rigTarget != (Object)null)
+		{
+			local.leftHand.rigTarget.transform.SetPositionAndRotation(target.leftHand.rigTarget.transform.position, target.leftHand.rigTarget.transform.rotation);
+		}
+		if (target.rightHand != null && (Object)(object)target.rightHand.rigTarget != (Object)null && local.rightHand != null && (Object)(object)local.rightHand.rigTarget != (Object)null)
+		{
+			local.rightHand.rigTarget.transform.SetPositionAndRotation(target.rightHand.rigTarget.transform.position, target.rightHand.rigTarget.transform.rotation);
 		}
 	}
 

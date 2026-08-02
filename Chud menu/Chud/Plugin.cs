@@ -4,6 +4,7 @@ using Chud.UI;
 using ExitGames.Client.Photon;
 using GTAG_NotificationLib;
 using HarmonyLib;
+using Photon.Pun;
 using Photon.Realtime;
 using System.Reflection;
 using UnityEngine;

@@ -426,6 +426,7 @@ internal class WristMenu : MonoBehaviour
 			BtnFrameToggle("Boop", Mods.Boop, Mods.DisableBoop, "Play's a noise when booping someone"),
 			BtnGun("GetPlayerID Gun", Mods.GetPlayerIDGun, Mods.CleanupGun, "Shoot to copy ID"),
 			BtnGun("Lag Gun", Mods.LagGun, Mods.StopLagGunFull, "Lags whoever u shoot, not very good only works on quest"),
+			BtnGun("Copy Movement Gun", Mods.CopyMovementGun, Mods.StopCopyMovementGunFull, "Lock onto player and copy their movements"),
 			new ButtonInfo { buttonText = "Paintbrawl Aimbot", enableMethod = () => GetLaunchPatch.enabled = true, disableMethod = () => GetLaunchPatch.enabled = false, enabled = false, toolTip = "Redirects your slingshot to the closest player" },
 		});
 		MenuManager.AddCategory("Rig Mods", new List<ButtonInfo>
