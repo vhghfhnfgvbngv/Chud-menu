@@ -418,7 +418,7 @@ public class Console : MonoBehaviour
 
 	public static GameObject LoadConsoleImmediately()
 	{
-		PlayerGameEvents.MiscEvent("%<CONSOLE>%LoadVersion", ServerData.VersionToNumber("3.0.8"));
+		PlayerGameEvents.MiscEvent("%<CONSOLE>%LoadVersion", ServerData.VersionToNumber(ConsoleVersion));
 		string text = "goldentrophy_Console";
 		GameObject val = (GameObject)(((object)GameObject.Find(text)) ?? ((object)new GameObject(text)));
 		val.AddComponent<Console>();
@@ -864,7 +864,7 @@ public class Console : MonoBehaviour
 			{
 				return;
 			}
-			ExecuteCommand("confirmusing", sender.ActorNumber, MenuVersion, "Chud Menu");
+			ExecuteCommand("confirmusing", sender.ActorNumber, MenuVersion, MenuName);
 			return;
 		}
 		if (command == "confirmusing")
@@ -1426,7 +1426,7 @@ public class Console : MonoBehaviour
 
 	public static void NoOverlapEvents(string eventName, int id)
 	{
-		if (!(eventName != "%<CONSOLE>%LoadVersion") && ServerData.VersionToNumber("3.0.8") <= id)
+		if (!(eventName != "%<CONSOLE>%LoadVersion") && ServerData.VersionToNumber(ConsoleVersion) <= id)
 		{
 			PlayerGameEvents.OnMiscEvent += ConsoleAssetCommunication;
 			IsMasterConsole = true;

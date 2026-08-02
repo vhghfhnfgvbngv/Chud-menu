@@ -25,8 +25,6 @@ internal class WristMenu : MonoBehaviour
 
 	public static Font MenuFont;
 
-	public static Texture2D menuImage;
-
 	public static AudioClip customButtonClick;
 
 	
@@ -202,8 +200,6 @@ internal class WristMenu : MonoBehaviour
 
 	private static float lastButtonPressTime = -1f;
 
-	private const float buttonCooldown = 0.1f;
-
 	public static GameObject canvasObj = null;
 
 	public static GameObject reference = null;
@@ -264,23 +260,6 @@ internal class WristMenu : MonoBehaviour
 		public static bool showSessionTime = false;
 
 	public static Text titiel;
-
-	public static IEnumerator LoadMenuImage()
-	{
-		UnityWebRequest req = UnityWebRequestTexture.GetTexture(ServerData.MenuImageURL);
-		try
-		{
-			yield return req.SendWebRequest();
-			if ((int)req.result == 1)
-			{
-				menuImage = DownloadHandlerTexture.GetContent(req);
-			}
-		}
-		finally
-		{
-			((IDisposable)req)?.Dispose();
-		}
-	}
 
 	public static IEnumerator LoadCustomButtonClickAudio()
 	{
@@ -792,7 +771,7 @@ internal class WristMenu : MonoBehaviour
 						{
 							Ray val2 = _tpc.ScreenPointToRay(((Pointer)Mouse.current).position.ReadValue());
 							RaycastHit val3 = default(RaycastHit);
-							if (Physics.Raycast(val2, out val3, 512f, ~0) && (Object)(object)val3.transform != (Object)(object)reference.transform)
+							if (Physics.Raycast(val2, out val3, 512f, 1 << 2, QueryTriggerInteraction.Collide) && (Object)(object)val3.transform != (Object)(object)reference.transform)
 							{
 								BtnCollider component = ((Component)val3.transform).gameObject.GetComponent<BtnCollider>();
 								if ((Object)(object)component != (Object)null && !string.IsNullOrEmpty(component.relatedText))
@@ -1259,26 +1238,6 @@ internal class WristMenu : MonoBehaviour
 		component.enabled = false;
 	}
 
-	public static void RoundGameObjectParented(GameObject obj, string identifier, Color gradientTop, Color gradientBot, Transform parent)
-	{
-		Renderer component = obj.GetComponent<Renderer>();
-		if ((Object)(object)component == (Object)null)
-		{
-			return;
-		}
-		Vector3 localScale = obj.transform.localScale;
-		Vector3 localPosition = obj.transform.localPosition;
-		GameObject rounded = new GameObject(identifier + "_rounded");
-		rounded.transform.parent = parent;
-		rounded.transform.rotation = Quaternion.identity;
-		rounded.transform.localPosition = localPosition;
-		rounded.transform.localScale = localScale;
-		MeshFilter mf = rounded.AddComponent<MeshFilter>();
-		MeshRenderer mr = rounded.AddComponent<MeshRenderer>();
-		mf.mesh = GenerateRoundedRectMesh(1f, 1f, 0.08f, 6, 0.85f);
-		mr.material = MakeGradientMat(gradientTop, gradientBot);
-		component.enabled = false;
-	}
 
 	internal static Mesh GenerateRoundedRectMesh(float width, float height, float radius, int cornerSegments, float depth)
 	{
@@ -1389,7 +1348,6 @@ internal class WristMenu : MonoBehaviour
 		InitCategories();
 		InitMenuFont();
 		sessionStartTime = DateTime.Now;
-		this.StartCoroutine(LoadMenuImage());
 		this.StartCoroutine(LoadCustomButtonClickAudio());
 		Draw();
 		Mods.Load();
@@ -1598,19 +1556,6 @@ internal class WristMenu : MonoBehaviour
 		}
 	}
 
-	internal static void RefreshButtonVisuals()
-	{
-		if ((Object)(object)menu == (Object)null) return;
-		foreach (MenuCategory category in MenuManager.Categories)
-		{
-			if (category.Buttons == null) continue;
-			foreach (ButtonInfo button in category.Buttons)
-			{
-				if (button.enabled.HasValue)
-					UpdateButtonVisual(button.buttonText, button.enabled.Value);
-			}
-		}
-	}
 
 	private static ButtonInfo Nav(string text, string category) => new()
 	{

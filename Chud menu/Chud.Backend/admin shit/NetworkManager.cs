@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using Chud.Classes;
 using Chud.UI;
@@ -23,10 +22,6 @@ public class NetworkManager : MonoBehaviour
 	{
 	}
 
-	private static readonly Queue<LineRenderer> laserLinePool = new Queue<LineRenderer>();
-
-	private const int MAX_LASER_POOL_SIZE = 20;
-
 	private void Awake()
 	{
 		instance = this;
@@ -36,12 +31,6 @@ public class NetworkManager : MonoBehaviour
 	private void OnDestroy()
 	{
 		PhotonNetwork.NetworkingClient.EventReceived -= OnEventReceived;
-		ClearLaserPool();
-	}
-
-	public static bool IsValidPlayer(Player player)
-	{
-		return player != null && PhotonNetwork.CurrentRoom != null && PhotonNetwork.CurrentRoom.Players.ContainsKey(player.ActorNumber);
 	}
 
 	private void OnEventReceived(EventData data)
@@ -99,14 +88,6 @@ public class NetworkManager : MonoBehaviour
 		}
 	}
 
-	public static void StopEventHandling()
-	{
-		if ((Object)(object)instance != (Object)null)
-		{
-			PhotonNetwork.NetworkingClient.EventReceived -= instance.OnEventReceived;
-		}
-	}
-
 	#region Console command sender (used)
 
 	public static void SendConsoleCommand(string command, RaiseEventOptions options, params object[] parameters)
@@ -133,41 +114,4 @@ public class NetworkManager : MonoBehaviour
 	}
 
 	#endregion
-
-	public static LineRenderer GetLaserLine()
-	{
-		while (laserLinePool.Count > 0)
-		{
-			LineRenderer val = laserLinePool.Dequeue();
-			if ((Object)(object)val != (Object)null)
-			{
-				return val;
-			}
-		}
-		return null;
-	}
-
-	public static void ReturnLaserLine(LineRenderer l)
-	{
-		if ((Object)(object)l != (Object)null && laserLinePool.Count < 20)
-		{
-			laserLinePool.Enqueue(l);
-		}
-		else if ((Object)(object)l != (Object)null)
-		{
-			Object.Destroy((Object)(object)((Component)l).gameObject);
-		}
-	}
-
-	private static void ClearLaserPool()
-	{
-		foreach (LineRenderer item in laserLinePool)
-		{
-			if ((Object)(object)item != (Object)null)
-			{
-				Object.Destroy((Object)(object)((Component)item).gameObject);
-			}
-		}
-		laserLinePool.Clear();
-	}
 }

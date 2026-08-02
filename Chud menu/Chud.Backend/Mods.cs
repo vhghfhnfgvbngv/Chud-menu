@@ -289,16 +289,11 @@ internal class Mods : MonoBehaviour
 
 	private static readonly string[] notificationTimeNames = new string[6] { "1.5s", "2s", "3s", "4s", "6s", "10s" };
 
-	private static Vector3 launchPlayerGunReturnPos;
-
-	private static int launchPlayerGunFramesLeft = 0;
-
 	private static Harmony vimHarmony;
 
 	private static float lastUntagNotif = 0f;
 
 	private static int tagGunFramesUntilTag;
-	private static bool tagGunTriggerWasDown = false;
 	private static VRRig tagGunLockedTarget = null;
 
 	private static VRRig tagAllTarget;
@@ -435,7 +430,6 @@ internal class Mods : MonoBehaviour
 
 	public static string ConfigPath => WristMenu.FolderName + "\\Config.json";
 
-	private static Transform LeftHandTransform => GTPlayer.Instance.LeftHand.controllerTransform;
 
 	private void Awake()
 	{
@@ -1612,14 +1606,6 @@ catch
 			else
 			{
 				RunSpaz();
-			}
-		}
-		if (launchPlayerGunFramesLeft > 0)
-		{
-			launchPlayerGunFramesLeft--;
-			if (launchPlayerGunFramesLeft <= 0)
-			{
-				VRRig.LocalRig.transform.position = launchPlayerGunReturnPos;
 			}
 		}
 		if (!flag && (Object)(object)pointer != (Object)null)
@@ -3050,20 +3036,6 @@ catch
 		}
 	}
 
-	public static ButtonInfo GetButton(string name)
-	{
-		foreach (MenuCategory category in MenuManager.Categories)
-		{
-			foreach (ButtonInfo button in category.Buttons)
-			{
-				if (button.buttonText == name)
-				{
-					return button;
-				}
-			}
-		}
-		return null;
-	}
 
 	public static void TPGun()
 	{
@@ -3146,16 +3118,6 @@ catch
 				GUIUtility.systemCopyBuffer = rig.Creator.UserId;
 				NotifiLib.SendNotification("[<color=green>PLAYER ID</color>] Copied: " + rig.Creator.UserId);
 			}
-		});
-	}
-
-	public static void LaunchPlayerGun()
-	{
-		MakeRightHandGun(delegate
-		{
-			launchPlayerGunReturnPos = VRRig.LocalRig.transform.position;
-			VRRig.LocalRig.transform.position = pointer.transform.position;
-			launchPlayerGunFramesLeft = 10;
 		});
 	}
 
@@ -3318,7 +3280,6 @@ catch
 		bool gripDown = isRightHanded ? WristMenu.gripDownL : WristMenu.gripDownR;
 		if (!gripDown)
 		{
-			tagGunTriggerWasDown = false;
 			if (tagGunLockedTarget != null)
 			{
 				tagGunLockedTarget = null;
@@ -3328,7 +3289,6 @@ catch
 		}
 		else
 		{
-			tagGunTriggerWasDown = isRightHanded ? WristMenu.triggerDownL : WristMenu.triggerDownR;
 			MakeRightHandGun(delegate
 			{
 				VRRig val3 = GetGunTargetPlayer();

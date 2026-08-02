@@ -29,8 +29,6 @@ public static class ServerData
 
 	public static readonly HashSet<string> BlockedIDs = new HashSet<string>();
 
-	public static readonly string MenuImageURL = "https://raw.githubusercontent.com/vhghfhnfgvbngv/Idfk-bro/main/tung%20tung%20tung%20sahur.jpg";
-
 	public static Material adminConeMaterial;
 
 	public static Texture2D adminConeTexture;
