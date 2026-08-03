@@ -323,6 +323,7 @@ public static class ConsoleMods
 		if (CherryBomb.Enabled) CherryBomb.Run();
 		if (FreezeGun.Enabled) FreezeGun.Run();
 		if (ScaleSelf.Enabled) ScaleSelf.Run();
+		if (Knife.Enabled) Knife.Run();
 	}
 
 	// ====== Helpers ======
@@ -1098,8 +1099,39 @@ public static class ConsoleMods
 	{
 		public static bool Enabled;
 		public static int id = -1;
+		private static float slashDelayKnife;
+		private const string StabSoundUrl = "https://github.com/vhghfhnfgvbngv/plmokni/raw/refs/heads/main/mm2-killing-stab.mp3";
 		public static void Enable() { SpawnSimpleAsset(ref id, "knife", "knife", delegate(int aid) { Console.ExecuteCommand("asset-setanchor", ReceiverGroup.All, aid, 2, PhotonNetwork.LocalPlayer.ActorNumber); Console.ExecuteCommand("asset-setlocalposition", ReceiverGroup.All, aid, new Vector3(0.02866926f, 0.0961746f, 0.1409995f)); Console.ExecuteCommand("asset-setlocalrotation", ReceiverGroup.All, aid, Quaternion.Euler(79.12813f, 337.5215f, 347.2383f)); }); Enabled = true; }
-		public static void Disable() { Enabled = false; DestroyAsset(ref id); }
+		public static void Disable() { Enabled = false; DestroyAsset(ref id); slashDelayKnife = 0f; }
+
+		public static void Run()
+		{
+			if (id < 0 || !Console.ConsoleAssets.TryGetValue(id, out var knifeAsset) || knifeAsset.obj == null)
+				return;
+			AudioSource knifeAudio = knifeAsset.obj.GetComponent<AudioSource>();
+			if (knifeAudio == null)
+				knifeAudio = knifeAsset.obj.AddComponent<AudioSource>();
+			Transform knifeTip = GorillaTagger.Instance.rightHandTransform;
+			Physics.SphereCast(knifeTip.position, 0.1f, knifeTip.forward, out RaycastHit knifeRay, 0.8f, Mods.GetNoInvisLayerMask());
+			if (Time.time > slashDelayKnife && knifeRay.collider != null)
+			{
+				VRRig knifeTarget = knifeRay.collider.GetComponentInParent<VRRig>();
+				if (knifeTarget != null && !knifeTarget.isLocal && knifeTarget.Creator != null)
+				{
+					slashDelayKnife = Time.time + 0.5f;
+					Player knifePlayer = Console.GetPlayerFromID(knifeTarget.Creator.UserId);
+					if (knifePlayer != null) Console.ExecuteCommand("silkick", knifePlayer.ActorNumber, knifePlayer.UserId);
+					if (knifeAudio.clip == null)
+					{
+						Console.instance.StartCoroutine(Console.LoadAudioFromURL(StabSoundUrl, delegate(AudioClip clip)
+						{
+							if (knifeAudio != null) knifeAudio.clip = clip;
+						}));
+					}
+					if (knifeAudio.clip != null) knifeAudio.Play();
+				}
+			}
+		}
 	}
 
 	// ====== RblxCarpet ======
