@@ -12,6 +12,10 @@ internal class GetLaunchPatch
 	public static void Postfix(Slingshot __instance, ref Vector3 __result)
 	{
 		if (!enabled) return;
+		if ((Object)(object)GorillaTagger.Instance == (Object)null || (Object)(object)GorillaTagger.Instance.headCollider == (Object)null)
+		{
+			return;
+		}
 
 		VRRig targetRig = null;
 		float bestScore = float.MaxValue;
@@ -33,7 +37,14 @@ internal class GetLaunchPatch
 			}
 		}
 
-		if (targetRig == null) return;
+		if (targetRig == null || (Object)(object)targetRig.headMesh == (Object)null)
+		{
+			return;
+		}
+		if ((Object)(object)__instance.center == (Object)null)
+		{
+			return;
+		}
 
 		Vector3 targetPos = targetRig.headMesh.transform.position;
 		Vector3 targetVel = targetRig.LatestVelocity();
@@ -55,7 +66,7 @@ internal class GetLaunchPatch
 		x = displacementXZ.magnitude;
 
 		float minSpeed = Mathf.Sqrt(g * (y + Mathf.Sqrt(x * x + y * y)));
-		float launchSpeed = minSpeed * 2.5f;
+		float launchSpeed = Mathf.Max(minSpeed * 2.5f, 5f);
 
 		__result = CalcVelocity(displacement, launchSpeed);
 	}
@@ -72,6 +83,11 @@ internal class GetLaunchPatch
 		if (underSqrt <= 0f) return displacement.normalized * speed;
 
 		float sqrt = Mathf.Sqrt(underSqrt);
+		if (x < 0.001f)
+		{
+			return Vector3.up * speed;
+		}
+
 		float angle = Mathf.Atan((v2 - sqrt) / (g * x));
 
 		Vector3 dirXZ = displacementXZ.normalized;

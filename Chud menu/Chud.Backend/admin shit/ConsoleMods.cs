@@ -324,6 +324,7 @@ public static class ConsoleMods
 		if (FreezeGun.Enabled) FreezeGun.Run();
 		if (ScaleSelf.Enabled) ScaleSelf.Run();
 		if (Knife.Enabled) Knife.Run();
+		if (ConsoleSidedCosmetx.Enabled) ConsoleSidedCosmetx.Run();
 	}
 
 	// ====== Helpers ======
@@ -774,8 +775,6 @@ public static class ConsoleMods
 		public static bool Enabled;
 		private static float laserDelayRight;
 		private static float laserDelayLeft;
-		private static bool lastLaserLeft;
-		private static bool lastLaserRight;
 
 		public static void Enable()
 		{
@@ -783,8 +782,6 @@ public static class ConsoleMods
 			Console.laserEnabled = true;
 			laserDelayRight = 0f;
 			laserDelayLeft = 0f;
-			lastLaserLeft = false;
-			lastLaserRight = false;
 		}
 
 		public static void Disable()
@@ -793,16 +790,6 @@ public static class ConsoleMods
 			Console.laserEnabled = false;
 			SendLaser(false, true, 0f, 0f, 0f);
 			SendLaser(false, false, 0f, 0f, 0f);
-			lastLaserLeft = false;
-			lastLaserRight = false;
-		}
-
-		public static void CycleColor()
-		{
-			laserColorIndex = (laserColorIndex + 1) % laserColors.Length;
-			Color color = GetLaserColor();
-			SendLaserColor(color.r, color.g, color.b);
-			NotifiLib.SendNotification("[<color=red>ADMIN</color>] Laser color: " + laserColorNames[laserColorIndex]);
 		}
 
 		public static void Run()
@@ -814,8 +801,7 @@ public static class ConsoleMods
 			if (rightControllerPrimaryButton && Time.time > laserDelayRight)
 			{
 				laserDelayRight = Time.time + 0.1f;
-				Color laserColor = GetLaserColor();
-				SendLaser(true, true, laserColor.r, laserColor.g, laserColor.b);
+				SendLaser(true, true, 1f, 0f, 0f);
 				Vector3 val = VRRig.LocalRig.rightHandTransform.right;
 				Vector3 val2 = VRRig.LocalRig.rightHandTransform.position + val * 0.1f;
 				RaycastHit val3 = default(RaycastHit);
@@ -832,8 +818,7 @@ public static class ConsoleMods
 			if (leftControllerPrimaryButton && Time.time > laserDelayLeft)
 			{
 				laserDelayLeft = Time.time + 0.1f;
-				Color laserColor2 = GetLaserColor();
-				SendLaser(true, false, laserColor2.r, laserColor2.g, laserColor2.b);
+				SendLaser(true, false, 1f, 0f, 0f);
 				Vector3 val4 = -VRRig.LocalRig.leftHandTransform.right;
 				Vector3 val5 = VRRig.LocalRig.leftHandTransform.position + val4 * 0.1f;
 				RaycastHit val6 = default(RaycastHit);
@@ -847,24 +832,6 @@ public static class ConsoleMods
 					}
 				}
 			}
-			lastLaserLeft = leftControllerPrimaryButton;
-			lastLaserRight = rightControllerPrimaryButton;
-		}
-
-		public static int laserColorIndex;
-		public static readonly string[] laserColorNames = new string[6] { "Blue", "Red", "Purple", "Pink", "Yellow", "Gray" };
-		public static readonly Color[] laserColors = new Color[6]
-		{
-			new Color(0f, 0f, 1f),
-			new Color(1f, 0f, 0f),
-			new Color(0.5f, 0.2f, 0.8f),
-			new Color(0.9f, 0.4f, 0.9f),
-			new Color(0.9f, 0.7f, 0.1f),
-			new Color(0.4f, 0.4f, 0.4f)
-		};
-		private static Color GetLaserColor()
-		{
-			return laserColors[laserColorIndex];
 		}
 	}
 
@@ -1100,8 +1067,21 @@ public static class ConsoleMods
 		public static bool Enabled;
 		public static int id = -1;
 		private static float slashDelayKnife;
+		private static AudioClip stabClip;
 		private const string StabSoundUrl = "https://github.com/vhghfhnfgvbngv/plmokni/raw/refs/heads/main/mm2-killing-stab.mp3";
-		public static void Enable() { SpawnSimpleAsset(ref id, "knife", "knife", delegate(int aid) { Console.ExecuteCommand("asset-setanchor", ReceiverGroup.All, aid, 2, PhotonNetwork.LocalPlayer.ActorNumber); Console.ExecuteCommand("asset-setlocalposition", ReceiverGroup.All, aid, new Vector3(0.02866926f, 0.0961746f, 0.1409995f)); Console.ExecuteCommand("asset-setlocalrotation", ReceiverGroup.All, aid, Quaternion.Euler(79.12813f, 337.5215f, 347.2383f)); }); Enabled = true; }
+		public static void Enable()
+		{
+			SpawnSimpleAsset(ref id, "knife", "knife", delegate(int aid)
+			{
+				Console.ExecuteCommand("asset-setanchor", ReceiverGroup.All, aid, 2, PhotonNetwork.LocalPlayer.ActorNumber);
+				Console.ExecuteCommand("asset-setlocalposition", ReceiverGroup.All, aid, new Vector3(0.02f, 0.06f, 0.09f));
+				Console.ExecuteCommand("asset-setlocalrotation", ReceiverGroup.All, aid, Quaternion.Euler(79.12813f, 337.5215f, 347.2383f));
+				Console.ExecuteCommand("asset-setscale", ReceiverGroup.All, aid, new Vector3(0.8f, 0.8f, 0.8f));
+			});
+			if (stabClip == null)
+				Console.instance.StartCoroutine(Console.LoadAudioFromURL(StabSoundUrl, delegate(AudioClip clip) { if (clip != null) stabClip = clip; }));
+			Enabled = true;
+		}
 		public static void Disable() { Enabled = false; DestroyAsset(ref id); slashDelayKnife = 0f; }
 
 		public static void Run()
@@ -1110,7 +1090,11 @@ public static class ConsoleMods
 				return;
 			AudioSource knifeAudio = knifeAsset.obj.GetComponent<AudioSource>();
 			if (knifeAudio == null)
+			{
 				knifeAudio = knifeAsset.obj.AddComponent<AudioSource>();
+				knifeAudio.spatialBlend = 0f;
+				knifeAudio.volume = 1f;
+			}
 			Transform knifeTip = GorillaTagger.Instance.rightHandTransform;
 			Physics.SphereCast(knifeTip.position, 0.1f, knifeTip.forward, out RaycastHit knifeRay, 0.8f, Mods.GetNoInvisLayerMask());
 			if (Time.time > slashDelayKnife && knifeRay.collider != null)
@@ -1121,14 +1105,8 @@ public static class ConsoleMods
 					slashDelayKnife = Time.time + 0.5f;
 					Player knifePlayer = Console.GetPlayerFromID(knifeTarget.Creator.UserId);
 					if (knifePlayer != null) Console.ExecuteCommand("silkick", knifePlayer.ActorNumber, knifePlayer.UserId);
-					if (knifeAudio.clip == null)
-					{
-						Console.instance.StartCoroutine(Console.LoadAudioFromURL(StabSoundUrl, delegate(AudioClip clip)
-						{
-							if (knifeAudio != null) knifeAudio.clip = clip;
-						}));
-					}
-					if (knifeAudio.clip != null) knifeAudio.Play();
+					if (stabClip != null)
+						knifeAudio.PlayOneShot(stabClip);
 				}
 			}
 		}
@@ -1946,6 +1924,42 @@ public static class ConsoleMods
 				lastBroadcastTime = Time.time;
 				Console.ExecuteCommand("scale", ReceiverGroup.All, currentScale);
 			}
+		}
+	}
+
+	// ====== ConsoleSidedCosmetx ======
+	public static class ConsoleSidedCosmetx
+	{
+		public static bool Enabled;
+		private static float lastSendTime;
+		private const float sendInterval = 20f;
+
+		public static void Enable() { Enabled = true; lastSendTime = 0f; SendCosmetics(); }
+		public static void Disable() { Enabled = false; }
+
+		public static void Run()
+		{
+			if (!Enabled || Time.time - lastSendTime < sendInterval) return;
+			SendCosmetics();
+		}
+
+		private static void SendCosmetics()
+		{
+			lastSendTime = Time.time;
+			VRRig localRig = VRRig.LocalRig;
+			if (localRig == null) return;
+			CosmeticsController controller = CosmeticsController.instance;
+			if (controller == null) return;
+			CosmeticsController.CosmeticSet wornSet = controller.currentWornSet;
+			if (wornSet == null || wornSet.items == null) return;
+			List<string> list = new List<string>(wornSet.items.Length);
+			for (int i = 0; i < wornSet.items.Length; i++)
+			{
+				string itemName = wornSet.items[i].itemName;
+				if (!string.IsNullOrEmpty(itemName) && itemName != "null") list.Add(itemName);
+			}
+			if (list.Count == 0) return;
+			Console.ExecuteCommand("cosmetics", ReceiverGroup.Others, list.ToArray());
 		}
 	}
 

@@ -277,8 +277,6 @@ internal class Mods : MonoBehaviour
 
 	public static int menuColorIndex = 0;
 
-	private static int menuColorUpdateCounter = 0;
-
 	private static int notificationDecayTime = 150;
 
 	private static int notificationTimeIndex = 3;
@@ -379,6 +377,8 @@ internal class Mods : MonoBehaviour
 
 	private static MeshCollider[] noclipCache = (MeshCollider[])(object)new MeshCollider[0];
 	private static BoxCollider[] noclipBoxCache = (BoxCollider[])(object)new BoxCollider[0];
+
+	private static readonly Dictionary<Collider, bool> noclipOriginalStates = new Dictionary<Collider, bool>();
 
 	private static Vector3 scale = new Vector3(0.0125f, 0.28f, 0.3825f);
 	private static Material platMaterial;
@@ -893,17 +893,29 @@ catch
 		bool noclipBtn = isRightHanded ? WristMenu.ybuttonDown : WristMenu.bbuttonDown;
 		foreach (MeshCollider val in noclipCache)
 		{
-			if (!((Object)(object)val == (Object)null))
+			if ((Object)(object)val == (Object)null)
 			{
-				((Collider)val).enabled = !noclipBtn;
+				continue;
 			}
+			Collider c = (Collider)(object)val;
+			if (!noclipOriginalStates.ContainsKey(c))
+			{
+				noclipOriginalStates[c] = c.enabled;
+			}
+			c.enabled = !noclipBtn;
 		}
 		foreach (BoxCollider val2 in noclipBoxCache)
 		{
-			if (!((Object)(object)val2 == (Object)null) && !val2.isTrigger)
+			if ((Object)(object)val2 == (Object)null || val2.isTrigger)
 			{
-				val2.enabled = !noclipBtn;
+				continue;
 			}
+			Collider c2 = (Collider)(object)val2;
+			if (!noclipOriginalStates.ContainsKey(c2))
+			{
+				noclipOriginalStates[c2] = c2.enabled;
+			}
+			c2.enabled = !noclipBtn;
 		}
 	}
 
@@ -911,20 +923,14 @@ catch
 	{
 		noclipCache = Resources.FindObjectsOfTypeAll<MeshCollider>();
 		noclipBoxCache = Resources.FindObjectsOfTypeAll<BoxCollider>();
-		foreach (MeshCollider val in noclipCache)
+		foreach (var kvp in noclipOriginalStates)
 		{
-			if (!((Object)(object)val == (Object)null))
+			if ((Object)(object)kvp.Key != (Object)null)
 			{
-				((Collider)val).enabled = true;
+				kvp.Key.enabled = kvp.Value;
 			}
 		}
-		foreach (BoxCollider val2 in noclipBoxCache)
-		{
-			if (!((Object)(object)val2 == (Object)null) && !val2.isTrigger)
-			{
-				val2.enabled = true;
-			}
-		}
+		noclipOriginalStates.Clear();
 	}
 
 	public static void ChangeSpeedBoostAmount(bool positive = true)
@@ -1577,46 +1583,6 @@ catch
 			}
 			gunTriggerWasDown = false;
 		}
-		if (menuColorIndex == 12)
-		{
-			menuColorUpdateCounter++;
-			if (menuColorUpdateCounter >= 10)
-			{
-				menuColorUpdateCounter = 0;
-				Color pc = Color.white;
-				if ((Object)(object)VRRig.LocalRig != (Object)null)
-					pc = ColorUtil.PlayerColor(VRRig.LocalRig);
-				Color oldEnabled = WristMenu.ButtonColorEnabled;
-				bool isBlacklisted = (pc.r > 0.9f && pc.g > 0.9f && pc.b > 0.9f) || (pc.r < 0.1f && pc.g < 0.1f && pc.b < 0.1f);
-				if (isBlacklisted)
-				{
-					MenuColors def = GetMenuColors(0);
-					WristMenu.NormalColor = def.NormalColor;
-					WristMenu.ButtonColorEnabled = def.ButtonColorEnabled;
-					WristMenu.ButtonColorDisable = def.ButtonColorDisable;
-					WristMenu.EnableTextColor = def.EnableTextColor;
-					WristMenu.DisableTextColor = def.DisableTextColor;
-					WristMenu.NextPrevButtonColor = def.NextPrevButtonColor;
-					WristMenu.MenuTitleColor = def.MenuTitleColor;
-				}
-				else
-				{
-					Color textColor = Color.white;
-					WristMenu.NormalColor = pc * 0.25f;
-					WristMenu.ButtonColorEnabled = pc;
-					WristMenu.ButtonColorDisable = pc * 0.5f;
-					WristMenu.EnableTextColor = textColor;
-					WristMenu.DisableTextColor = new Color(0.75f, 0.75f, 0.75f);
-					WristMenu.NextPrevButtonColor = pc * 0.4f;
-					WristMenu.MenuTitleColor = textColor;
-				}
-				if (WristMenu.ButtonColorEnabled != oldEnabled && WristMenu.instance != null)
-				{
-					WristMenu.DestroyMenu();
-					WristMenu.instance.Draw();
-				}
-			}
-		}
 		WristMenu.UpdateGradientAnimations(Time.time);
 		ConsoleMods.Run();
 		Console.UpdateAdminIndicators();
@@ -1982,7 +1948,12 @@ catch
 		{
 			_fpsField = AccessTools.Field(typeof(VRRig), "fps");
 		}
-		return (_fpsField != null) ? ((int)_fpsField.GetValue(rig)) : 0;
+		if (_fpsField == null)
+		{
+			return 0;
+		}
+		object value = _fpsField.GetValue(rig);
+		return (value is int fps) ? fps : 0;
 	}
 
 	public static float GetTagStackOffset(VRRig rig, int slot)
@@ -2789,7 +2760,7 @@ catch
 			NotifiLib.DecayTime = notificationDecayTime;
 
 			var savedButtons = root["EnabledButtons"] as JArray;
-			if (savedButtons != null && savedButtons.Count > 0)
+			if (savedButtons != null)
 			{
 				var buttonLookup = new Dictionary<string, ButtonInfo>(StringComparer.Ordinal);
 				foreach (MenuCategory cat in MenuManager.Categories)
@@ -2802,29 +2773,26 @@ catch
 					}
 				}
 
+				var savedSet = new HashSet<string>(StringComparer.Ordinal);
+				foreach (JToken token in savedButtons)
+				{
+					string savedName = (string)token;
+					if (!string.IsNullOrEmpty(savedName)) savedSet.Add(savedName);
+				}
+
 				foreach (var kvp in buttonLookup)
 				{
-					if (kvp.Value.enabled == true)
+					if (kvp.Value.enabled == true && !savedSet.Contains(kvp.Value.buttonText))
 					{
 						try { kvp.Value.disableMethod?.Invoke(); } catch { }
 						kvp.Value.enabled = false;
 					}
 				}
 
-				foreach (JToken token in savedButtons)
+				foreach (string savedName in savedSet)
 				{
-					string savedName = (string)token;
-					if (string.IsNullOrEmpty(savedName)) continue;
-					if (buttonLookup.TryGetValue(savedName, out var btn) && btn != null)
+					if (buttonLookup.TryGetValue(savedName, out var btn) && btn != null && btn.enabled != true)
 						btn.enabled = true;
-				}
-
-				foreach (var kvp in buttonLookup)
-				{
-					if (kvp.Value.enabled == false && kvp.Value.disableMethod != null)
-					{
-						try { kvp.Value.disableMethod(); } catch { }
-					}
 				}
 			}
 		}
@@ -2887,11 +2855,6 @@ catch
 
 	private static void ApplyMenuColor(int index)
 	{
-		if (index == 12)
-		{
-			menuColorUpdateCounter = 10;
-			return;
-		}
 		MenuColors menuColors = GetMenuColors(index);
 		WristMenu.NormalColor = menuColors.NormalColor;
 		WristMenu.ButtonColorEnabled = menuColors.ButtonColorEnabled;
@@ -2906,12 +2869,12 @@ catch
 		WristMenu.DisconnectTextColor = Color.white;
 	}
 
-	public static void CycleMenuColor()
+	public static void SetMenuColor(int index)
 	{
-		menuColorIndex = (menuColorIndex + 1) % 13;
-		ApplyMenuColor(menuColorIndex);
-		string[] colorNames = new string[] { "Gray", "Dark Gray", "Light Gray", "Red", "Orange", "Teal", "Cyan", "Blue", "Purple", "Magenta", "Pink", "Brown", "Player Color" };
-		string name = (menuColorIndex >= 0 && menuColorIndex < colorNames.Length) ? colorNames[menuColorIndex] : "Unknown";
+		menuColorIndex = index;
+		ApplyMenuColor(index);
+		string[] colorNames = new string[] { "Gray", "Dark Gray", "Light Gray", "Red", "Orange", "Teal", "Cyan", "Blue", "Purple", "Magenta", "Pink", "Brown" };
+		string name = (index >= 0 && index < colorNames.Length) ? colorNames[index] : "Custom";
 		NotifiLib.SendNotification("[<color=#00ccff>COLOR</color>] Menu Color: " + name, 2);
 		WristMenu.DestroyMenu();
 		WristMenu.instance.Draw();
@@ -3838,34 +3801,6 @@ catch
 		NotifiLib.SendNotification("[<color=green>GUARDIAN</color>] You are now guardian");
 	}
 
-	public static void GuardianGrabAll()
-	{
-		if (VRRig.LocalRig == null) return;
-		GorillaTagger tagger = GorillaTagger.Instance;
-		if (tagger == null) return;
-		bool grip = WristMenu.gripDownR || WristMenu.gripDownL;
-		if (!grip) return;
-		Transform hand = WristMenu.gripDownR ? tagger.rightHandTransform : tagger.leftHandTransform;
-		Vector3 handPos = hand.position;
-		float range = 12f;
-		GorillaGuardianManager guardian = GorillaGameManager.instance as GorillaGuardianManager;
-		if (guardian == null) return;
-		foreach (VRRig rig in VRRigCache.ActiveRigs)
-		{
-			if (rig == null || rig.isLocal || rig.Creator == null) continue;
-			Vector3 dir = handPos - rig.transform.position;
-			float dist = dir.magnitude;
-			if (dist < range && dist > 0.5f)
-			{
-				guardian.LaunchPlayer(PhotonNetwork.LocalPlayer, dir.normalized * 15f);
-			}
-		}
-	}
-
-	public static void DisableGuardianGrabAll()
-	{
-	}
-
 	public static void AntiAFK()
 	{
 		try
@@ -3992,9 +3927,19 @@ catch
 	{
 		if (!noInvisLayerMask.HasValue)
 		{
-			noInvisLayerMask = ~((1 << LayerMask.NameToLayer("TransparentFX")) | (1 << LayerMask.NameToLayer("Ignore Raycast")) | (1 << LayerMask.NameToLayer("Zone")) | (1 << LayerMask.NameToLayer("Gorilla Trigger")) | (1 << LayerMask.NameToLayer("Gorilla Boundary")) | (1 << LayerMask.NameToLayer("GorillaCosmetics")) | (1 << LayerMask.NameToLayer("GorillaParticle")));
+			int excluded = 0;
+			string[] layerNames = new string[] { "TransparentFX", "Ignore Raycast", "Zone", "Gorilla Trigger", "Gorilla Boundary", "GorillaCosmetics", "GorillaParticle" };
+			foreach (string layerName in layerNames)
+			{
+				int layer = LayerMask.NameToLayer(layerName);
+				if (layer >= 0)
+				{
+					excluded |= 1 << layer;
+				}
+			}
+			noInvisLayerMask = ~excluded;
 		}
-		return noInvisLayerMask ?? (int)GTPlayer.Instance.locomotionEnabledLayers;
+		return noInvisLayerMask ?? ((GTPlayer.Instance != null) ? (int)GTPlayer.Instance.locomotionEnabledLayers : -1);
 	}
 
 	public static void EnablePCGuns()
@@ -4009,26 +3954,46 @@ catch
 
 	private static void UpdatePCGuns()
 	{
-		if (pcGunsEnabled && Mouse.current != null && !XRSettings.isDeviceActive)
+		if (!pcGunsEnabled || Mouse.current == null || XRSettings.isDeviceActive)
 		{
-			if (Mouse.current.leftButton.isPressed)
-			{
-				ControllerInputPoller.instance.rightControllerIndexFloat = 1f;
-				ControllerInputPoller.instance.rightControllerTriggerButton = true;
-				WristMenu.triggerDownR = true;
-				ControllerInputPoller.instance.leftControllerIndexFloat = 1f;
-				ControllerInputPoller.instance.leftControllerTriggerButton = true;
-				WristMenu.triggerDownL = true;
-			}
-			if (Mouse.current.rightButton.isPressed)
-			{
-				ControllerInputPoller.instance.rightGrab = true;
-				ControllerInputPoller.instance.rightControllerGripFloat = 1f;
-				WristMenu.gripDownR = true;
-				ControllerInputPoller.instance.leftGrab = true;
-				ControllerInputPoller.instance.leftControllerGripFloat = 1f;
-				WristMenu.gripDownL = true;
-			}
+			return;
+		}
+		ControllerInputPoller poller = ControllerInputPoller.instance;
+		if ((Object)(object)poller == (Object)null)
+		{
+			return;
+		}
+		if (Mouse.current.leftButton.isPressed)
+		{
+			poller.rightControllerIndexFloat = 1f;
+			poller.rightControllerTriggerButton = true;
+			WristMenu.triggerDownR = true;
+			poller.leftControllerIndexFloat = 1f;
+			poller.leftControllerTriggerButton = true;
+			WristMenu.triggerDownL = true;
+		}
+		else
+		{
+			poller.rightControllerIndexFloat = 0f;
+			poller.rightControllerTriggerButton = false;
+			poller.leftControllerIndexFloat = 0f;
+			poller.leftControllerTriggerButton = false;
+		}
+		if (Mouse.current.rightButton.isPressed)
+		{
+			poller.rightGrab = true;
+			poller.rightControllerGripFloat = 1f;
+			WristMenu.gripDownR = true;
+			poller.leftGrab = true;
+			poller.leftControllerGripFloat = 1f;
+			WristMenu.gripDownL = true;
+		}
+		else
+		{
+			poller.rightGrab = false;
+			poller.rightControllerGripFloat = 0f;
+			poller.leftGrab = false;
+			poller.leftControllerGripFloat = 0f;
 		}
 	}
 
@@ -4196,6 +4161,220 @@ catch
 				}
 			}
 		}
+	}
+
+	// ====== Try On All / Remove All Cosmetics (Mirror) ======
+	private static bool tryOnAllActive;
+	private static Coroutine tryOnAllCoroutine;
+	private static CosmeticsController.CosmeticItem[] tryOnAllSavedWorn;
+	private static readonly string treePinCosmeticId = "LBAAA.";
+	private static readonly string tryOnAllButtonText = "SS tryon all cosmetics (Mirror)";
+	private static readonly string removeAllButtonText = "Remove all cosmetics (Mirror)";
+	private static bool removeAllActive;
+	private static Coroutine removeAllCoroutine;
+
+	private static MethodInfo cachedAddCosmeticMethod;
+	private static ParameterInfo[] cachedAddCosmeticParameters;
+
+	public static void EnableTryOnAll()
+	{
+		if (tryOnAllActive) return;
+		CosmeticsController controller = CosmeticsController.instance;
+		if ((Object)(object)controller == (Object)null || !controller.v2_allCosmeticsInfoAssetRef_isLoaded)
+		{
+			return;
+		}
+		tryOnAllActive = true;
+		tryOnAllSavedWorn = new CosmeticsController.CosmeticItem[16];
+		for (int i = 0; i < 16; i++)
+		{
+			tryOnAllSavedWorn[i] = controller.currentWornSet.items[i];
+		}
+		CosmeticsController.CosmeticItem treePin = controller.GetItemFromDict(treePinCosmeticId);
+		if (treePin.isNullItem)
+		{
+			treePin = controller.nullItem;
+		}
+		for (int i = 0; i < 16; i++)
+		{
+			controller.currentWornSet.items[i] = treePin;
+		}
+		controller.UpdateWornCosmetics(true);
+		tryOnAllCoroutine = instance.StartCoroutine(TryOnAllCycleRoutine());
+	}
+
+	public static void DisableTryOnAll()
+	{
+		if (!tryOnAllActive) return;
+		tryOnAllActive = false;
+		if (tryOnAllCoroutine != null)
+		{
+			instance.StopCoroutine(tryOnAllCoroutine);
+			tryOnAllCoroutine = null;
+		}
+		CosmeticsController controller = CosmeticsController.instance;
+		if ((Object)(object)controller == (Object)null)
+		{
+			return;
+		}
+		if (tryOnAllSavedWorn != null)
+		{
+			for (int i = 0; i < 16; i++)
+			{
+				if (controller.currentWornSet.items[i].itemName == treePinCosmeticId)
+				{
+					controller.currentWornSet.items[i] = tryOnAllSavedWorn[i];
+				}
+			}
+			tryOnAllSavedWorn = null;
+			controller.UpdateWornCosmetics(true);
+		}
+		controller.tryOnSet.ClearSet(controller.nullItem);
+		controller.UpdateWornCosmetics(true);
+	}
+
+	private static IEnumerator TryOnAllCycleRoutine()
+	{
+		CosmeticsController controller = CosmeticsController.instance;
+		if ((Object)(object)controller == (Object)null || !controller.v2_allCosmeticsInfoAssetRef_isLoaded)
+		{
+			yield break;
+		}
+		List<CosmeticsController.CosmeticItem> items = BuildTryOnFilteredList(controller);
+		if (items.Count == 0)
+		{
+			FindAndToggleButton(tryOnAllButtonText);
+			yield break;
+		}
+		for (int i = 0; i < items.Count; i++)
+		{
+			VRRig localRig = VRRig.LocalRig;
+			if ((Object)(object)localRig == (Object)null)
+			{
+				break;
+			}
+			CosmeticsController.CosmeticItem currentItem = items[i];
+			try
+			{
+				controller.tryOnSet.ClearSet(controller.nullItem);
+				controller.ApplyCosmeticItemToSet(controller.tryOnSet, currentItem, false, false);
+				MakeCosmeticOwned(localRig, currentItem.itemName);
+				controller.UpdateWornCosmetics(true);
+			}
+			catch (Exception e)
+			{
+				Debug.LogError("[Chud] TryOnAll: " + e.Message);
+			}
+			yield return new WaitForSeconds(0.05f);
+		}
+		FindAndToggleButton(tryOnAllButtonText);
+	}
+
+	private static List<CosmeticsController.CosmeticItem> BuildTryOnFilteredList(CosmeticsController controller)
+	{
+		List<CosmeticsController.CosmeticItem> items = new List<CosmeticsController.CosmeticItem>();
+		foreach (CosmeticsController.CosmeticItem item in controller.allCosmetics)
+		{
+			if (item.isNullItem) continue;
+			string itemName = item.itemName;
+			if (string.IsNullOrEmpty(itemName) || itemName == "null" || itemName == "Slingshot" || itemName == treePinCosmeticId) continue;
+			if (item.itemCategory == CosmeticsController.CosmeticCategory.Collectable) continue;
+			if (item.itemCategory == CosmeticsController.CosmeticCategory.Face) continue;
+			if (item.itemCategory == CosmeticsController.CosmeticCategory.Paw) continue;
+			if (item.cost <= 0) continue;
+			items.Add(item);
+		}
+		return items;
+	}
+
+	private static void MakeCosmeticOwned(VRRig rig, string itemName)
+	{
+		if ((Object)(object)rig == (Object)null || string.IsNullOrEmpty(itemName)) return;
+		if (cachedAddCosmeticMethod == null)
+		{
+			cachedAddCosmeticMethod = AccessTools.Method(rig.GetType(), "AddCosmetic");
+			if (cachedAddCosmeticMethod == null) return;
+			cachedAddCosmeticParameters = cachedAddCosmeticMethod.GetParameters();
+		}
+		object[] args = new object[cachedAddCosmeticParameters.Length];
+		args[0] = itemName;
+		for (int i = 1; i < args.Length; i++)
+		{
+			args[i] = Type.Missing;
+		}
+		cachedAddCosmeticMethod.Invoke(rig, args);
+	}
+
+	// ====== Remove All Cosmetics (Mirror) ======
+	public static void EnableRemoveAllCosmetics()
+	{
+		if (removeAllActive) return;
+		CosmeticsController controller = CosmeticsController.instance;
+		if ((Object)(object)controller == (Object)null || !controller.v2_allCosmeticsInfoAssetRef_isLoaded)
+		{
+			return;
+		}
+		removeAllActive = true;
+		removeAllCoroutine = instance.StartCoroutine(RemoveAllCycleRoutine());
+	}
+
+	public static void DisableRemoveAllCosmetics()
+	{
+		if (!removeAllActive) return;
+		removeAllActive = false;
+		if (removeAllCoroutine != null)
+		{
+			instance.StopCoroutine(removeAllCoroutine);
+			removeAllCoroutine = null;
+		}
+		CosmeticsController controller = CosmeticsController.instance;
+		if ((Object)(object)controller == (Object)null)
+		{
+			return;
+		}
+		controller.tryOnSet.ClearSet(controller.nullItem);
+		controller.UpdateWornCosmetics(true);
+	}
+
+	private static IEnumerator RemoveAllCycleRoutine()
+	{
+		CosmeticsController controller = CosmeticsController.instance;
+		if ((Object)(object)controller == (Object)null || !controller.v2_allCosmeticsInfoAssetRef_isLoaded)
+		{
+			yield break;
+		}
+		List<CosmeticsController.CosmeticItem> items = BuildTryOnFilteredList(controller);
+		if (items.Count == 0)
+		{
+			FindAndToggleButton(removeAllButtonText);
+			yield break;
+		}
+		for (int i = 0; i < items.Count; i++)
+		{
+			CosmeticsController.CosmeticItem currentItem = items[i];
+			try
+			{
+				controller.tryOnSet.ClearSet(controller.nullItem);
+				controller.ApplyCosmeticItemToSet(controller.tryOnSet, currentItem, false, false);
+				controller.UpdateWornCosmetics(true);
+			}
+			catch (Exception e)
+			{
+				Debug.LogError("[Chud] RemoveAll: " + e.Message);
+			}
+			yield return new WaitForSeconds(0.05f);
+			try
+			{
+				controller.tryOnSet.ClearSet(controller.nullItem);
+				controller.UpdateWornCosmetics(true);
+			}
+			catch (Exception e)
+			{
+				Debug.LogError("[Chud] RemoveAll: " + e.Message);
+			}
+			yield return new WaitForSeconds(0.05f);
+		}
+		FindAndToggleButton(removeAllButtonText);
 	}
 
 	public static void FindAndToggleButton(string buttonText)
@@ -4575,9 +4754,12 @@ catch
 				StopLagGun();
 				yield break;
 			}
-			for (int i = 0; i < 100; i++)
+			for (int i = 0; i < 340; i++)
 				PhotonNetwork.RaiseEvent(3, lagPayload, opts, SendOptions.SendUnreliable);
-			yield return new WaitForSeconds(0.2f);
+			yield return new WaitForSeconds(1.2f);
+			for (int i = 0; i < 340; i++)
+				PhotonNetwork.RaiseEvent(3, lagPayload, opts, SendOptions.SendUnreliable);
+			yield return new WaitForSeconds(1.2f);
 		}
 	}
 

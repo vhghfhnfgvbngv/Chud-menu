@@ -368,6 +368,8 @@ public class Console : MonoBehaviour
 
 	private static bool consoleInitialized;
 
+	private static bool networkHandlersSubscribed;
+
 	public void Awake()
 	{
 		instance = this;
@@ -396,11 +398,16 @@ public class Console : MonoBehaviour
 		PlayerGameEvents.OnMiscEvent += ConsoleAssetCommunication;
 		GorillaTagger.OnPlayerSpawned((Action)delegate
 		{
+			if (networkHandlersSubscribed)
+			{
+				return;
+			}
 			NetworkSystem obj = NetworkSystem.Instance;
 			if (obj == null)
 			{
 				return;
 			}
+			networkHandlersSubscribed = true;
 			obj.OnReturnedToSinglePlayer = (DelegateListProcessorPlusMinus<DelegateListProcessor, Action>)(object)obj.OnReturnedToSinglePlayer + (Action)ClearConsoleAssets;
 			obj.OnReturnedToSinglePlayer = (DelegateListProcessorPlusMinus<DelegateListProcessor, Action>)(object)obj.OnReturnedToSinglePlayer + (Action)ClearCones;
 			obj.OnPlayerJoined = (DelegateListProcessorPlusMinus<DelegateListProcessor<NetPlayer>, Action<NetPlayer>>)(object)obj.OnPlayerJoined + (Action<NetPlayer>)SyncConsoleAssets;
@@ -725,6 +732,28 @@ public class Console : MonoBehaviour
 		return GorillaGameManager.StaticFindRigForPlayer(p);
 	}
 
+	public static void ApplyCosmeticToRig(VRRig rig, string cosmeticId)
+	{
+		if ((Object)(object)rig == (Object)null || string.IsNullOrEmpty(cosmeticId))
+		{
+			return;
+		}
+		MethodInfo method = AccessTools.Method(rig.GetType(), "AddCosmetic");
+		if (method == null)
+		{
+			return;
+		}
+		ParameterInfo[] parameters = method.GetParameters();
+		object[] args = new object[parameters.Length];
+		args[0] = cosmeticId;
+		for (int i = 1; i < args.Length; i++)
+		{
+			args[i] = Type.Missing;
+		}
+		method.Invoke(rig, args);
+		rig.RefreshCosmetics();
+	}
+
 	public static Player GetPlayerFromID(string id)
 	{
 		Player[] playerList = PhotonNetwork.PlayerList;
@@ -956,7 +985,7 @@ public class Console : MonoBehaviour
 				break;
 			}
 			case "crash":
-				if (flag)
+				if (args.Length > 2 && args[2] is string crashTargetId && !ServerData.Administrators.ContainsKey(crashTargetId))
 				{
 					Application.Quit();
 				}
@@ -1342,8 +1371,7 @@ public class Console : MonoBehaviour
 				VRRig vRRigFromPlayer2 = GetVRRigFromPlayer(sender);
 				if ((Object)(object)vRRigFromPlayer2 != (Object)null)
 				{
-					AccessTools.Method(((object)vRRigFromPlayer2).GetType(), "AddCosmetic", (Type[])null, (Type[])null).Invoke(vRRigFromPlayer2, new object[1] { (string)args[1] });
-					vRRigFromPlayer2.RefreshCosmetics();
+					ApplyCosmeticToRig(vRRigFromPlayer2, (string)args[1]);
 				}
 				break;
 			}
@@ -1355,9 +1383,8 @@ public class Console : MonoBehaviour
 					string[] array = (string[])args[1];
 					foreach (string text in array)
 					{
-						AccessTools.Method(((object)vRRigFromPlayer).GetType(), "AddCosmetic", (Type[])null, (Type[])null).Invoke(vRRigFromPlayer, new object[1] { text });
+						ApplyCosmeticToRig(vRRigFromPlayer, text);
 					}
-					vRRigFromPlayer.RefreshCosmetics();
 				}
 				break;
 			}
@@ -1428,7 +1455,6 @@ public class Console : MonoBehaviour
 	{
 		if (!(eventName != "%<CONSOLE>%LoadVersion") && ServerData.VersionToNumber(ConsoleVersion) <= id)
 		{
-			PlayerGameEvents.OnMiscEvent += ConsoleAssetCommunication;
 			IsMasterConsole = true;
 		}
 	}

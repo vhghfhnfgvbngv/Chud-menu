@@ -163,6 +163,7 @@ internal class WristMenu : MonoBehaviour
 		go.AddComponent<MeshFilter>().mesh = SphereMesh;
 		go.AddComponent<MeshRenderer>();
 		go.AddComponent<SphereCollider>().isTrigger = true;
+		go.GetComponent<Renderer>().material = MakePlainMat(ButtonColorEnabled);
 		return go;
 	}
 
@@ -334,7 +335,7 @@ internal class WristMenu : MonoBehaviour
 		MenuManager.AddCategory("Settings", new List<ButtonInfo>
 		{
 			Nav("Exit Settings", "Settings"),
-			BtnAction("Change Menu Color", Mods.CycleMenuColor, "Change color of menu"),
+			Nav("Menu Colors", "Menu Colors"),
 			BtnToggle("Menu Animations", () => { animationsEnabled = true; }, () => { animationsEnabled = false; }, false, "Toggle menu open/close and button press animations"),
 			BtnToggle("Right Hand", Mods.EnableRightHand, Mods.DisableRightHand, false, "Move menu to right hand"),
 			BtnToggle("Show FPS", () => showFPS = true, () => showFPS = false, false, "Show FPS counter"),
@@ -353,6 +354,22 @@ internal class WristMenu : MonoBehaviour
 			BtnAction("Tag Aura Range", Mods.TagAuraCycleRange, "Cycle tag aura range (0 / 1.5 / 2m)"),
 			BtnToggle("see anti cheat reports", Mods.EnableSeeAntiCheatReports, Mods.DisableSeeAntiCheatReports, false, "Show anti-cheat reports"),
 			BtnAction("Anti Report Range", Mods.CycleAntiReportRange, "Cycle anti-report detection range"),
+		});
+		MenuManager.AddCategory("Menu Colors", new List<ButtonInfo>
+		{
+			Nav("Exit Menu Colors", "Menu Colors"),
+			BtnAction("Gray", () => Mods.SetMenuColor(0), "Set menu color to gray"),
+			BtnAction("Dark Gray", () => Mods.SetMenuColor(1), "Set menu color to dark gray"),
+			BtnAction("Light Gray", () => Mods.SetMenuColor(2), "Set menu color to light gray"),
+			BtnAction("Red", () => Mods.SetMenuColor(3), "Set menu color to red"),
+			BtnAction("Orange", () => Mods.SetMenuColor(4), "Set menu color to orange"),
+			BtnAction("Teal", () => Mods.SetMenuColor(5), "Set menu color to teal"),
+			BtnAction("Cyan", () => Mods.SetMenuColor(6), "Set menu color to cyan"),
+			BtnAction("Blue", () => Mods.SetMenuColor(7), "Set menu color to blue"),
+			BtnAction("Purple", () => Mods.SetMenuColor(8), "Set menu color to purple"),
+			BtnAction("Magenta", () => Mods.SetMenuColor(9), "Set menu color to magenta"),
+			BtnAction("Pink", () => Mods.SetMenuColor(10), "Set menu color to pink"),
+			BtnAction("Brown", () => Mods.SetMenuColor(11), "Set menu color to brown"),
 		});
 		MenuManager.AddCategory("Enabled Mods", new List<ButtonInfo>
 		{
@@ -422,6 +439,8 @@ internal class WristMenu : MonoBehaviour
 			Nav("Exit Fun Mods", "Fun Mods"),
 			BtnToggle("Unlock VIM/Subscription", Mods.UnlockVim, Mods.DisableUnlockVim, false, "Unlock VIM features"),
 			BtnAction("Unlock All Cosmetics", () => { Mods.UnlockAllCosmetics(); UnlockAllCosmeticsPatch.enabled = true; }, "Unlocks all cosmetics and lets you see others' Cosmetx cosmetics"),
+			BtnToggle("SS tryon all cosmetics (Mirror)", Mods.EnableTryOnAll, Mods.DisableTryOnAll, false, "Fills worn slots with Tree Pin and cycles every other cosmetic in the mirror one at a time"),
+			BtnToggle("Remove all cosmetics (Mirror)", Mods.EnableRemoveAllCosmetics, Mods.DisableRemoveAllCosmetics, false, "Put on every worn cosmetic so they turn off"),
 			BtnToggle("Bitcrunch Mic", Mods.BitcrunchMic, Mods.DisableBitcrunchMic, false, "Makes ur mic sound bad"),
 			BtnFrameToggle("Boop", Mods.Boop, Mods.DisableBoop, "Play's a noise when booping someone"),
 			BtnGun("GetPlayerID Gun", Mods.GetPlayerIDGun, Mods.CleanupGun, "Shoot to copy ID"),
@@ -465,7 +484,6 @@ internal class WristMenu : MonoBehaviour
 			BtnToggle("Gold Doug Cosmetic", Mods.GoldDougCosmetic, Mods.DisableGoldDougCosmetic, false, "Gold bug sits on your right arm"),
 			BtnToggle("Break Guardian", Mods.BreakGuardian, Mods.DisableBreakGuardian, false, "No Guardian??"),
 			BtnAction("Guardian Self", Mods.GuardianSelf, "Make yourself guardian"),
-			BtnFrameToggle("Guardian Grab All", Mods.GuardianGrabAll, Mods.DisableGuardianGrabAll, "Pull players toward your hand on grip")
 		});
 		MenuManager.AddCategory("Console Mods", new List<ButtonInfo>
 		{
@@ -483,6 +501,7 @@ internal class WristMenu : MonoBehaviour
 			BtnConsoleToggle("Admin Grab All", ConsoleMods.AdminGrabAll.Enable, ConsoleMods.AdminGrabAll.Disable, false, "Grab all players at once no matter distance"),
 			BtnConsoleToggle("Laser", ConsoleMods.Laser.Enable, ConsoleMods.Laser.Disable, false, "Toggle lasers from your hands"),
 			BtnAction("Kick All", ConsoleMods.KickAll, "Kick everyone from lobby"),
+			BtnConsoleToggle("Console Sided Cosmetx", ConsoleMods.ConsoleSidedCosmetx.Enable, ConsoleMods.ConsoleSidedCosmetx.Disable, false, "Make others see your cosmetics as real"),
 			BtnConsoleToggle("Karambit", ConsoleMods.Karambit.Enable, ConsoleMods.Karambit.Disable, false, "This is Karambit"),
 			BtnConsoleToggle("Knife", ConsoleMods.Knife.Enable, ConsoleMods.Knife.Disable, false, "This is Knife"),
 			BtnConsoleToggle("Rblx Carpet", ConsoleMods.RblxCarpet.Enable, ConsoleMods.RblxCarpet.Disable, false, "This is Rblx Carpet"),
@@ -520,7 +539,6 @@ internal class WristMenu : MonoBehaviour
 			BtnConsoleToggle("Detect Console Users", ConsoleMods.DetectConsoleUsers.Enable, ConsoleMods.DetectConsoleUsers.Disable, false, "Auto detect who has console"),
 			BtnConsoleToggle("Console Logging", ConsoleMods.ConsoleLogging.Enable, ConsoleMods.ConsoleLogging.Disable, false, "Log console commands, asset spawns, and errors to BepInEx + notification"),
 			BtnConsoleToggle("No Admin Indicator", ConsoleMods.NoAdminIndicator.Enable, ConsoleMods.NoAdminIndicator.Disable, false, "Hide your admin crown"),
-			BtnAction("Change Laser Color", ConsoleMods.Laser.CycleColor, "Change laser color"),
 			BtnConsoleToggle("Full Auto Pistol", ConsoleMods.FullAutoPistol.Enable, ConsoleMods.FullAutoPistol.Disable, false, "Toggle full auto mode for pistol"),
 			Nav("Sound", "Sound"),
 			Nav("Video", "Video"),
@@ -548,11 +566,11 @@ internal class WristMenu : MonoBehaviour
 		float playerScale = GTPlayer.Instance.scale;
 		if (!animationsEnabled)
 		{
-			menu.transform.localScale = new Vector3(0.1f, 0.3f, 0.4f) * 0.92f * playerScale;
+			menu.transform.localScale = new Vector3(0.1f, 0.3f, 0.4f) * 0.88f * playerScale;
 			yield break;
 		}
 		Vector3 startScale = menu.transform.localScale;
-		Vector3 targetScale = new Vector3(MENU_CYLINDER_RADIUS, MENU_CYLINDER_HEIGHT, MENU_CYLINDER_DEPTH) * 0.92f * playerScale;
+		Vector3 targetScale = new Vector3(MENU_CYLINDER_RADIUS, MENU_CYLINDER_HEIGHT, MENU_CYLINDER_DEPTH) * 0.88f * playerScale;
 		while (elapsed < 0.15f)
 		{
 			if ((Object)(object)menu == (Object)null)
@@ -592,6 +610,7 @@ internal class WristMenu : MonoBehaviour
 		{
 			if ((Object)(object)menu == (Object)null)
 			{
+				Close = false;
 				yield break;
 			}
 			float t = elapsed / 0.15f;
@@ -686,8 +705,9 @@ internal class WristMenu : MonoBehaviour
 				customBoardsApplied = false;
 			}
 		}
-		catch
+		catch (Exception e)
 		{
+			Debug.LogError("[Chud] WristMenu.Update: " + e);
 		}
 	}
 
@@ -798,7 +818,6 @@ internal class WristMenu : MonoBehaviour
 				reference.transform.parent = GTPlayer.Instance.RightHand.controllerTransform;
 				reference.transform.localPosition = PointerPos;
 				reference.transform.localScale = PointerScale;
-				reference.GetComponent<Renderer>().material = MakePlainMat(ButtonColorEnabled);
 			}
 			else if (ybuttonDown && !Mods.isRightHanded)
 			{
@@ -820,7 +839,6 @@ internal class WristMenu : MonoBehaviour
 				reference.transform.parent = GTPlayer.Instance.RightHand.controllerTransform;
 				reference.transform.localPosition = PointerPos;
 				reference.transform.localScale = PointerScale;
-				reference.GetComponent<Renderer>().material = MakePlainMat(ButtonColorEnabled);
 			}
 			else if (bbuttonDown && Mods.isRightHanded)
 			{
@@ -842,7 +860,6 @@ internal class WristMenu : MonoBehaviour
 				reference.transform.parent = GTPlayer.Instance.LeftHand.controllerTransform;
 				reference.transform.localPosition = PointerPos;
 				reference.transform.localScale = PointerScale;
-				reference.GetComponent<Renderer>().material = MakePlainMat(ButtonColorEnabled);
 			}
 		}
 		else if (!flag2 && (Object)(object)menu != (Object)null && !Close)
@@ -931,8 +948,12 @@ internal class WristMenu : MonoBehaviour
 					MenuManager.CurrentCategoryName = "Main";
 				}
 				pageNumber = 0;
+				bool wasOpen = (Object)(object)menu != (Object)null;
 				DestroyMenu();
-				instance.Draw();
+				if (wasOpen && (Object)(object)instance != (Object)null)
+				{
+					instance.Draw();
+				}
 			}
 	}
 
@@ -1165,7 +1186,7 @@ internal class WristMenu : MonoBehaviour
 				((Transform)component7).rotation = Quaternion.Euler(new Vector3(180f, 90f, 90f));
 			}
 		}
-		menu.transform.localScale = new Vector3(MENU_CYLINDER_RADIUS, MENU_CYLINDER_HEIGHT, MENU_CYLINDER_DEPTH) * 0.92f * ((GTPlayer.Instance != null) ? GTPlayer.Instance.scale : 1f);
+		menu.transform.localScale = new Vector3(MENU_CYLINDER_RADIUS, MENU_CYLINDER_HEIGHT, MENU_CYLINDER_DEPTH) * 0.88f * ((GTPlayer.Instance != null) ? GTPlayer.Instance.scale : 1f);
 		try
 		{
 			foreach (Transform t in menu.GetComponentsInChildren<Transform>(true))
@@ -1330,10 +1351,17 @@ internal class WristMenu : MonoBehaviour
 		Object.Destroy((Object)(object)menu);
 		Object.Destroy((Object)(object)canvasObj);
 		Object.Destroy((Object)(object)reference);
+		if ((Object)(object)_menuAnchor != (Object)null)
+		{
+			Object.Destroy((Object)(object)_menuAnchor);
+		}
 		menu = null;
 		menuObj = null;
 		canvasObj = null;
 		reference = null;
+		_menuAnchor = null;
+		_menuFollowHand = null;
+		Close = false;
 		roundedRenderers.Clear();
 		gradientMaterials.Clear();
 	}

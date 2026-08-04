@@ -278,6 +278,7 @@ public class NotifiLib : MonoBehaviour
 		{
 			notificationText.text = "";
 		}
+		lineDecayTimes.Clear();
 		_desktopNotis.Clear();
 	}
 
@@ -289,6 +290,13 @@ public class NotifiLib : MonoBehaviour
 				where l != ""
 				select l).ToArray();
 			notificationText.text = string.Join("\n", array) + ((array.Length != 0) ? "\n" : "");
+		}
+		for (int i = 0; i < amount; i++)
+		{
+			if (lineDecayTimes.Count > 0)
+			{
+				lineDecayTimes.Dequeue();
+			}
 		}
 		for (int i = 0; i < amount && _desktopNotis.Count > 0; i++)
 		{
