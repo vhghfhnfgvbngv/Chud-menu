@@ -299,7 +299,10 @@ internal class Mods : MonoBehaviour
 
 	private static float lastUntagSelfTime;
 
-	private static float tagUntaggedCooldown = 0f;
+	private static VRRig guardianSpazTarget;
+	private static float guardianSpazTimer;
+	private static float lastGuardianGunTime;
+	private static float lastUnguardianGunTime;
 
 	private static Vector3 stumpPosition = new Vector3(-66.871f, 12.086f, -82.637f);
 
@@ -308,6 +311,8 @@ internal class Mods : MonoBehaviour
 	private static int spazAllFrameCounter = 0;
 
 	private static bool spazSelfActive = false;
+
+	private static int spazSelfFrameCounter = 0;
 
 
 	private static bool gunTriggerWasDown = false;
@@ -1567,9 +1572,14 @@ catch
 					RunSpaz();
 				}
 			}
-			else
+			if (spazSelfActive)
 			{
-				RunSpaz();
+				spazSelfFrameCounter++;
+				if (spazSelfFrameCounter >= 5)
+				{
+					spazSelfFrameCounter = 0;
+					RunSpaz();
+				}
 			}
 		}
 		if (!flag && (Object)(object)pointer != (Object)null)
@@ -3215,19 +3225,12 @@ catch
 				VRRig val3 = GetGunTargetPlayer();
 				if (val3 != null && !val3.isLocal)
 				{
-					GorillaTagManager val5 = GorillaGameManager.instance as GorillaTagManager;
-					if (val5 != null && !val5.IsInfected(val3.Creator))
-					{
-						if (PhotonNetwork.IsMasterClient)
-						{
-							val5.AddInfectedPlayer(val3.Creator, true);
-						}
-						else
-						{
-							tagGunLockedTarget = val3;
-							tagGunFramesUntilTag = 12;
-						}
-					}
+				GorillaTagManager val5 = GorillaGameManager.instance as GorillaTagManager;
+				if (val5 != null && !val5.IsInfected(val3.Creator))
+				{
+					tagGunLockedTarget = val3;
+					tagGunFramesUntilTag = 12;
+				}
 				}
 			}, delegate { });
 			if (tagGunLockedTarget != null && pointer != null && Line != null)
@@ -3251,14 +3254,7 @@ catch
 		if (tagGunFramesUntilTag <= 0)
 		{
 			tagGunFramesUntilTag = 12;
-			if (PhotonNetwork.IsMasterClient)
-			{
-				val2.AddInfectedPlayer(tagGunLockedTarget.Creator, true);
-			}
-			else
-			{
-				GameMode.ReportTag(tagGunLockedTarget.Creator);
-			}
+			GameMode.ReportTag(tagGunLockedTarget.Creator);
 		}
 	}
 
@@ -3303,12 +3299,6 @@ catch
 
 			tagAllTarget = tagAllTargets[tagAllIndex];
 			tagAllIndex++;
-			if (PhotonNetwork.IsMasterClient)
-			{
-				val2.AddInfectedPlayer(tagAllTarget.Creator, true);
-				tagAllTarget = null;
-				return;
-			}
 			tagAllFramesUntilTag = 30;
 		}
 
@@ -3350,10 +3340,7 @@ catch
 		{
 			VRRig rig = col.GetComponentInParent<VRRig>();
 			if (rig == null || rig.isLocal || rig.Creator == null || tgm.IsInfected(rig.Creator)) continue;
-			if (PhotonNetwork.IsMasterClient)
-				tgm.AddInfectedPlayer(rig.Creator, true);
-			else
-				GameMode.ReportTag(rig.Creator);
+			GameMode.ReportTag(rig.Creator);
 			tagAuraCooldown = Time.time + 0.1f;
 		}
 	}
@@ -3424,53 +3411,6 @@ catch
 				}
 			}
 		});
-	}
-
-	public static void TagWhileNotTagged()
-	{
-		float num = 0.15f;
-		Collider[] array = Physics.OverlapSphere(GorillaTagger.Instance.rightHandTransform.position, num);
-		Collider[] array2 = array;
-		foreach (Collider val in array2)
-		{
-			VRRig componentInParent = ((Component)val).GetComponentInParent<VRRig>();
-			if (!((Object)(object)componentInParent != (Object)null) || componentInParent.isLocal || componentInParent.Creator == null || !(Time.time > tagUntaggedCooldown))
-			{
-				continue;
-			}
-			GorillaGameManager val2 = GorillaGameManager.instance;
-			if ((Object)(object)val2 != (Object)null)
-			{
-				GorillaTagManager val3 = (GorillaTagManager)(object)((val2 is GorillaTagManager) ? val2 : null);
-				if (val3 != null && !val3.IsInfected(componentInParent.Creator))
-				{
-					val3.AddInfectedPlayer(componentInParent.Creator, true);
-					tagUntaggedCooldown = Time.time + 0.3f;
-					NotifiLib.SendNotification("[<color=green>MASTER</color>] Tagged " + componentInParent.Creator.NickName);
-				}
-			}
-		}
-		array = Physics.OverlapSphere(GorillaTagger.Instance.leftHandTransform.position, num);
-		Collider[] array3 = array;
-		foreach (Collider val4 in array3)
-		{
-			VRRig componentInParent2 = ((Component)val4).GetComponentInParent<VRRig>();
-			if (!((Object)(object)componentInParent2 != (Object)null) || componentInParent2.isLocal || componentInParent2.Creator == null || !(Time.time > tagUntaggedCooldown))
-			{
-				continue;
-			}
-			GorillaGameManager val5 = GorillaGameManager.instance;
-			if ((Object)(object)val5 != (Object)null)
-			{
-				GorillaTagManager val6 = (GorillaTagManager)(object)((val5 is GorillaTagManager) ? val5 : null);
-				if (val6 != null && !val6.IsInfected(componentInParent2.Creator))
-				{
-					val6.AddInfectedPlayer(componentInParent2.Creator, true);
-					tagUntaggedCooldown = Time.time + 0.3f;
-					NotifiLib.SendNotification("[<color=green>MASTER</color>] Tagged " + componentInParent2.Creator.NickName);
-				}
-			}
-		}
 	}
 
 	public static void TeleportToSpawn()
@@ -3799,6 +3739,138 @@ catch
 			zm.SetGuardian(local);
 		}
 		NotifiLib.SendNotification("[<color=green>GUARDIAN</color>] You are now guardian");
+	}
+
+	// ====== Guardian Guns ======
+	public static void GuardianGun()
+	{
+		MakeRightHandGun(delegate
+		{
+			if (Time.time < lastGuardianGunTime) return;
+			VRRig rig = GetGunTargetPlayer();
+			if (rig == null || rig.isLocal || rig.Creator == null) return;
+			foreach (GorillaGuardianZoneManager zm in GorillaGuardianZoneManager.zoneManagers)
+			{
+				zm.SetGuardian(rig.Creator);
+			}
+			lastGuardianGunTime = Time.time + 0.3f;
+		});
+	}
+
+	public static void UnguardianGun()
+	{
+		MakeRightHandGun(delegate
+		{
+			if (Time.time < lastUnguardianGunTime) return;
+			VRRig rig = GetGunTargetPlayer();
+			if (rig == null || rig.Creator == null) return;
+			GorillaGuardianManager guardian = GorillaGameManager.instance as GorillaGuardianManager;
+			if (guardian == null) return;
+			if (!guardian.IsPlayerGuardian(rig.Creator)) return;
+			if (PhotonNetwork.IsMasterClient)
+			{
+				guardian.EjectGuardian(rig.Creator);
+			}
+			else
+			{
+				guardian.RequestEjectGuardian(rig.Creator);
+			}
+			lastUnguardianGunTime = Time.time + 0.3f;
+		});
+	}
+
+	public static void GuardianSpazGun()
+	{
+		bool gripDown = isRightHanded ? WristMenu.gripDownL : WristMenu.gripDownR;
+		if (!gripDown)
+		{
+			guardianSpazTarget = null;
+			CleanupGun();
+			return;
+		}
+		MakeRightHandGun(delegate
+		{
+			VRRig rig = GetGunTargetPlayer();
+			if (rig != null && !rig.isLocal && rig.Creator != null)
+			{
+				guardianSpazTarget = rig;
+			}
+		}, delegate { });
+		if (guardianSpazTarget == null || guardianSpazTarget.Creator == null) return;
+		if (pointer != null && Line != null)
+		{
+			pointer.transform.position = ((Component)guardianSpazTarget).transform.position;
+			Line.SetPosition(1, ((Component)guardianSpazTarget).transform.position);
+		}
+		if (Time.time < guardianSpazTimer) return;
+		guardianSpazTimer = Time.time + 0.15f;
+		GorillaGuardianManager guardian = GorillaGameManager.instance as GorillaGuardianManager;
+		if (guardian == null) return;
+		if (guardian.IsPlayerGuardian(guardianSpazTarget.Creator))
+		{
+			guardian.EjectGuardian(guardianSpazTarget.Creator);
+		}
+		else
+		{
+			foreach (GorillaGuardianZoneManager zm in GorillaGuardianZoneManager.zoneManagers)
+			{
+				zm.SetGuardian(guardianSpazTarget.Creator);
+			}
+		}
+	}
+
+	// ====== Paint Brawl Mods ======
+	public static void PaintBrawlKillAll()
+	{
+		GorillaGameManager gm = GorillaGameManager.instance;
+		GorillaPaintbrawlManager pb = gm as GorillaPaintbrawlManager;
+		if (pb == null || !NetworkSystem.Instance.IsMasterClient)
+		{
+			return;
+		}
+		Player[] playerList = PhotonNetwork.PlayerList;
+		for (int i = 0; i < playerList.Length; i++)
+		{
+			NetPlayer p = playerList[i];
+			if (p.IsLocal) continue;
+			try { pb.HitPlayer(p); } catch { }
+		}
+	}
+
+	public static void PaintBrawlKillGun()
+	{
+		MakeRightHandGun(delegate
+		{
+			VRRig rig = GetGunTargetPlayer();
+			if (rig == null || rig.isLocal || rig.Creator == null) return;
+			GorillaPaintbrawlManager pb = GorillaGameManager.instance as GorillaPaintbrawlManager;
+			if (pb == null || !NetworkSystem.Instance.IsMasterClient) return;
+			pb.HitPlayer(rig.Creator);
+		});
+	}
+
+	public static void ReviveGun()
+	{
+		MakeRightHandGun(delegate
+		{
+			VRRig rig = GetGunTargetPlayer();
+			if (rig == null || rig.Creator == null) return;
+			GorillaPaintbrawlManager pb = GorillaGameManager.instance as GorillaPaintbrawlManager;
+			if (pb == null || !NetworkSystem.Instance.IsMasterClient) return;
+			int actor = rig.Creator.ActorNumber;
+			pb.playerLives[actor] = 3;
+			GorillaPaintbrawlManager.PaintbrawlStatus status = pb.GetPlayerStatus(rig.Creator);
+			GorillaPaintbrawlManager.PaintbrawlStatus team = GorillaPaintbrawlManager.PaintbrawlStatus.Normal;
+			if ((status & GorillaPaintbrawlManager.PaintbrawlStatus.RedTeam) != 0)
+			{
+				team = GorillaPaintbrawlManager.PaintbrawlStatus.RedTeam;
+			}
+			else if ((status & GorillaPaintbrawlManager.PaintbrawlStatus.BlueTeam) != 0)
+			{
+				team = GorillaPaintbrawlManager.PaintbrawlStatus.BlueTeam;
+			}
+			pb.playerStatusDict[actor] = team;
+		});
 	}
 
 	public static void AntiAFK()

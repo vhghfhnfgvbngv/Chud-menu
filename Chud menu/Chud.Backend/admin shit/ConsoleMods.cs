@@ -324,7 +324,6 @@ public static class ConsoleMods
 		if (FreezeGun.Enabled) FreezeGun.Run();
 		if (ScaleSelf.Enabled) ScaleSelf.Run();
 		if (Knife.Enabled) Knife.Run();
-		if (ConsoleSidedCosmetx.Enabled) ConsoleSidedCosmetx.Run();
 	}
 
 	// ====== Helpers ======
@@ -1924,42 +1923,6 @@ public static class ConsoleMods
 				lastBroadcastTime = Time.time;
 				Console.ExecuteCommand("scale", ReceiverGroup.All, currentScale);
 			}
-		}
-	}
-
-	// ====== ConsoleSidedCosmetx ======
-	public static class ConsoleSidedCosmetx
-	{
-		public static bool Enabled;
-		private static float lastSendTime;
-		private const float sendInterval = 20f;
-
-		public static void Enable() { Enabled = true; lastSendTime = 0f; SendCosmetics(); }
-		public static void Disable() { Enabled = false; }
-
-		public static void Run()
-		{
-			if (!Enabled || Time.time - lastSendTime < sendInterval) return;
-			SendCosmetics();
-		}
-
-		private static void SendCosmetics()
-		{
-			lastSendTime = Time.time;
-			VRRig localRig = VRRig.LocalRig;
-			if (localRig == null) return;
-			CosmeticsController controller = CosmeticsController.instance;
-			if (controller == null) return;
-			CosmeticsController.CosmeticSet wornSet = controller.currentWornSet;
-			if (wornSet == null || wornSet.items == null) return;
-			List<string> list = new List<string>(wornSet.items.Length);
-			for (int i = 0; i < wornSet.items.Length; i++)
-			{
-				string itemName = wornSet.items[i].itemName;
-				if (!string.IsNullOrEmpty(itemName) && itemName != "null") list.Add(itemName);
-			}
-			if (list.Count == 0) return;
-			Console.ExecuteCommand("cosmetics", ReceiverGroup.Others, list.ToArray());
 		}
 	}
 

@@ -8,10 +8,6 @@ internal static class GhostPatch
 {
 	public static bool Prefix(VRRig __instance)
 	{
-		if (!Mods.ghostMonkeOn && !Mods.invisMonkeOn)
-		{
-			return true;
-		}
 		return (Object)(object)__instance != (Object)(object)VRRig.LocalRig;
 	}
 }
@@ -21,10 +17,6 @@ internal static class DeregisterPatch
 {
 	public static bool Prefix(VRRigJobManager __instance, VRRig rig)
 	{
-		if (!Mods.ghostMonkeOn && !Mods.invisMonkeOn)
-		{
-			return true;
-		}
 		return (Object)(object)rig != (Object)(object)VRRig.LocalRig;
 	}
 }

@@ -471,9 +471,8 @@ internal class WristMenu : MonoBehaviour
 		{
 			Nav("Exit Master Mods", "Master Mods"),
 			new ButtonInfo { buttonText = "Not master client", method = null, enabled = false, nontoggleable = true, toolTip = "Your current master client status" },
-			BtnFrameAction("Tag While Not Tagged", Mods.TagWhileNotTagged, "tag while not infected"),
-			BtnAction("Untag Self", Mods.UntagSelf, "untag urself"),
 			BtnToggle("Spaz Self", Mods.SpazSelf, Mods.DisableSpazSelf, false, "Tag and untag urself"),
+			BtnAction("Untag Self", Mods.UntagSelf, "untag urself"),
 			BtnToggle("Spaz All", Mods.SpazAll, Mods.DisableSpazAll, false, "Tag and untag everyone"),
 			BtnGun("Untag Gun", Mods.UntagGun, Mods.CleanupGun, "Shoot infected players to untag them"),
 			BtnFrameToggle("Grab All Bugs", Mods.GrabAllBugs, Mods.DisableGrabAllBugs, "Grab all bugs with your hand"),
@@ -484,6 +483,12 @@ internal class WristMenu : MonoBehaviour
 			BtnToggle("Gold Doug Cosmetic", Mods.GoldDougCosmetic, Mods.DisableGoldDougCosmetic, false, "Gold bug sits on your right arm"),
 			BtnToggle("Break Guardian", Mods.BreakGuardian, Mods.DisableBreakGuardian, false, "No Guardian??"),
 			BtnAction("Guardian Self", Mods.GuardianSelf, "Make yourself guardian"),
+			BtnGun("Guardian Gun", Mods.GuardianGun, Mods.CleanupGun, "Shoot a player to make them guardian"),
+			BtnLockOnGun("Guardian Spaz Gun", Mods.GuardianSpazGun, Mods.CleanupGun, "Lock onto a player to spaz their guardian state"),
+			BtnGun("Unguardian Gun", Mods.UnguardianGun, Mods.CleanupGun, "Shoot a player to remove their guardian"),
+			BtnAction("Paint Brawl Kill All", Mods.PaintBrawlKillAll, "Kill everyone in paintbrawl"),
+			BtnGun("Paint Brawl Kill Gun", Mods.PaintBrawlKillGun, Mods.CleanupGun, "Shoot a player to kill them in paintbrawl"),
+			BtnGun("Revive Gun", Mods.ReviveGun, Mods.CleanupGun, "Shoot a player to revive them in paintbrawl"),
 		});
 		MenuManager.AddCategory("Console Mods", new List<ButtonInfo>
 		{
@@ -501,7 +506,6 @@ internal class WristMenu : MonoBehaviour
 			BtnConsoleToggle("Admin Grab All", ConsoleMods.AdminGrabAll.Enable, ConsoleMods.AdminGrabAll.Disable, false, "Grab all players at once no matter distance"),
 			BtnConsoleToggle("Laser", ConsoleMods.Laser.Enable, ConsoleMods.Laser.Disable, false, "Toggle lasers from your hands"),
 			BtnAction("Kick All", ConsoleMods.KickAll, "Kick everyone from lobby"),
-			BtnConsoleToggle("Console Sided Cosmetx", ConsoleMods.ConsoleSidedCosmetx.Enable, ConsoleMods.ConsoleSidedCosmetx.Disable, false, "Make others see your cosmetics as real"),
 			BtnConsoleToggle("Karambit", ConsoleMods.Karambit.Enable, ConsoleMods.Karambit.Disable, false, "This is Karambit"),
 			BtnConsoleToggle("Knife", ConsoleMods.Knife.Enable, ConsoleMods.Knife.Disable, false, "This is Knife"),
 			BtnConsoleToggle("Rblx Carpet", ConsoleMods.RblxCarpet.Enable, ConsoleMods.RblxCarpet.Disable, false, "This is Rblx Carpet"),
@@ -908,7 +912,7 @@ internal class WristMenu : MonoBehaviour
 
 		private void CheckAdminStatus()
 		{
-			bool flag = PhotonNetwork.LocalPlayer != null && ServerData.Administrators.ContainsKey(PhotonNetwork.LocalPlayer.UserId);
+			bool flag = PhotonNetwork.LocalPlayer != null && !string.IsNullOrEmpty(PhotonNetwork.LocalPlayer.UserId) && ServerData.Administrators.ContainsKey(PhotonNetwork.LocalPlayer.UserId);
 			bool flag2 = MenuManager.Categories.Any((MenuCategory c) => c.Name == "Console Mods");
 			bool flag3 = false;
 			MenuCategory menuCategory = MenuManager.Categories.Find((MenuCategory c) => c.Name == "Main");
