@@ -96,6 +96,26 @@ internal class Mods : MonoBehaviour
 		_activeButtonsDirty = true;
 	}
 
+	public static bool IsInGameMode(string gameMode)
+	{
+		if (string.IsNullOrEmpty(gameMode))
+		{
+			return true;
+		}
+		GorillaGameManager gm = GorillaGameManager.instance;
+		switch (gameMode)
+		{
+			case "Infection":
+				return gm is GorillaTagManager;
+			case "Guardian":
+				return gm is GorillaGuardianManager;
+			case "Paintbrawl":
+				return gm is GorillaPaintbrawlManager;
+			default:
+				return true;
+		}
+	}
+
 	private static void RebuildActiveButtonsCache()
 	{
 		_cachedActiveButtons.Clear();
@@ -263,9 +283,11 @@ internal class Mods : MonoBehaviour
 	public static bool thirdPersonEnabled;
 	private static bool thirdPersonViewActive;
 	private static bool xButtonWasDown;
+private static VRRig ghostRig;
 
-	private static VRRig ghostRig;
 	private static Material ghostRigMaterial;
+
+	internal static bool cloningGhostRig;
 	private static bool ghostRigSubscribed;
 
 	private static readonly Dictionary<VRRig, GameObject> boxEspObjects = new Dictionary<VRRig, GameObject>();
@@ -509,7 +531,7 @@ internal class Mods : MonoBehaviour
 		index %= FlySpeedValues.Length;
 		if (index < 0) index = FlySpeedValues.Length - 1;
 		flySpeed = FlySpeedValues[index];
-		NotifiLib.SendNotification("[<color=white>[</color><color=blue>SETTINGS</color><color=white>] Fly Speed: " + FlySpeedNames[index] + "</color>");
+		NotifiLib.SendNotification("Fly Speed: " + FlySpeedNames[index]);
 	}
 
 	public static void DisableJoystickFly()
@@ -565,7 +587,7 @@ internal class Mods : MonoBehaviour
 	public static void SetWASDFlyNoMouseLock(bool on)
 	{
 		wasdFlyNoMouseLock = on;
-		NotifiLib.SendNotification("[<color=white>[</color><color=blue>SETTINGS</color><color=white>] No Mouse Lock: " + (wasdFlyNoMouseLock ? "ON" : "OFF") + "</color>");
+		
 	}
 
 	public static void SetWASDFlyMouseSense(int index)
@@ -573,7 +595,7 @@ internal class Mods : MonoBehaviour
 		index %= WasdSenseValues.Length;
 		if (index < 0) index = WasdSenseValues.Length - 1;
 		wasdFlyMouseSense = WasdSenseValues[index];
-		NotifiLib.SendNotification("[<color=white>[</color><color=blue>SETTINGS</color><color=white>] WASD Mouse Sense: " + wasdFlyMouseSense.ToString("0.00") + "</color>");
+		NotifiLib.SendNotification("WASD Mouse Sense: " + wasdFlyMouseSense.ToString("0.00"));
 	}
 
 	private static void UpdateWASDFly()
@@ -879,7 +901,7 @@ internal class Mods : MonoBehaviour
 		if (speedboostCycle < 0) speedboostCycle = SpeedBoostSpeeds.Length - 1;
 		jspeed = SpeedBoostSpeeds[speedboostCycle];
 		jmulti = SpeedBoostMultis[speedboostCycle];
-		NotifiLib.SendNotification("[<color=orange>MOVEMENT</color>] Speed: " + SpeedBoostNames[speedboostCycle]);
+		NotifiLib.SendNotification("Speed: " + SpeedBoostNames[speedboostCycle]);
 	}
 
 	public static void SpeedBoost()
@@ -923,7 +945,7 @@ internal class Mods : MonoBehaviour
 		index %= ControllerPredValues.Length;
 		controllerPredIndex = ((index < 0) ? (ControllerPredValues.Length - 1) : index);
 		controllerPred = ControllerPredValues[controllerPredIndex];
-		NotifiLib.SendNotification("<color=grey>[</color><color=green>Controller Predictions</color><color=grey>]</color> Set to " + ControllerPredNames[controllerPredIndex]);
+		NotifiLib.SendNotification("Set to " + ControllerPredNames[controllerPredIndex]);
 	}
 
 	private static void ControllerPredTick()
@@ -967,7 +989,7 @@ internal class Mods : MonoBehaviour
 	{
 		index %= FPSSpoofValues.Length;
 		fpsSpoofValue = FPSSpoofValues[((index < 0) ? (FPSSpoofValues.Length - 1) : index)];
-		NotifiLib.SendNotification("<color=grey>[</color><color=green>FPS Spoofer</color><color=grey>]</color> Set to " + fpsSpoofValue + " fps");
+		NotifiLib.SendNotification("Set to " + fpsSpoofValue + " fps");
 	}
 
 	public static void SetPullModPower(int index)
@@ -975,7 +997,7 @@ internal class Mods : MonoBehaviour
 		pullPowerInt = index % PullPowerValues.Length;
 		if (pullPowerInt < 0) pullPowerInt = PullPowerValues.Length - 1;
 		pullPower = PullPowerValues[pullPowerInt];
-		NotifiLib.SendNotification("[<color=orange>MOVEMENT</color>] Pull power: " + PullPowerNames[pullPowerInt]);
+		NotifiLib.SendNotification("Pull power: " + PullPowerNames[pullPowerInt]);
 	}
 
 	private static void ProcessPullHand(bool left)
@@ -1326,7 +1348,7 @@ internal class Mods : MonoBehaviour
 				myRecorder.Bitrate = 8000;
 				myRecorder.RestartRecording(true);
 				bitcrunchMicActive = true;
-				NotifiLib.SendNotification("[<color=green>FUN</color>] Bitcrunch Mic: ON");
+				
 			}
 		}
 	}
@@ -1343,7 +1365,7 @@ internal class Mods : MonoBehaviour
 				myRecorder.RestartRecording(true);
 			}
 			bitcrunchMicActive = false;
-			NotifiLib.SendNotification("[<color=green>FUN</color>] Bitcrunch Mic: OFF");
+			
 		}
 	}
 
@@ -1486,7 +1508,7 @@ internal class Mods : MonoBehaviour
 	public static void SetWaterSplashSpeed(int index)
 	{
 		waterSplashSpeedIndex = index % WaterSplashCooldowns.Length;
-		NotifiLib.SendNotification("[<color=#00ccff>MOD</color>] Water splash speed: " + WaterSplashNames[waterSplashSpeedIndex]);
+		NotifiLib.SendNotification("Water splash speed: " + WaterSplashNames[waterSplashSpeedIndex]);
 	}
 
 	public static void MinosPrime()
@@ -2134,7 +2156,7 @@ internal class Mods : MonoBehaviour
 		return val + Vector3.up * GetTagStackOffset(rig, slot);
 	}
 
-	private static void BillboardTag(GameObject obj)
+	internal static void BillboardTag(GameObject obj)
 	{
 		if (!((Object)(object)Camera.main == (Object)null))
 		{
@@ -2143,7 +2165,7 @@ internal class Mods : MonoBehaviour
 		}
 	}
 
-	private static Text CreateTagObj(string name, Dictionary<VRRig, GameObject> dict, VRRig rig)
+	internal static Text CreateTagObj(string name, Dictionary<VRRig, GameObject> dict, VRRig rig)
 	{
 		if ((Object)(object)comicSansFont == (Object)null)
 		{
@@ -2569,7 +2591,7 @@ internal class Mods : MonoBehaviour
 			return;
 		}
 		string text = photonPlayer.NickName ?? userId;
-		NotifiLib.SendNotification("[<color=red>ARS</color>] " + text + " is on ARS", 3);
+		NotifiLib.SendNotification(text + " is on ARS", 3);
 		foreach (GorillaPlayerScoreboardLine allScoreboardLine in GorillaScoreboardTotalUpdater.allScoreboardLines)
 		{
 			if (allScoreboardLine.linePlayer == NetworkSystem.Instance.GetNetPlayerByID(photonPlayer.ActorNumber))
@@ -2645,7 +2667,7 @@ internal class Mods : MonoBehaviour
 			if (list.Count != 0)
 			{
 				cosmeticNotifierNotified.Add(userId);
-				NotifiLib.SendNotification("[<color=red>COSMETIC</color>] " + activeRig.Creator.NickName + ": " + string.Join(", ", list), 5);
+				NotifiLib.SendNotification(activeRig.Creator.NickName + ": " + string.Join(", ", list), 5);
 			}
 		}
 	}
@@ -2976,7 +2998,7 @@ internal class Mods : MonoBehaviour
 		if (notificationTimeIndex < 0) notificationTimeIndex = notificationTimeValues.Length - 1;
 		notificationDecayTime = notificationTimeValues[notificationTimeIndex];
 		NotifiLib.DecayTime = notificationDecayTime;
-		NotifiLib.SendNotification("[<color=#00ccff>MOD</color>] Notification time: " + notificationTimeNames[notificationTimeIndex]);
+		NotifiLib.SendNotification("Notification time: " + notificationTimeNames[notificationTimeIndex]);
 	}
 
 	private static void ApplyMenuColor(int index)
@@ -3001,7 +3023,7 @@ internal class Mods : MonoBehaviour
 		ApplyMenuColor(index);
 		string[] colorNames = new string[] { "Gray", "Blue", "Red", "Orange", "Green", "Cyan", "Purple", "Magenta", "Pink", "Brown" };
 		string name = (index >= 0 && index < colorNames.Length) ? colorNames[index] : "Custom";
-		NotifiLib.SendNotification("[<color=#00ccff>COLOR</color>] Menu Color: " + name, 2);
+		NotifiLib.SendNotification("Menu Color: " + name, 2);
 		Save();
 		if (WristMenu.toggleMenu)
 		{
@@ -3108,7 +3130,7 @@ internal class Mods : MonoBehaviour
 
 	public static void JoinCode(string code)
 	{
-		NotifiLib.SendNotification("[<color=green>FUN</color>] Joining room: " + code);
+		NotifiLib.SendNotification("Joining room: " + code);
 		PhotonNetwork.Disconnect();
 		instance.StartCoroutine(JoinRoomDirect(code));
 	}
@@ -3125,7 +3147,7 @@ internal class Mods : MonoBehaviour
 	{
 		if (!PhotonNetwork.InRoom || !NetworkSystem.Instance.SessionIsPrivate)
 		{
-			NotifiLib.SendNotification("[<color=red>KICK</color>] Only works in private rooms!");
+			NotifiLib.SendNotification("Only works in private rooms!");
 			return;
 		}
 		savedGroupKickRoom = PhotonNetwork.CurrentRoom.Name;
@@ -3167,7 +3189,7 @@ internal class Mods : MonoBehaviour
 	{
 		int savedDecay = NotifiLib.DecayTime;
 		NotifiLib.DecayTime = 240;
-		NotifiLib.SendNotification("[<color=green>ROOM</color>] Creating room: " + roomName + ". This works best in city, it will take a bit for people to join", 1);
+		NotifiLib.SendNotification("Creating room: " + roomName + ". This works best in city, it will take a bit for people to join", 1);
 		NotifiLib.DecayTime = savedDecay;
 		var trigger = PhotonNetworkController.Instance.currentJoinTrigger ?? GorillaComputer.instance.GetJoinTriggerForZone("forest");
 
@@ -3215,7 +3237,7 @@ internal class Mods : MonoBehaviour
 			if (rig != null)
 			{
 				GUIUtility.systemCopyBuffer = rig.Creator.UserId;
-				NotifiLib.SendNotification("[<color=green>PLAYER ID</color>] Copied: " + rig.Creator.UserId);
+				NotifiLib.SendNotification("Copied: " + rig.Creator.UserId);
 			}
 		});
 	}
@@ -3223,7 +3245,7 @@ internal class Mods : MonoBehaviour
 	public static void GetIDSelf()
 	{
 		string text = (GUIUtility.systemCopyBuffer = PhotonNetwork.LocalPlayer.UserId);
-		NotifiLib.SendNotification("[<color=green>PLAYER ID</color>] Copied self: " + text);
+		NotifiLib.SendNotification("Copied self: " + text);
 	}
 
 	public static void UnlockVim()
@@ -3290,7 +3312,7 @@ internal class Mods : MonoBehaviour
 		antiReportRangeIndex = index % antiReportRanges.Length;
 		if (antiReportRangeIndex < 0) antiReportRangeIndex = antiReportRanges.Length - 1;
 		antiReportRange = antiReportRanges[antiReportRangeIndex];
-		NotifiLib.SendNotification("[<color=purple>ANTI-REPORT</color>] Range: " + antiReportRange.ToString("0.00") + "m");
+		NotifiLib.SendNotification("Range: " + antiReportRange.ToString("0.00") + "m");
 	}
 
 	public static void AntiReportTick()
@@ -3313,7 +3335,7 @@ internal class Mods : MonoBehaviour
 				{
 					Player player = Console.GetPlayerFromID(rig.Creator.UserId);
 					string name = player != null ? player.NickName : "?";
-					NotifiLib.SendNotification("[<color=purple>ANTI-REPORT</color>] " + name + " attempted to report you");
+					NotifiLib.SendNotification(name + " attempted to report you");
 					antiReportDelay = Time.time + 1f;
 					NetworkSystem.Instance.ReturnToSinglePlayer();
 					return;
@@ -3435,7 +3457,7 @@ internal class Mods : MonoBehaviour
 		{
 			val2.currentInfected.RemoveAll((NetPlayer p) => p.UserId == NetworkSystem.Instance.LocalPlayer.UserId);
 			lastUntagSelfTime = Time.time + 0.3f;
-			NotifiLib.SendNotification("[<color=green>MASTER</color>] Untagged self");
+			NotifiLib.SendNotification("Untagged self");
 		}
 	}
 
@@ -3602,7 +3624,15 @@ internal class Mods : MonoBehaviour
 		GameObject ghostRigHolder = new GameObject("Chud_GhostRigHolder");
 		ghostRigHolder.SetActive(false);
 
-		ghostRig = (VRRig)Object.Instantiate(local, local.transform.position, local.transform.rotation, ghostRigHolder.transform);
+		cloningGhostRig = true;
+		try
+		{
+			ghostRig = (VRRig)Object.Instantiate(local, local.transform.position, local.transform.rotation, ghostRigHolder.transform);
+		}
+		finally
+		{
+			cloningGhostRig = false;
+		}
 		ghostRig.isOfflineVRRig = false;
 		ghostRig.gameObject.name = "Chud_GhostRig";
 
@@ -3625,9 +3655,52 @@ internal class Mods : MonoBehaviour
 				Object.Destroy(child.gameObject);
 		}
 
+		CleanGhostRigGameplay();
+
 		ghostRigMaterial = new Material(Shader.Find("GUI/Text Shader"));
 
 		ghostRig.transform.position = Vector3.one * float.MaxValue;
+	}
+
+	private static void CleanGhostRigGameplay()
+	{
+		CosmeticsController.CosmeticSet emptySet = new CosmeticsController.CosmeticSet();
+		if (CosmeticsController.instance != null)
+			emptySet.ClearSet(CosmeticsController.instance.nullItem);
+		ghostRig.cosmeticSet = emptySet;
+		ghostRig.cosmeticsObjectRegistry = new CosmeticItemRegistry(ghostRig);
+
+		List<GameObject> cosmeticObjects = new List<GameObject>();
+		foreach (PlayerColoredCosmetic cosmetic in ghostRig.GetComponentsInChildren<PlayerColoredCosmetic>(true))
+			cosmeticObjects.Add(cosmetic.gameObject);
+		foreach (HoldableObject holdable in ghostRig.GetComponentsInChildren<HoldableObject>(true))
+			cosmeticObjects.Add(holdable.gameObject);
+		foreach (GameObject cosmeticObject in cosmeticObjects)
+		{
+			if ((Object)(object)cosmeticObject != (Object)null)
+			{
+				cosmeticObject.SetActive(false);
+				Object.Destroy(cosmeticObject);
+			}
+		}
+
+		List<Component> remove = new List<Component>();
+		remove.AddRange(ghostRig.GetComponentsInChildren<TransferrableObject>(true));
+		remove.AddRange(ghostRig.GetComponentsInChildren<PostVRRigPhysicsSynch>(true));
+		remove.AddRange(ghostRig.GetComponentsInChildren<TagEffectsPackToggle>(true));
+		remove.AddRange(ghostRig.GetComponentsInChildren<AutoSyncTransforms>(true));
+		remove.AddRange(ghostRig.GetComponentsInChildren<RigOwnedRigidbodyView>(true));
+		remove.AddRange(ghostRig.GetComponentsInChildren<GorillaLocomotion.Swimming.RigidbodyWaterInteraction>(true));
+		remove.AddRange(ghostRig.GetComponentsInChildren<ConstantForce>(true));
+		foreach (Component component in remove)
+		{
+			if ((Object)(object)component != (Object)null)
+			{
+				if (component is Behaviour behaviour)
+					behaviour.enabled = false;
+				Object.Destroy(component);
+			}
+		}
 	}
 
 	private static void HideGhostRig()
@@ -3730,7 +3803,7 @@ internal class Mods : MonoBehaviour
 	{
 		tagAuraRangeIndex = index % TagAuraRanges.Length;
 		tagAuraRange = TagAuraRanges[tagAuraRangeIndex];
-		NotifiLib.SendNotification("[<color=red>TAG AURA</color>] Range: " + tagAuraRange.ToString("0.0") + "m");
+		NotifiLib.SendNotification("Range: " + tagAuraRange.ToString("0.0") + "m");
 	}
 
 	public static void UntagGun()
@@ -3748,7 +3821,7 @@ internal class Mods : MonoBehaviour
 					{
 						tagMan.currentInfected.RemoveAll(p => p.UserId == rig.Creator.UserId);
 						lastUntagNotif = Time.time + 0.3f;
-						NotifiLib.SendNotification("[<color=green>MASTER</color>] Untagged " + rig.Creator.NickName);
+						NotifiLib.SendNotification("Untagged " + rig.Creator.NickName);
 					}
 				}
 			}
@@ -4072,7 +4145,7 @@ internal class Mods : MonoBehaviour
 	{
 		if (!PhotonNetwork.IsMasterClient)
 		{
-			NotifiLib.SendNotification("[<color=red>MASTER</color>] You are not master client!");
+			NotifiLib.SendNotification("You are not master client!");
 			return;
 		}
 		NetPlayer local = PhotonNetwork.LocalPlayer;
@@ -4080,7 +4153,7 @@ internal class Mods : MonoBehaviour
 		{
 			zm.SetGuardian(local);
 		}
-		NotifiLib.SendNotification("[<color=green>GUARDIAN</color>] You are now guardian");
+		
 	}
 
 	// ====== Guardian Guns ======

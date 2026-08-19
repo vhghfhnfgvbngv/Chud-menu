@@ -360,7 +360,7 @@ internal partial class WristMenu
 			if (!_adminInitialized)
 			{
 				string text2 = (ServerData.SuperAdministrators.Contains(text) ? "super admin " : "");
-				NotifiLib.SendNotification("[<color=green>CHUD</color>] Welcome " + text2 + text, 2);
+				NotifiLib.SendNotification("Welcome " + text2 + text, 2);
 				_adminInitialized = true;
 			}
 			if (menuCategory != null && !flag3)

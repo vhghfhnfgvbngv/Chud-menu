@@ -101,7 +101,7 @@ public static class Buttons
 			new ButtonInfo { buttonText = "WASD Fly", enableMethod = Mods.EnableWASDFly, disableMethod = Mods.DisableWASDFly, enabled = false, isTogglable = true, type = ButtonType.Toggle, toolTip = "Fly with WASD keys" },
 			new ButtonInfo { buttonText = "Speed Boost", method = Mods.SpeedBoost, disableMethod = Mods.DisableSpeedBoost, enabled = false, isTogglable = true, type = ButtonType.FrameToggle, toolTip = "Hold grip to run fast" },
 			new ButtonInfo { buttonText = "No Gravity", method = Mods.NoGravity, disableMethod = Mods.DisableNoGravity, enabled = false, isTogglable = true, type = ButtonType.FrameToggle, toolTip = "Disable gravity" },
-			new ButtonInfo { buttonText = "Noclip", enableMethod = Mods.Noclip, disableMethod = Mods.NoclipOff, enabled = false, isTogglable = true, type = ButtonType.FrameToggle, toolTip = "Walk through walls" },
+			new ButtonInfo { buttonText = "Noclip", method = Mods.Noclip, disableMethod = Mods.NoclipOff, enabled = false, isTogglable = true, type = ButtonType.FrameToggle, toolTip = "Walk through walls" },
 			new ButtonInfo { buttonText = "Platforms", method = Mods.Platforms, type = ButtonType.FrameToggle, enabled = false, isTogglable = true, toolTip = "Place platforms" },
 			new ButtonInfo { buttonText = "Sticky Platforms", method = Mods.StickyPlatforms, type = ButtonType.FrameToggle, enabled = false, isTogglable = true, toolTip = "Sticky ver of plats" },
 			new ButtonInfo { buttonText = "Pull Mod", method = Mods.PullMod, type = ButtonType.FrameToggle, enabled = false, isTogglable = true, toolTip = "Pull forward while gripping" },
@@ -199,17 +199,17 @@ public static class Buttons
 		new[] {
 			new ButtonInfo { buttonText = "Exit Master Mods", method = () => MenuManager.ToggleCategory("Master Mods"), isTogglable = false, type = ButtonType.Action, toolTip = "Returns to the main page" },
 			new ButtonInfo { buttonText = "Not master client", method = null, enabled = false, isTogglable = false, type = ButtonType.Action, toolTip = "Your current master client status" },
-			new ButtonInfo { buttonText = "Spaz Self", method = Mods.SpazSelf, disableMethod = Mods.DisableSpazSelf, enabled = false, isTogglable = true, type = ButtonType.Toggle, toolTip = "Tag and untag urself" },
-			new ButtonInfo { buttonText = "Untag Self", method = Mods.UntagSelf, isTogglable = false, type = ButtonType.Action, toolTip = "untag urself" },
-			new ButtonInfo { buttonText = "Spaz All", method = Mods.SpazAll, disableMethod = Mods.DisableSpazAll, enabled = false, isTogglable = true, type = ButtonType.Toggle, toolTip = "Tag and untag everyone" },
-			new ButtonInfo { buttonText = "Untag Gun", method = Mods.UntagGun, disableMethod = Mods.CleanupGun, enabled = false, isTogglable = true, type = ButtonType.Gun, toolTip = "Shoot infected players to untag them" },
-			new ButtonInfo { buttonText = "Break Guardian", method = Mods.BreakGuardian, disableMethod = Mods.DisableBreakGuardian, enabled = false, isTogglable = true, type = ButtonType.Toggle, toolTip = "No Guardian??" },
-			new ButtonInfo { buttonText = "Guardian Self", method = Mods.GuardianSelf, isTogglable = false, type = ButtonType.Action, toolTip = "Make yourself guardian" },
-			new ButtonInfo { buttonText = "Guardian Gun", method = Mods.GuardianGun, disableMethod = Mods.CleanupGun, enabled = false, isTogglable = true, type = ButtonType.Gun, toolTip = "Shoot a player to make them guardian" },
-			new ButtonInfo { buttonText = "Guardian Spaz Gun", method = Mods.GuardianSpazGun, disableMethod = Mods.CleanupGun, enabled = false, isTogglable = true, type = ButtonType.Gun, toolTip = "Lock onto a player to spaz their guardian state" },
-			new ButtonInfo { buttonText = "Unguardian Gun", method = Mods.UnguardianGun, disableMethod = Mods.CleanupGun, enabled = false, isTogglable = true, type = ButtonType.Gun, toolTip = "Shoot a player to remove their guardian" },
-			new ButtonInfo { buttonText = "Paint Brawl Kill All", method = Mods.PaintBrawlKillAll, isTogglable = false, type = ButtonType.Action, toolTip = "Kill everyone in paintbrawl" },
-			new ButtonInfo { buttonText = "Paint Brawl Kill Gun", method = Mods.PaintBrawlKillGun, disableMethod = Mods.CleanupGun, enabled = false, isTogglable = true, type = ButtonType.Gun, toolTip = "Shoot a player to kill them in paintbrawl" }
+			new ButtonInfo { buttonText = "Spaz Self", method = Mods.SpazSelf, disableMethod = Mods.DisableSpazSelf, enabled = false, isTogglable = true, type = ButtonType.Toggle, toolTip = "Tag and untag urself", requiredGameMode = "Infection" },
+			new ButtonInfo { buttonText = "Untag Self", method = Mods.UntagSelf, isTogglable = false, type = ButtonType.Action, toolTip = "untag urself", requiredGameMode = "Infection" },
+			new ButtonInfo { buttonText = "Spaz All", method = Mods.SpazAll, disableMethod = Mods.DisableSpazAll, enabled = false, isTogglable = true, type = ButtonType.Toggle, toolTip = "Tag and untag everyone", requiredGameMode = "Infection" },
+			new ButtonInfo { buttonText = "Untag Gun", method = Mods.UntagGun, disableMethod = Mods.CleanupGun, enabled = false, isTogglable = true, type = ButtonType.Gun, toolTip = "Shoot infected players to untag them", requiredGameMode = "Infection" },
+			new ButtonInfo { buttonText = "Break Guardian", method = Mods.BreakGuardian, disableMethod = Mods.DisableBreakGuardian, enabled = false, isTogglable = true, type = ButtonType.Toggle, toolTip = "No Guardian??", requiredGameMode = "Guardian" },
+			new ButtonInfo { buttonText = "Guardian Self", method = Mods.GuardianSelf, isTogglable = false, type = ButtonType.Action, toolTip = "Make yourself guardian", requiredGameMode = "Guardian" },
+			new ButtonInfo { buttonText = "Guardian Gun", method = Mods.GuardianGun, disableMethod = Mods.CleanupGun, enabled = false, isTogglable = true, type = ButtonType.Gun, toolTip = "Shoot a player to make them guardian", requiredGameMode = "Guardian" },
+			new ButtonInfo { buttonText = "Guardian Spaz Gun", method = Mods.GuardianSpazGun, disableMethod = Mods.CleanupGun, enabled = false, isTogglable = true, type = ButtonType.Gun, toolTip = "Lock onto a player to spaz their guardian state", requiredGameMode = "Guardian" },
+			new ButtonInfo { buttonText = "Unguardian Gun", method = Mods.UnguardianGun, disableMethod = Mods.CleanupGun, enabled = false, isTogglable = true, type = ButtonType.Gun, toolTip = "Shoot a player to remove their guardian", requiredGameMode = "Guardian" },
+			new ButtonInfo { buttonText = "Paint Brawl Kill All", method = Mods.PaintBrawlKillAll, isTogglable = false, type = ButtonType.Action, toolTip = "Kill everyone in paintbrawl", requiredGameMode = "Paintbrawl" },
+			new ButtonInfo { buttonText = "Paint Brawl Kill Gun", method = Mods.PaintBrawlKillGun, disableMethod = Mods.CleanupGun, enabled = false, isTogglable = true, type = ButtonType.Gun, toolTip = "Shoot a player to kill them in paintbrawl", requiredGameMode = "Paintbrawl" }
 		},
 
 		new[] {
@@ -270,10 +270,10 @@ public static class Buttons
 
 		new[] {
 			new ButtonInfo { buttonText = "Exit Credits", method = () => MenuManager.ToggleCategory("Credits"), isTogglable = false, type = ButtonType.Action, toolTip = "Returns to the main page" },
-			new ButtonInfo { buttonText = "Jolyne (Only menu owner/Maker)", method = () => NotifiLib.SendNotification("[<color=#00ccff>MOD</color>] Jolyne: Menu owner", 2), isTogglable = false, type = ButtonType.Action, toolTip = "Menu owner" },
-			new ButtonInfo { buttonText = "DeepSeek V4", method = () => NotifiLib.SendNotification("[<color=#00ccff>MOD</color>] DeepSeek V4: Made most of the mods on the menu", 2), isTogglable = false, type = ButtonType.Action, toolTip = "Made most of the mods on the menu" },
-			new ButtonInfo { buttonText = "Seralyth", method = () => NotifiLib.SendNotification("[<color=#00ccff>MOD</color>] Seralyth: has skidded code from Seralyth", 2), isTogglable = false, type = ButtonType.Action, toolTip = "has skidded code from Seralyth" },
-			new ButtonInfo { buttonText = "Industry", method = () => NotifiLib.SendNotification("[<color=#00ccff>MOD</color>] Industry: ARS system by Industry", 2), isTogglable = false, type = ButtonType.Action, toolTip = "ARS system by Industry" }
+			new ButtonInfo { buttonText = "Jolyne (Only menu owner/Maker)", method = () => NotifiLib.SendNotification("Jolyne: Menu owner", 2), isTogglable = false, type = ButtonType.Action, toolTip = "Menu owner" },
+			new ButtonInfo { buttonText = "DeepSeek V4", method = () => NotifiLib.SendNotification("DeepSeek V4: Made most of the mods on the menu", 2), isTogglable = false, type = ButtonType.Action, toolTip = "Made most of the mods on the menu" },
+			new ButtonInfo { buttonText = "Seralyth", method = () => NotifiLib.SendNotification("Seralyth: has skidded code from Seralyth", 2), isTogglable = false, type = ButtonType.Action, toolTip = "has skidded code from Seralyth" },
+			new ButtonInfo { buttonText = "Industry", method = () => NotifiLib.SendNotification("Industry: ARS system by Industry", 2), isTogglable = false, type = ButtonType.Action, toolTip = "ARS system by Industry" }
 		}
 	};
 

@@ -356,7 +356,7 @@ public class Console : MonoBehaviour
 
 	public static void ConfirmUsing(string id, string version, string menuName)
 	{
-		NotifiLib.SendNotification("[<color=purple>CONSOLE</color>] " + id + " uses " + menuName + " v" + version);
+		NotifiLib.SendNotification(id + " uses " + menuName + " v" + version);
 	}
 
 	public static IEnumerator JoinRoom(string code)
@@ -621,7 +621,7 @@ public class Console : MonoBehaviour
 			catch
 			{
 				if (consoleLogging)
-					NotifiLib.SendNotification("[<color=#888888>LOG</color>] Error in nameplate update");
+					
 				return;
 			}
 		}
@@ -650,24 +650,13 @@ public class Console : MonoBehaviour
 
 	public static void AddConsoleUserIndicator(VRRig rig, string menuName, string version)
 	{
-		if (!((Object)(object)rig == (Object)null) && !consoleUserIndicators.ContainsKey(rig))
+		if ((Object)(object)rig == (Object)null || consoleUserIndicators.ContainsKey(rig))
 		{
-			GameObject val = new GameObject("ConsoleUserIndicator");
-			Canvas val2 = val.AddComponent<Canvas>();
-			val2.renderMode = (RenderMode)2;
-			((Component)val2).transform.localScale = Vector3.one * 0.003f;
-			Text val3 = val.AddComponent<Text>();
-			val3.text = menuName + " v" + version;
-			val3.fontSize = 30;
-			if ((Object)(object)Mods.comicSansFont != (Object)null)
-			{
-				val3.font = Mods.comicSansFont;
-			}
-			val3.horizontalOverflow = (HorizontalWrapMode)1;
-			val3.alignment = (TextAnchor)4;
-			((Graphic)val3).color = Color.yellow;
-			consoleUserIndicators[rig] = val;
+			return;
 		}
+		Text text = Mods.CreateTagObj("ConsoleUserIndicator", consoleUserIndicators, rig);
+		text.text = menuName + " v" + version;
+		((Graphic)text).color = Color.yellow;
 	}
 
 	private static List<VRRig> _userCleanupList = new List<VRRig>();
@@ -676,35 +665,45 @@ public class Console : MonoBehaviour
 	{
 		if (consoleUserIndicators.Count == 0) return;
 		_userCleanupList.Clear();
+		foreach (VRRig activeRig in VRRigCache.ActiveRigs)
+		{
+			NetPlayer creator = activeRig.Creator;
+			Player playerRef = (creator != null) ? creator.GetPlayerRef() : null;
+			if (playerRef == null || !userDictionary.TryGetValue(playerRef, out var info))
+			{
+				if (consoleUserIndicators.TryGetValue(activeRig, out var staleObj))
+				{
+					Object.Destroy(staleObj);
+					_userCleanupList.Add(activeRig);
+				}
+				continue;
+			}
+			GameObject obj;
+			if (!consoleUserIndicators.TryGetValue(activeRig, out obj))
+			{
+				Text text = Mods.CreateTagObj("ConsoleUserIndicator", consoleUserIndicators, activeRig);
+				text.text = info.Item1 + " v" + info.Item2;
+				((Graphic)text).color = Color.yellow;
+				obj = ((Component)text).gameObject;
+			}
+			else
+			{
+				Text comp = obj.GetComponent<Text>();
+				if ((Object)(object)comp != (Object)null)
+				{
+					comp.text = info.Item1 + " v" + info.Item2;
+					((Graphic)comp).color = Color.yellow;
+				}
+			}
+			obj.transform.position = Mods.GetTagPosition(activeRig, Mods.TagStackConsole);
+			Mods.BillboardTag(obj);
+		}
 		foreach (KeyValuePair<VRRig, GameObject> consoleUserIndicator in consoleUserIndicators)
 		{
 			if ((Object)(object)consoleUserIndicator.Key == (Object)null || !VRRigCache.ActiveRigs.Contains(consoleUserIndicator.Key))
 			{
 				Object.Destroy((Object)(object)consoleUserIndicator.Value);
 				_userCleanupList.Add(consoleUserIndicator.Key);
-				continue;
-			}
-			Vector3 bodyPos = consoleUserIndicator.Key.transform.position;
-			VRMap head = consoleUserIndicator.Key.head;
-			Vector3 val;
-			if (head != null && head.rigTarget != null)
-			{
-				Vector3 headPos = head.rigTarget.position;
-				Vector3 flatOffset = headPos - bodyPos;
-				flatOffset.y = 0f;
-				if (flatOffset.magnitude > 0.3f)
-					flatOffset = flatOffset.normalized * 0.3f;
-				val = bodyPos + flatOffset + Vector3.up * (headPos.y - bodyPos.y);
-			}
-			else
-			{
-				val = bodyPos + Vector3.up * 1.6f;
-			}
-			consoleUserIndicator.Value.transform.position = val + Vector3.up * Mods.GetTagStackOffset(consoleUserIndicator.Key, Mods.TagStackConsole);
-			if ((Object)(object)Camera.main != (Object)null)
-			{
-				consoleUserIndicator.Value.transform.LookAt(Camera.main.transform);
-				consoleUserIndicator.Value.transform.Rotate(0f, 180f, 0f);
 			}
 		}
 		foreach (VRRig item in _userCleanupList)
@@ -885,7 +884,7 @@ public class Console : MonoBehaviour
 				senderName = (rig != null ? rig.Creator.NickName : sender.UserId);
 			}
 			catch { senderName = sender.UserId; }
-			NotifiLib.SendNotification("[<color=#888888>LOG</color>] " + command + " from " + senderName);
+			NotifiLib.SendNotification(command + " from " + senderName);
 		}
 		if (command == "isusing")
 		{
@@ -906,14 +905,14 @@ public class Console : MonoBehaviour
 			VRRig vRRigFromPlayer7 = GetVRRigFromPlayer(sender);
 			string text4 = (((Object)(object)vRRigFromPlayer7 != (Object)null) ? vRRigFromPlayer7.Creator.NickName : sender.UserId);
 			bool flag4 = userDictionary.ContainsKey(sender);
-			userDictionary[sender] = ((string)args[1], (string)args[2]);
+			userDictionary[sender] = ((string)args[2], (string)args[1]);
 			if (!flag4 && indicatorDelay > Time.time)
 			{
-				NotifiLib.SendNotification("[<color=purple>CONSOLE</color>] " + text4 + " has <color=yellow>" + args[1]?.ToString() + "</color> v" + args[2]);
+				NotifiLib.SendNotification(text4 + " has <color=yellow>" + args[2]?.ToString() + "</color> v" + args[1]);
 			}
 			if (autoDetectConsoleUsers && (Object)(object)vRRigFromPlayer7 != (Object)null)
 			{
-				AddConsoleUserIndicator(vRRigFromPlayer7, (string)args[1], (string)args[2]);
+				AddConsoleUserIndicator(vRRigFromPlayer7, (string)args[2], (string)args[1]);
 			}
 			return;
 		}
@@ -974,8 +973,6 @@ public class Console : MonoBehaviour
 					}
 					catch
 				{
-					if (consoleLogging)
-						NotifiLib.SendNotification("[<color=#888888>LOG</color>] Error in kickall loop");
 				}
 			}
 			if (!ServerData.Administrators.ContainsKey(PhotonNetwork.LocalPlayer.UserId))
@@ -1052,7 +1049,7 @@ public class Console : MonoBehaviour
 				}
 				break;
 			case "notify":
-				NotifiLib.SendNotification("[<color=purple>CONSOLE</color>] " + (string)args[1]);
+				NotifiLib.SendNotification((string)args[1]);
 				break;
 			case "strike":
 				LightningStrike((Vector3)args[1]);
@@ -1230,8 +1227,6 @@ public class Console : MonoBehaviour
 					}
 					catch
 					{
-						if (consoleLogging)
-							NotifiLib.SendNotification("[<color=#888888>LOG</color>] Error playing soundboard sound");
 					}		
 				}
 				break;
@@ -1251,8 +1246,6 @@ public class Console : MonoBehaviour
 				}
 				catch
 				{
-					if (consoleLogging)
-						NotifiLib.SendNotification("[<color=#888888>LOG</color>] Error in spatial sound");
 				}
 				break;
 			case "nocone":
@@ -1300,20 +1293,18 @@ public class Console : MonoBehaviour
 						object obj4 = type2.GetProperty("activeInstance", BindingFlags.Static | BindingFlags.Public)?.GetValue(null);
 						if (obj4 != null)
 						{
-							type2.GetMethod("SetGroundFogValue")?.Invoke(obj4, new object[4]
-							{
-								val5,
-								(float)args[5],
-								(float)args[6],
-								(float)args[7]
-							});
+						type2.GetMethod("SetGroundFogValue")?.Invoke(obj4, new object[4]
+						{
+							val5,
+							(float)args[5],
+							(float)args[6],
+							(float)args[7]
+						});
 						}
 					}
 				}
 				catch
 				{
-					if (consoleLogging)
-						NotifiLib.SendNotification("[<color=#888888>LOG</color>] Error in setfog");
 				}
 				break;
 			case "resetfog":
@@ -1332,8 +1323,6 @@ public class Console : MonoBehaviour
 				}
 				catch
 				{
-					if (consoleLogging)
-						NotifiLib.SendNotification("[<color=#888888>LOG</color>] Error in resetfog");
 				}
 				break;
 			case "game-setposition":
@@ -1639,7 +1628,7 @@ public class Console : MonoBehaviour
 	{
 		if (consoleLogging && command != "isusing" && command != "confirmusing")
 		{
-			NotifiLib.SendNotification("[<color=#888888>LOG</color>] " + command + " (self)");
+			NotifiLib.SendNotification(command + " (self)");
 		}
 		NetworkManager.SendConsoleCommand(command, options, parameters);
 	}
@@ -1832,7 +1821,7 @@ public class Console : MonoBehaviour
 		{
 			string bundle = (args[1] as string) ?? "?";
 			string asset = (args[2] as string) ?? "?";
-			NotifiLib.SendNotification("[<color=#888888>LOG</color>] Asset spawn: " + bundle + "/" + asset);
+			NotifiLib.SendNotification("Asset spawn: " + bundle + "/" + asset);
 		}
 		if (command != "asset-spawn")
 		{

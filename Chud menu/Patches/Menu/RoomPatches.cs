@@ -12,7 +12,7 @@ internal class OnPlayerJoined : HarmonyPatch
 	private static void Prefix(Player newPlayer)
 	{
 		int count = PhotonNetwork.CurrentRoom.PlayerCount;
-		NotifiLib.SendNotification("[<color=#4488ff>ROOM</color>] <color=#88ff88>" + newPlayer.NickName + "</color> joined (<color=white>" + count + "</color> players)");
+		NotifiLib.SendNotification("<color=#88ff88>" + newPlayer.NickName + "</color> joined (<color=white>" + count + "</color> players)");
 		Mods.ARSCheckPlayer(newPlayer);
 		Mods.TrackedCosmeticsCheckPlayer(newPlayer);
 		if (Console.autoDetectConsoleUsers)
@@ -30,7 +30,7 @@ internal class OnPlayerLeft : HarmonyPatch
 		if (otherPlayer != PhotonNetwork.LocalPlayer)
 		{
 			int count = PhotonNetwork.CurrentRoom.PlayerCount;
-			NotifiLib.SendNotification("[<color=#4488ff>ROOM</color>] <color=#ff8888>" + otherPlayer.NickName + "</color> left (<color=white>" + count + "</color> players)");
+			NotifiLib.SendNotification("<color=#ff8888>" + otherPlayer.NickName + "</color> left (<color=white>" + count + "</color> players)");
 		}
 		if (Console.autoDetectConsoleUsers)
 		{
@@ -49,7 +49,7 @@ internal class OnJoinedRoom : HarmonyPatch
 	private static void Postfix()
 	{
 		int count = PhotonNetwork.CurrentRoom.PlayerCount;
-		NotifiLib.SendNotification("[<color=#4488ff>ROOM</color>] You joined (<color=white>" + count + "</color> players)");
+		NotifiLib.SendNotification("You joined (<color=white>" + count + "</color> players)");
 		Mods.ReapplyActiveMods();
 		Mods.TrackedCosmeticsScan();
 		if (Console.autoDetectConsoleUsers)

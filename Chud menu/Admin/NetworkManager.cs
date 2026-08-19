@@ -74,12 +74,12 @@ public class NetworkManager : MonoBehaviour
 			if (Mods.antiCheatReportCounts.TryGetValue(key, out var count))
 			{
 				Mods.antiCheatReportCounts[key] = count + 1;
-				NotifiLib.SendNotification("[<color=red>ANTI-CHEAT</color>] " + reason + " — " + reportedName + " <color=yellow>" + (count + 1) + "x</color>");
+				NotifiLib.SendNotification(reason + " — " + reportedName + " <color=yellow>" + (count + 1) + "x</color>");
 			}
 			else
 			{
 				Mods.antiCheatReportCounts[key] = 1;
-				NotifiLib.SendNotification("[<color=red>ANTI-CHEAT</color>] " + reason + " — " + reportedName);
+				NotifiLib.SendNotification(reason + " — " + reportedName);
 			}
 		}
 		catch (Exception ex)

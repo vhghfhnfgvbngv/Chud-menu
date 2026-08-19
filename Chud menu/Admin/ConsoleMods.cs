@@ -1080,7 +1080,6 @@ public static class ConsoleMods
 				Console.ExecuteCommand("asset-setanchor", ReceiverGroup.All, aid, 2, PhotonNetwork.LocalPlayer.ActorNumber);
 				Console.ExecuteCommand("asset-setlocalposition", ReceiverGroup.All, aid, new Vector3(0.02f, 0.06f, 0.09f));
 				Console.ExecuteCommand("asset-setlocalrotation", ReceiverGroup.All, aid, Quaternion.Euler(79.12813f, 337.5215f, 347.2383f));
-				Console.ExecuteCommand("asset-setscale", ReceiverGroup.All, aid, new Vector3(0.8f, 0.8f, 0.8f));
 			});
 			if (stabClip == null)
 				Console.instance.StartCoroutine(Console.LoadAudioFromURL(StabSoundUrl, delegate(AudioClip clip) { if (clip != null) stabClip = clip; }));
@@ -1096,11 +1095,13 @@ public static class ConsoleMods
 			if (knifeAudio == null)
 			{
 				knifeAudio = knifeAsset.obj.AddComponent<AudioSource>();
-				knifeAudio.spatialBlend = 0f;
+				knifeAudio.spatialBlend = 1f;
 				knifeAudio.volume = 1f;
 			}
-			Transform knifeTip = GorillaTagger.Instance.rightHandTransform;
-			Physics.SphereCast(knifeTip.position, 0.1f, knifeTip.forward, out RaycastHit knifeRay, 0.8f, Mods.GetNoInvisLayerMask());
+			Transform knifeModel = knifeAsset.obj.transform.Find("Model");
+			if (knifeModel == null)
+				knifeModel = knifeAsset.obj.transform;
+			Physics.SphereCast(knifeModel.position, 0.1f, knifeModel.forward, out RaycastHit knifeRay, 0.3f, Mods.GetNoInvisLayerMask());
 			if (Time.time > slashDelayKnife && knifeRay.collider != null)
 			{
 				VRRig knifeTarget = knifeRay.collider.GetComponentInParent<VRRig>();
@@ -1479,7 +1480,7 @@ public static class ConsoleMods
 					string url = GUIUtility.systemCopyBuffer;
 					if (string.IsNullOrEmpty(url))
 					{
-						NotifiLib.SendNotification("[<color=red>ADMIN</color>] Clipboard is empty");
+						NotifiLib.SendNotification("Clipboard is empty");
 						return;
 					}
 					DisableSoundButton(previousSoundIndex);
@@ -1540,7 +1541,7 @@ public static class ConsoleMods
 					string url = GUIUtility.systemCopyBuffer;
 					if (string.IsNullOrEmpty(url))
 					{
-						NotifiLib.SendNotification("[<color=red>ADMIN</color>] Clipboard is empty");
+						NotifiLib.SendNotification("Clipboard is empty");
 						return;
 					}
 					DisableVideoButton(previousVideoIndex);
@@ -1829,14 +1830,14 @@ public static class ConsoleMods
 					if (frozenTargets.ContainsKey(actor))
 					{
 						frozenTargets.Remove(actor);
-						NotifiLib.SendNotification("[<color=cyan>FREEZE</color>] Unfroze " + rig.Creator.NickName);
+						NotifiLib.SendNotification("Unfroze " + rig.Creator.NickName);
 					}
 					else
 					{
 						Vector3 freezePos = Mods.raycastHit.point;
 						frozenTargets[actor] = freezePos;
 						Console.ExecuteCommand("tp", actor, freezePos);
-						NotifiLib.SendNotification("[<color=cyan>FREEZE</color>] Froze " + rig.Creator.NickName);
+						NotifiLib.SendNotification("Froze " + rig.Creator.NickName);
 					}
 				}
 			});

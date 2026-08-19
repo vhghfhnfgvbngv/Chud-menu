@@ -20,12 +20,12 @@ public static class AntiCheatReportPatch
 		if (Mods.antiCheatReportCounts.TryGetValue(key, out var count))
 		{
 			Mods.antiCheatReportCounts[key] = count + 1;
-			NotifiLib.SendNotification("[<color=red>ANTI-CHEAT</color>] " + susReason + " — " + susNick + " <color=yellow>" + (count + 1) + "x</color>");
+			NotifiLib.SendNotification(susReason + " — " + susNick + " <color=yellow>" + (count + 1) + "x</color>");
 		}
 		else
 		{
 			Mods.antiCheatReportCounts[key] = 1;
-			NotifiLib.SendNotification("[<color=red>ANTI-CHEAT</color>] " + susReason + " — " + susNick);
+			NotifiLib.SendNotification(susReason + " — " + susNick);
 		}
 	}
 }

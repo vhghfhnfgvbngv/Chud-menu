@@ -35,6 +35,8 @@ public class ButtonInfo
 
 	public bool excludeFromSave;
 
+	public string requiredGameMode;
+
 	public object value;
 
 	public Action onValueChanged;

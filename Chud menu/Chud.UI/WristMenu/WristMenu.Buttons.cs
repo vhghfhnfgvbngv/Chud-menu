@@ -147,6 +147,19 @@ internal partial class WristMenu
 			return;
 		}
 		ButtonInfo buttonInfo = currentButtons[num2];
+		if (buttonInfo.requiredGameMode != null && (buttonInfo.type == ButtonType.Action || buttonInfo.enabled != true))
+		{
+			if (!PhotonNetwork.IsMasterClient)
+			{
+				NotifiLib.SendNotification("You are not master client!");
+				return;
+			}
+			if (!Mods.IsInGameMode(buttonInfo.requiredGameMode))
+			{
+				NotifiLib.SendNotification("Not in " + buttonInfo.requiredGameMode.ToLower() + "!");
+				return;
+			}
+		}
 		if (buttonInfo.type == ButtonType.Action)
 		{
 			buttonInfo.method?.Invoke();
@@ -154,7 +167,7 @@ internal partial class WristMenu
 		}
 		if (MenuManager.CurrentCategoryName == "Master Mods" && !PhotonNetwork.IsMasterClient)
 		{
-			NotifiLib.SendNotification("[<color=red>MASTER</color>] You are not master client!");
+			NotifiLib.SendNotification("You are not master client!");
 			return;
 		}
 		bool value = buttonInfo.enabled.Value;
@@ -177,7 +190,7 @@ internal partial class WristMenu
 		}
 		if (buttonInfo.enabled == true && !string.IsNullOrEmpty(buttonInfo.toolTip) && buttonInfo.toolTip != "This button doesn't have a tooltip/tutorial")
 		{
-			NotifiLib.SendNotification("[<color=#00ccff>MOD</color>] " + buttonInfo.buttonText + ": " + buttonInfo.toolTip, 2);
+			NotifiLib.SendNotification(buttonInfo.buttonText + ": " + buttonInfo.toolTip, 2);
 		}
 		if ((Object)(object)menu != (Object)null)
 		{
