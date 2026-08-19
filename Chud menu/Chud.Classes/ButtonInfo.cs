@@ -37,6 +37,8 @@ public class ButtonInfo
 
 	public string requiredGameMode;
 
+	public bool requiresLobby;
+
 	public object value;
 
 	public Action onValueChanged;

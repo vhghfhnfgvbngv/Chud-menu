@@ -171,6 +171,11 @@ internal partial class WristMenu
 			return;
 		}
 		bool value = buttonInfo.enabled.Value;
+		if (!value && buttonInfo.requiresLobby && !PhotonNetwork.InRoom)
+		{
+			NotifiLib.SendNotification("You can only play sounds inside a lobby");
+			return;
+		}
 		buttonInfo.enabled = !value;
 		Mods.InvalidateActiveButtonsCache();
 		if (buttonInfo.enabled == true)

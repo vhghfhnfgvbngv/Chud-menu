@@ -688,12 +688,15 @@ private static VRRig ghostRig;
 
 	private static void RegisterFlyGravityOverride()
 	{
-		GTPlayer.Instance.SetGravityOverride(instance, _flyGravityCallback);
+		if ((Object)(object)GTPlayer.Instance != (Object)null)
+		{
+			GTPlayer.Instance.SetGravityOverride(instance, _flyGravityCallback);
+		}
 	}
 
 	private static void UnregisterFlyGravityOverride()
 	{
-		if (!joystickFlyActive && !wasdFlyActive && !noGravityActive)
+		if ((Object)(object)GTPlayer.Instance != (Object)null && !joystickFlyActive && !wasdFlyActive && !noGravityActive)
 		{
 			GTPlayer.Instance.UnsetGravityOverride(instance);
 		}
@@ -4894,6 +4897,7 @@ private static VRRig ghostRig;
 					},
 					disableMethod = SoundboardStop,
 					enabled = false,
+					requiresLobby = true,
 					toolTip = fileName
 				});
 			}
@@ -4905,6 +4909,11 @@ private static VRRig ghostRig;
 
 	private static void SoundboardPlay(string path)
 	{
+		if (!PhotonNetwork.InRoom)
+		{
+			NotifiLib.SendNotification("You can only play sounds inside a lobby");
+			return;
+		}
 		instance.StartCoroutine(SoundboardLoadAndPlay(path));
 	}
 
@@ -5416,8 +5425,8 @@ private static VRRig ghostRig;
 
 		deployable.currentState = TransferrableObject.PositionState.InRightHand;
 
-		Vector3 pos = target.transform.position + Vector3.down * 1.3f;
-		Vector3 vel = Vector3.up * 2500f;
+		Vector3 pos = target.transform.position + Vector3.down * 0.4f;
+		Vector3 vel = Vector3.up * 4000f;
 		Quaternion rot = Quaternion.Euler(Random.Range(0, 360), Random.Range(0, 360), Random.Range(0, 360));
 
 		PhotonNetwork.RaiseEvent(177, new object[]
@@ -5439,6 +5448,7 @@ private static VRRig ghostRig;
 		Rigidbody rb = GetBarrelRigidbody(child);
 		if (rb != null)
 		{
+			rb.isKinematic = false;
 			rb.mass = 0.001f;
 			rb.linearDamping = 0f;
 			rb.angularDamping = 0f;
@@ -5464,7 +5474,6 @@ private static VRRig ghostRig;
 
 	private static IEnumerator BarrelSpinThenFling(DeployedChild child, Rigidbody rb, Vector3 vel)
 	{
-		yield return new WaitForSeconds(0.5f);
 		if (rb != null)
 		{
 			rb.linearVelocity = vel;
@@ -5479,6 +5488,7 @@ private static VRRig ghostRig;
 		}
 		if (child != null)
 			child.ReturnToParent(2f);
+		yield break;
 	}
 }
 
