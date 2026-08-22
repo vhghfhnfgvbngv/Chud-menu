@@ -8,6 +8,9 @@ internal class RigAwakePatch
 {
 	public static bool Prefix(VRRig __instance)
 	{
-		return ((Object)((Component)__instance).gameObject).name != "Local Gorilla Player(Clone)";
+		if ((Object)(object)__instance == (Object)null) return true;
+		string n = ((Component)__instance).gameObject.name;
+		if (n == "Chud_GhostRig" || n == "Chud_GhostRigHolder") return false;
+		return true;
 	}
 }

@@ -6,10 +6,13 @@ namespace Chud.UI;
 
 internal partial class WristMenu
 {
+	private static Shader _unlitTexShader;
+	private static Shader UnlitTexShader => _unlitTexShader ?? (_unlitTexShader = Shader.Find("Unlit/Texture"));
 	public static Material MakeGradientMat(Color top, Color bot)
 	{
 		int h = 16;
 		Texture2D tex = new Texture2D(2, h, TextureFormat.RGBA32, false);
+		tex.hideFlags = HideFlags.HideAndDontSave;
 		Color highlight = Color.Lerp(bot, Color.white, 0.075f);
 		for (int y = 0; y < h; y++)
 		{
@@ -19,7 +22,10 @@ internal partial class WristMenu
 		}
 		tex.Apply();
 		tex.wrapMode = TextureWrapMode.Repeat;
-		Material mat = new Material(Shader.Find("Unlit/Texture"));
+		Shader s = UnlitTexShader;
+		if ((Object)(object)s == (Object)null) s = Shader.Find("Universal Render Pipeline/Unlit");
+		Material mat = new Material(s);
+		mat.hideFlags = HideFlags.HideAndDontSave;
 		mat.mainTexture = tex;
 		mat.color = Color.white;
 		mat.mainTextureScale = new Vector2(1, 0.5f);
@@ -27,9 +33,15 @@ internal partial class WristMenu
 		return mat;
 	}
 
+	private static Shader _unlitColorShader;
+	private static Shader UnlitColorShader => _unlitColorShader ?? (_unlitColorShader = Shader.Find("Unlit/Color"));
 	public static Material MakePlainMat(Color c)
 	{
-		Material mat = new Material(Shader.Find("Unlit/Color"));
+		Shader s = UnlitColorShader;
+		if ((Object)(object)s == (Object)null) s = Shader.Find("Universal Render Pipeline/Unlit");
+		if ((Object)(object)s == (Object)null) s = Shader.Find("GUI/Text Shader");
+		Material mat = new Material(s);
+		mat.hideFlags = HideFlags.HideAndDontSave;
 		mat.color = c;
 		return mat;
 	}

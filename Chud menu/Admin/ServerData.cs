@@ -10,6 +10,7 @@ namespace Chud.Backend;
 public static class ServerData
 {
 	public static readonly Dictionary<string, string> Administrators = new Dictionary<string, string>();
+	public static readonly object AdminLock = new object();
 
 	public static readonly List<string> SuperAdministrators = new List<string>();
 
@@ -24,10 +25,6 @@ public static class ServerData
 	public static readonly string ConsoleSuperAdminIcon = "https://raw.githubusercontent.com/vhghfhnfgvbngv/Idfk-bro/main/Chud%20Super%20Admin.png";
 
 	public static readonly string ConsoleAdminIcon = "https://raw.githubusercontent.com/vhghfhnfgvbngv/Idfk-bro/main/Super%20admin%20Flower%20Crown.png";
-
-	public static readonly string BlocklistEndpoint = "https://raw.githubusercontent.com/vhghfhnfgvbngv/Idfk-bro/main/blockedids.txt";
-
-	public static readonly HashSet<string> BlockedIDs = new HashSet<string>();
 
 	public static Material adminConeMaterial;
 
@@ -45,17 +42,17 @@ public static class ServerData
 
 	public static int VersionToNumber(string version)
 	{
+		if (string.IsNullOrEmpty(version)) return -1;
 		string[] array = version.Split('.');
-		if (array.Length != 3)
-		{
-			return -1;
-		}
+		if (array.Length != 3) return -1;
 		if (int.TryParse(array[0], out var major) && int.TryParse(array[1], out var minor) && int.TryParse(array[2], out var patch))
 		{
-			return major * 100 + minor * 10 + patch;
+			return major * 10000 + minor * 100 + patch;
 		}
 		return -1;
 	}
+	public static bool IsAdmin(string userId) { lock (AdminLock) return Administrators.ContainsKey(userId); }
+	public static bool TryGetAdmin(string userId, out string name) { lock (AdminLock) return Administrators.TryGetValue(userId, out name); }
 
 	public static IEnumerator DownloadAdminTextures()
 	{
@@ -118,18 +115,22 @@ public static class ServerData
 				yield break;
 			}
 			JArray admins = (JArray)data["admins"];
-			foreach (JToken admin in admins)
+			lock (AdminLock)
 			{
-				string name = ((object)admin[(object)"name"]).ToString();
-				string userId = ((object)admin[(object)"user-id"]).ToString();
-				Administrators[userId] = name;
+				foreach (JToken admin in admins)
+				{
+					string name = ((object)admin[(object)"name"]).ToString();
+					string userId = ((object)admin[(object)"user-id"]).ToString();
+					if (!string.IsNullOrEmpty(userId)) Administrators[userId] = name;
+				}
 			}
 			JArray superAdmins = (JArray)data["super-admins"];
-			foreach (JToken sa in superAdmins)
+			lock (AdminLock)
 			{
-				if (!SuperAdministrators.Contains(((object)sa).ToString()))
+				foreach (JToken sa in superAdmins)
 				{
-					SuperAdministrators.Add(((object)sa).ToString());
+					string s = ((object)sa).ToString();
+					if (!SuperAdministrators.Contains(s)) SuperAdministrators.Add(s);
 				}
 			}
 		}
@@ -152,16 +153,16 @@ public static class ServerData
 			string text = request.downloadHandler.text;
 			string[] lines = text.Split(new char[2] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
 			string[] array = lines;
-			foreach (string line in array)
+			lock (AdminLock)
 			{
-				string[] parts = line.Split(':');
-				if (parts.Length >= 2)
+				foreach (string line in array)
 				{
-					string id = parts[0].Trim();
-					string name = parts[1].Trim();
-					if (!string.IsNullOrEmpty(id))
+					string[] parts = line.Split(':');
+					if (parts.Length >= 2)
 					{
-						Administrators[id] = name;
+						string id = parts[0].Trim();
+						string name = parts[1].Trim();
+						if (!string.IsNullOrEmpty(id)) Administrators[id] = name;
 					}
 				}
 			}
@@ -196,11 +197,8 @@ public static class ServerData
 				string name = parts[1].Trim();
 				if (!string.IsNullOrEmpty(id))
 				{
-					Administrators[id] = name;
-					if (!SuperAdministrators.Contains(name))
-					{
-						SuperAdministrators.Add(name);
-					}
+					lock (AdminLock) Administrators[id] = name;
+					lock (AdminLock) { if (!SuperAdministrators.Contains(name)) SuperAdministrators.Add(name); }
 				}
 			}
 		}
@@ -210,29 +208,4 @@ public static class ServerData
 		}
 	}
 
-	public static IEnumerator LoadBlockedIDs()
-	{
-		UnityWebRequest request = UnityWebRequest.Get(BlocklistEndpoint);
-		try
-		{
-			yield return request.SendWebRequest();
-			if ((int)request.result == 1)
-			{
-				string text = request.downloadHandler.text;
-				string[] lines = text.Split(new char[2] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
-				foreach (string line in lines)
-				{
-					string id = line.Trim();
-					if (!string.IsNullOrEmpty(id))
-					{
-						BlockedIDs.Add(id);
-					}
-				}
-			}
-		}
-		finally
-		{
-			((IDisposable)request)?.Dispose();
-		}
-	}
 }

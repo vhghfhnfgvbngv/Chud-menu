@@ -47,11 +47,8 @@ public class ButtonInfo
 
 	public T GetValue<T>()
 	{
-		if (value == null)
-			return default;
-
+		if (value == null) return default;
 		Type targetType = typeof(T);
-
 		try
 		{
 			if (targetType.IsEnum)
@@ -60,7 +57,9 @@ public class ButtonInfo
 					? (T)Enum.Parse(targetType, s, ignoreCase: true)
 					: (T)Enum.ToObject(targetType, value);
 			}
-
+			if (value is T t) return t;
+			if (value is string str && targetType == typeof(int) && int.TryParse(str, out var iv)) return (T)(object)iv;
+			if (value is int iv2 && targetType == typeof(string)) return (T)(object)iv2.ToString();
 			return (T)Convert.ChangeType(value, targetType);
 		}
 		catch (Exception e)

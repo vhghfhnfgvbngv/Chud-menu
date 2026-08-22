@@ -19,19 +19,24 @@ internal static class ColorUtil
 [HarmonyPatch("SetNameTagText")]
 internal static class UnsanitizedChestPatch
 {
+	private static string SanitizeName(string s)
+	{
+		if (string.IsNullOrEmpty(s)) return s;
+		if (s.Length > 32) s = s.Substring(0, 32);
+		s = s.Replace("<size", "<SIZE").Replace("size=", "SIZE=");
+		return s;
+	}
 	[HarmonyPostfix]
 	public static void Postfix(VRRig __instance)
 	{
 		try
 		{
+			if ((Object)(object)__instance == (Object)null || (Object)(object)__instance.playerText1 == (Object)null) return;
 			NetPlayer netPlayer = __instance.Creator;
 			string rawName = (netPlayer != null) ? netPlayer.NickName : NetworkSystem.Instance.GetMyNickName();
-			if (!string.IsNullOrEmpty(rawName))
-				__instance.playerText1.text = rawName;
+			if (!string.IsNullOrEmpty(rawName)) __instance.playerText1.text = SanitizeName(rawName);
 		}
-		catch
-		{
-		}
+		catch { }
 	}
 }
 
@@ -73,19 +78,23 @@ internal static class ChestColorSubPatch
 [HarmonyPatch("UpdatePlayerText")]
 internal static class UnsanitizedBoardPatch
 {
+	private static string SanitizeName(string s)
+	{
+		if (string.IsNullOrEmpty(s)) return s;
+		if (s.Length > 32) s = s.Substring(0, 32);
+		s = s.Replace("<size", "<SIZE").Replace("size=", "SIZE=");
+		return s;
+	}
 	[HarmonyPostfix]
 	public static void Postfix(GorillaPlayerScoreboardLine __instance)
 	{
 		try
 		{
+			if ((Object)(object)__instance == (Object)null || (Object)(object)__instance.playerName == (Object)null) return;
 			string rawName = __instance.linePlayer?.NickName;
-			if (!string.IsNullOrEmpty(rawName))
-				__instance.playerName.text = rawName;
-			if ((Object)(object)__instance.playerVRRig != (Object)null)
-				__instance.playerName.color = ColorUtil.PlayerColor(__instance.playerVRRig);
+			if (!string.IsNullOrEmpty(rawName)) __instance.playerName.text = SanitizeName(rawName);
+			if ((Object)(object)__instance.playerVRRig != (Object)null) __instance.playerName.color = ColorUtil.PlayerColor(__instance.playerVRRig);
 		}
-		catch
-		{
-		}
+		catch { }
 	}
 }

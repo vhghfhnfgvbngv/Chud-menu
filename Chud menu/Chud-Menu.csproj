@@ -3,8 +3,10 @@
     <AssemblyName>Chud Menu</AssemblyName>
     <GenerateAssemblyInfo>False</GenerateAssemblyInfo>
     <TargetFramework>net48</TargetFramework>
-    <GorillaTagDir>C:\Program Files (x86)\Steam\steamapps\common\Gorilla Tag\Gorilla Tag_Data\Managed</GorillaTagDir>
-    <BepInExCoreDir>C:\Program Files (x86)\Steam\steamapps\common\Gorilla Tag\BepInEx\core</BepInExCoreDir>
+    <GorillaTagDir Condition="Exists('C:\Program Files (x86)\Steam\steamapps\common\Gorilla Tag\Gorilla Tag_Data\Managed')">C:\Program Files (x86)\Steam\steamapps\common\Gorilla Tag\Gorilla Tag_Data\Managed</GorillaTagDir>
+    <GorillaTagDir Condition="!Exists('$(GorillaTagDir)')">$(MSBuildThisFileDirectory)Libs\Managed</GorillaTagDir>
+    <BepInExCoreDir Condition="Exists('C:\Program Files (x86)\Steam\steamapps\common\Gorilla Tag\BepInEx\core')">C:\Program Files (x86)\Steam\steamapps\common\Gorilla Tag\BepInEx\core</BepInExCoreDir>
+    <BepInExCoreDir Condition="!Exists('$(BepInExCoreDir)')">$(MSBuildThisFileDirectory)Libs\BepInEx</BepInExCoreDir>
   </PropertyGroup>
   <PropertyGroup>
     <LangVersion>latest</LangVersion>
@@ -13,7 +15,7 @@
   <PropertyGroup>
     <RootNamespace>Chud</RootNamespace>
   </PropertyGroup>
-  <Target Name="CopyToPlugins" AfterTargets="Build">
+  <Target Name="CopyToPlugins" AfterTargets="Build" Condition="Exists('C:\Program Files (x86)\Steam\steamapps\common\Gorilla Tag\BepInEx\plugins')">
     <Copy SourceFiles="$(OutputPath)$(AssemblyName).dll" DestinationFolder="C:\Program Files (x86)\Steam\steamapps\common\Gorilla Tag\BepInEx\plugins" />
   </Target>
   <ItemGroup>

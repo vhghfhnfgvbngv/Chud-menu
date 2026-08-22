@@ -98,32 +98,27 @@ internal partial class WristMenu
 
 	private void HandleTriggerPageNav()
 	{
+		if ((Object)(object)VRRig.LocalRig == (Object)null) return;
 		if (triggerDownL)
 		{
 			if (!leftTriggerLocked)
 			{
 				Toggle("PreviousPage");
-				VRRig.LocalRig.PlayHandTapLocal(Mods.ButtonSound, false, 0.1f);
+				try { VRRig.LocalRig.PlayHandTapLocal(Mods.ButtonSound, false, 0.1f); } catch { }
 				leftTriggerLocked = true;
 			}
 		}
-		else
-		{
-			leftTriggerLocked = false;
-		}
+		else leftTriggerLocked = false;
 		if (triggerDownR)
 		{
 			if (!rightTriggerLocked)
 			{
 				Toggle("NextPage");
-				VRRig.LocalRig.PlayHandTapLocal(Mods.ButtonSound, false, 0.1f);
+				try { VRRig.LocalRig.PlayHandTapLocal(Mods.ButtonSound, false, 0.1f); } catch { }
 				rightTriggerLocked = true;
 			}
 		}
-		else
-		{
-			rightTriggerLocked = false;
-		}
+		else rightTriggerLocked = false;
 	}
 
 	private void HandleMenuFollow(bool qKeyDown)

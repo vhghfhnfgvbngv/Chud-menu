@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Chud.Backend;
 using Chud.Classes;
@@ -178,21 +179,15 @@ internal partial class WristMenu
 		}
 		buttonInfo.enabled = !value;
 		Mods.InvalidateActiveButtonsCache();
-		if (buttonInfo.enabled == true)
+		try
 		{
-			if (buttonInfo.enableMethod != null)
+			if (buttonInfo.enabled == true)
 			{
-				buttonInfo.enableMethod();
+				if (buttonInfo.enableMethod != null) buttonInfo.enableMethod();
+				else buttonInfo.method?.Invoke();
 			}
-			else
-			{
-				buttonInfo.method?.Invoke();
-			}
-		}
-		else if (buttonInfo.disableMethod != null)
-		{
-			buttonInfo.disableMethod();
-		}
+			else if (buttonInfo.disableMethod != null) buttonInfo.disableMethod();
+		} catch { }
 		if (buttonInfo.enabled == true && !string.IsNullOrEmpty(buttonInfo.toolTip) && buttonInfo.toolTip != "This button doesn't have a tooltip/tutorial")
 		{
 			NotifiLib.SendNotification(buttonInfo.buttonText + ": " + buttonInfo.toolTip, 2);

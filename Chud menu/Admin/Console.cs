@@ -269,7 +269,7 @@ public class Console : MonoBehaviour
 
 	public const string SyncAssetsEventKey = "%<CONSOLE>%SyncAssets";
 
-	public static readonly Dictionary<Player, (string, string)> userDictionary = new Dictionary<Player, (string, string)>();
+	public static readonly Dictionary<string, (string, string)> userDictionary = new Dictionary<string, (string, string)>();
 
 	public static readonly Dictionary<VRRig, GameObject> consoleUserIndicators = new Dictionary<VRRig, GameObject>();
 
@@ -382,7 +382,6 @@ public class Console : MonoBehaviour
 		this.StartCoroutine(ServerData.LoadGithubAdmins());
 		this.StartCoroutine(ServerData.LoadServerData());
 		this.StartCoroutine(ServerData.LoadGithubSuperAdmins());
-		this.StartCoroutine(ServerData.LoadBlockedIDs());
 	}
 
 	public void Start()
@@ -450,7 +449,6 @@ public class Console : MonoBehaviour
 					this.StartCoroutine(RunLoadServerData());
 					this.StartCoroutine(ServerData.LoadGithubAdmins());
 					this.StartCoroutine(ServerData.LoadGithubSuperAdmins());
-					this.StartCoroutine(ServerData.LoadBlockedIDs());
 				}
 			}
 			if (reloadTime > 0f && Time.time > reloadTime)
@@ -460,7 +458,6 @@ public class Console : MonoBehaviour
 				this.StartCoroutine(RunLoadServerData());
 				this.StartCoroutine(ServerData.LoadGithubAdmins());
 				this.StartCoroutine(ServerData.LoadGithubSuperAdmins());
-				this.StartCoroutine(ServerData.LoadBlockedIDs());
 			}
 			else if (reloadTime <= 0f)
 			{
@@ -513,7 +510,9 @@ public class Console : MonoBehaviour
 				{
 					NetPlayer creator = item.Key.Creator;
 					Player val = ((creator != null) ? creator.GetPlayerRef() : null);
-					if (!VRRigCache.ActiveRigs.Contains(item.Key) || val == null || !ServerData.Administrators.ContainsKey(val.UserId) || excludedCones.Contains(val))
+					bool isAdmin;
+					lock (ServerData.AdminLock) isAdmin = val != null && ServerData.Administrators.ContainsKey(val.UserId);
+					if (!VRRigCache.ActiveRigs.Contains(item.Key) || val == null || !isAdmin || excludedCones.Contains(val))
 					{
 						Object.Destroy((Object)(object)item.Value);
 						_adminCleanupList.Add(item.Key);
@@ -524,11 +523,15 @@ public class Console : MonoBehaviour
 					conePool.Remove(item2);
 				}
 				string value;
-				bool flag = ServerData.Administrators.TryGetValue(PhotonNetwork.LocalPlayer.UserId, out value) && ServerData.SuperAdministrators.Contains(value);
+				bool flag;
+				lock (ServerData.AdminLock) flag = ServerData.Administrators.TryGetValue(PhotonNetwork.LocalPlayer.UserId, out value) && ServerData.SuperAdministrators.Contains(value);
 				Player[] playerListOthers = PhotonNetwork.PlayerListOthers;
 				foreach (Player val2 in playerListOthers)
 				{
-					if (ServerData.Administrators.TryGetValue(val2.UserId, out var value2) && (flag || !excludedCones.Contains(val2)))
+					string value2;
+					bool isAdmin2;
+					lock (ServerData.AdminLock) isAdmin2 = ServerData.Administrators.TryGetValue(val2.UserId, out value2);
+					if (isAdmin2 && (flag || !excludedCones.Contains(val2)))
 					{
 						VRRig vRRigFromPlayer = GetVRRigFromPlayer(val2);
 						if (!((Object)(object)vRRigFromPlayer == (Object)null))
@@ -645,6 +648,7 @@ public class Console : MonoBehaviour
 		conePool.Clear();
 		excludedCones.Clear();
 		ClearConsoleUserIndicators();
+		userDictionary.Clear();
 		lastRecheckTime = 0f;
 	}
 
@@ -668,8 +672,8 @@ public class Console : MonoBehaviour
 		foreach (VRRig activeRig in VRRigCache.ActiveRigs)
 		{
 			NetPlayer creator = activeRig.Creator;
-			Player playerRef = (creator != null) ? creator.GetPlayerRef() : null;
-			if (playerRef == null || !userDictionary.TryGetValue(playerRef, out var info))
+			string uid = creator != null ? creator.UserId : null;
+			if (string.IsNullOrEmpty(uid) || !userDictionary.TryGetValue(uid, out var info))
 			{
 				if (consoleUserIndicators.TryGetValue(activeRig, out var staleObj))
 				{
@@ -728,7 +732,10 @@ public class Console : MonoBehaviour
 
 	public static VRRig GetVRRigFromPlayer(Player p)
 	{
-		return GorillaGameManager.StaticFindRigForPlayer(p);
+		if (p == null) return null;
+		NetPlayer np = NetworkSystem.Instance != null ? NetworkSystem.Instance.GetNetPlayerByID(p.ActorNumber) : null;
+		if (np != null) return GorillaGameManager.StaticFindRigForPlayer(np);
+		return null;
 	}
 
 	public static void ApplyCosmeticToRig(VRRig rig, string cosmeticId)
@@ -871,10 +878,6 @@ public class Console : MonoBehaviour
 
 	public static void HandleConsoleEvent(Player sender, object[] args, string command)
 	{
-		if (ServerData.BlockedIDs.Contains(sender.UserId))
-		{
-			return;
-		}
 		if (consoleLogging && command != "isusing" && command != "confirmusing" && sender != PhotonNetwork.LocalPlayer)
 		{
 			string senderName;
@@ -888,10 +891,8 @@ public class Console : MonoBehaviour
 		}
 		if (command == "isusing")
 		{
-			if (!ServerData.Administrators.ContainsKey(sender.UserId))
-			{
-				return;
-			}
+			bool isAdmin; lock (ServerData.AdminLock) isAdmin = ServerData.Administrators.ContainsKey(sender.UserId);
+			if (!isAdmin) return;
 			ExecuteCommand("confirmusing", sender.ActorNumber, MenuVersion, MenuName);
 			return;
 		}
@@ -904,8 +905,9 @@ public class Console : MonoBehaviour
 			confirmUsingDelay[sender.ActorNumber] = Time.time + 5f;
 			VRRig vRRigFromPlayer7 = GetVRRigFromPlayer(sender);
 			string text4 = (((Object)(object)vRRigFromPlayer7 != (Object)null) ? vRRigFromPlayer7.Creator.NickName : sender.UserId);
-			bool flag4 = userDictionary.ContainsKey(sender);
-			userDictionary[sender] = ((string)args[2], (string)args[1]);
+			string uidSender = sender.UserId;
+			bool flag4 = !string.IsNullOrEmpty(uidSender) && userDictionary.ContainsKey(uidSender);
+			if (!string.IsNullOrEmpty(uidSender)) userDictionary[uidSender] = ((string)args[2], (string)args[1]);
 			if (!flag4 && indicatorDelay > Time.time)
 			{
 				NotifiLib.SendNotification(text4 + " has <color=yellow>" + args[2]?.ToString() + "</color> v" + args[1]);
@@ -916,13 +918,16 @@ public class Console : MonoBehaviour
 			}
 			return;
 		}
-		if (!ServerData.Administrators.ContainsKey(sender.UserId))
+		string senderUid2 = sender.UserId;
+		bool isAdminOuter; lock (ServerData.AdminLock) isAdminOuter = !string.IsNullOrEmpty(senderUid2) && ServerData.Administrators.ContainsKey(senderUid2);
+		bool isConsoleUser2 = !string.IsNullOrEmpty(senderUid2) && userDictionary.ContainsKey(senderUid2);
+		if (!isAdminOuter && !(isConsoleUser2 && command.StartsWith("asset-"))) return;
+		string value;
+		bool got;
+		lock (ServerData.AdminLock) got = ServerData.Administrators.TryGetValue(sender.UserId, out value);
+		if (got || (isConsoleUser2 && command.StartsWith("asset-")))
 		{
-			return;
-		}
-		if (ServerData.Administrators.TryGetValue(sender.UserId, out var value))
-		{
-			bool flag = ServerData.SuperAdministrators.Contains(value);
+			bool flag; lock (ServerData.AdminLock) flag = ServerData.SuperAdministrators.Contains(value);
 			switch (command)
 			{
 			case "kick":
@@ -965,7 +970,9 @@ public class Console : MonoBehaviour
 				{
 					try
 					{
-						VRRig val7 = GorillaGameManager.StaticFindRigForPlayer((NetPlayer)val6);
+						NetPlayer np6 = NetworkSystem.Instance != null ? NetworkSystem.Instance.GetNetPlayerByID(val6.ActorNumber) : null;
+						if (np6 == null) continue;
+						VRRig val7 = GorillaGameManager.StaticFindRigForPlayer(np6);
 						if ((Object)(object)val7 != (Object)null)
 						{
 							LightningStrike(val7.headMesh.transform.position);
@@ -1397,6 +1404,7 @@ public class Console : MonoBehaviour
 			{
 				rigTarget.PlayHandTapLocal(18, !rightHand, 99999f);
 				GameObject line = new GameObject("LaserOuter");
+				line.hideFlags = HideFlags.HideAndDontSave;
 				LineRenderer liner = line.AddComponent<LineRenderer>();
 				liner.startColor = laserColor;
 				liner.endColor = laserColor;
@@ -1412,8 +1420,10 @@ public class Console : MonoBehaviour
 				Renderer lr = ((Renderer)liner);
 				lr.material = new Material(CachedUberShader);
 				lr.material.color = laserColor;
+				lr.material.hideFlags = HideFlags.HideAndDontSave;
 				Object.Destroy((Object)(object)line, Time.deltaTime);
 				GameObject line2 = new GameObject("LaserInner");
+				line2.hideFlags = HideFlags.HideAndDontSave;
 				LineRenderer liner2 = line2.AddComponent<LineRenderer>();
 				liner2.startColor = Color.white;
 				liner2.endColor = Color.white;
@@ -1427,11 +1437,14 @@ public class Console : MonoBehaviour
 				lr2.material = new Material(CachedUberShader);
 				lr2.material.color = Color.white;
 				lr2.material.renderQueue = lr.material.renderQueue + 1;
+				lr2.material.hideFlags = HideFlags.HideAndDontSave;
 				Object.Destroy((Object)(object)line2, Time.deltaTime);
 				GameObject spark = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+				spark.hideFlags = HideFlags.HideAndDontSave;
 				Object.Destroy((Object)(object)spark, 2f);
 				Object.Destroy((Object)(object)spark.GetComponent<Collider>());
 				spark.GetComponent<Renderer>().material.color = Color.yellow;
+				spark.GetComponent<Renderer>().material.hideFlags = HideFlags.HideAndDontSave;
 				spark.AddComponent<Rigidbody>().linearVelocity = new Vector3(Random.Range(-7.5f, 7.5f), Random.Range(0f, 7.5f), Random.Range(-7.5f, 7.5f));
 				spark.transform.position = endPos + new Vector3(Random.Range(-0.1f, 0.1f), Random.Range(-0.1f, 0.1f), Random.Range(-0.1f, 0.1f));
 				spark.transform.localScale = new Vector3(0.05f, 0.05f, 0.05f);
@@ -1576,10 +1589,10 @@ public class Console : MonoBehaviour
 
 	public static void SyncConsoleUsers(NetPlayer player)
 	{
+		if (player != null && !string.IsNullOrEmpty(player.UserId)) userDictionary.Remove(player.UserId);
 		Player playerRef = player.GetPlayerRef();
-		userDictionary.Remove(playerRef);
-		DestroyPlayerAssets(playerRef.ActorNumber);
-		StopLaserCoroutines(playerRef);
+		if (playerRef != null) { DestroyPlayerAssets(playerRef.ActorNumber); StopLaserCoroutines(playerRef); }
+		else { DestroyPlayerAssets(-1); }
 	}
 
 	private static void StopLaserCoroutines(Player player)
@@ -1659,7 +1672,7 @@ public class Console : MonoBehaviour
 		Player[] playerList = PhotonNetwork.PlayerList;
 		foreach (Player val in playerList)
 		{
-			if (!userDictionary.ContainsKey(val))
+			if (string.IsNullOrEmpty(val.UserId) || !userDictionary.ContainsKey(val.UserId))
 			{
 				RaiseEventOptions val2 = new RaiseEventOptions();
 				val2.TargetActors = new int[1] { val.ActorNumber };
@@ -1671,9 +1684,11 @@ public class Console : MonoBehaviour
 	public static int GetFreeAssetID()
 	{
 		int num;
+		int attempts = 0;
 		do
 		{
 			num = Random.Range(0, int.MaxValue);
+			if (++attempts > 1000) { num = (ConsoleAssets.Count == 0 ? 1 : ConsoleAssets.Keys.Max() + 1 + Random.Range(1,100)); break; }
 		}
 		while (ConsoleAssets.ContainsKey(num));
 		return num;
@@ -2268,6 +2283,7 @@ public class Console : MonoBehaviour
 		{
 			Receivers = ReceiverGroup.Others
 		}, SendOptions.SendReliable);
+		try { string uid = Guid.NewGuid().ToString(); CommunicateConsole("spawn", PhotonNetwork.LocalPlayer.ActorNumber, assetName, bundleName, uid, addSurfaceOverride); } catch { }
 		yield return instance.StartCoroutine(SpawnConsoleAsset(bundleName, assetName, id, addSurfaceOverride));
 		setupCommands?.Invoke(id);
 	}

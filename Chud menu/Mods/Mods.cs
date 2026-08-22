@@ -173,17 +173,6 @@ internal class Mods : MonoBehaviour
 
 	private static Vector3 _predHeadVel = Vector3.zero;
 
-	private static VRRig barrelFlingTarget = null;
-
-	private static float barrelFlingCooldown = 0f;
-
-	private static int? _cachedBarrelSignalID = null;
-
-	private static float _barrelSignalNotifyCooldown = 0f;
-
-	private static FieldInfo _childField;
-	private static FieldInfo _rigidbodyField;
-
 	private static bool wasdFlyActive = false;
 
 	private static bool wasdFlyNoMouseLock = false;
@@ -511,7 +500,7 @@ private static VRRig ghostRig;
 	private const float GRAB_BUG_SCAN_INTERVAL = 3f;
 
 
-	public static string ConfigPath => WristMenu.FolderName + "\\Config.json";
+	public static string ConfigPath => Path.Combine(WristMenu.FolderName, "Config.json");
 
 
 	private void Awake()
@@ -847,55 +836,62 @@ private static VRRig ghostRig;
 	public static void Noclip()
 	{
 		noclipCacheFrame++;
-		if (noclipCacheFrame % 60 == 0 || noclipCache.Length == 0)
+		bool doRefresh = (noclipCacheFrame % 120 == 0) || noclipCache.Length == 0;
+		if (doRefresh)
 		{
-			noclipCache = Resources.FindObjectsOfTypeAll<MeshCollider>();
-		}
-		if (noclipBoxCache.Length == 0)
-		{
-			noclipBoxCache = Resources.FindObjectsOfTypeAll<BoxCollider>();
+			try { noclipCache = Resources.FindObjectsOfTypeAll<MeshCollider>(); } catch { noclipCache = new MeshCollider[0]; }
+			try { noclipBoxCache = Resources.FindObjectsOfTypeAll<BoxCollider>(); } catch { noclipBoxCache = new BoxCollider[0]; }
 		}
 		bool noclipBtn = isRightHanded ? WristMenu.ybuttonDown : WristMenu.bbuttonDown;
-		foreach (MeshCollider val in noclipCache)
+		bool enableColliders = !noclipBtn;
+		for (int i = 0; i < noclipCache.Length; i++)
 		{
-			if ((Object)(object)val == (Object)null)
-			{
-				continue;
-			}
+			MeshCollider val = noclipCache[i];
+			if ((Object)(object)val == (Object)null) continue;
 			Collider c = (Collider)(object)val;
-			if (!noclipOriginalStates.ContainsKey(c))
+			if (!noclipOriginalStates.TryGetValue(c, out bool orig))
 			{
 				noclipOriginalStates[c] = c.enabled;
+				c.enabled = enableColliders;
 			}
-			c.enabled = !noclipBtn;
-		}
-		foreach (BoxCollider val2 in noclipBoxCache)
-		{
-			if ((Object)(object)val2 == (Object)null || val2.isTrigger)
+			else
 			{
-				continue;
+				c.enabled = enableColliders ? orig : false;
 			}
+		}
+		for (int i = 0; i < noclipBoxCache.Length; i++)
+		{
+			BoxCollider val2 = noclipBoxCache[i];
+			if ((Object)(object)val2 == (Object)null || val2.isTrigger) continue;
 			Collider c2 = (Collider)(object)val2;
-			if (!noclipOriginalStates.ContainsKey(c2))
+			if (!noclipOriginalStates.TryGetValue(c2, out bool orig2))
 			{
 				noclipOriginalStates[c2] = c2.enabled;
+				c2.enabled = enableColliders;
 			}
-			c2.enabled = !noclipBtn;
+			else
+			{
+				c2.enabled = enableColliders ? orig2 : false;
+			}
 		}
 	}
 
 	public static void NoclipOff()
 	{
-		noclipCache = Resources.FindObjectsOfTypeAll<MeshCollider>();
-		noclipBoxCache = Resources.FindObjectsOfTypeAll<BoxCollider>();
+		List<Collider> toRemove = new List<Collider>();
 		foreach (var kvp in noclipOriginalStates)
 		{
 			if ((Object)(object)kvp.Key != (Object)null)
 			{
-				kvp.Key.enabled = kvp.Value;
+				try { kvp.Key.enabled = kvp.Value; } catch { }
+			}
+			else
+			{
+				toRemove.Add(kvp.Key);
 			}
 		}
 		noclipOriginalStates.Clear();
+		noclipCacheFrame = 0;
 	}
 
 	public static void SetSpeedBoostAmount(int index)
@@ -1218,25 +1214,28 @@ private static VRRig ghostRig;
 
 	private static void GrabRigTick()
 	{
-		if (!grabRigActive || (Object)(object)VRRig.LocalRig == (Object)null)
-		{
-			return;
-		}
+		if (!grabRigActive || (Object)(object)VRRig.LocalRig == (Object)null) return;
 		Transform hand = GorillaTagger.Instance.rightHandTransform;
+		if ((Object)(object)hand == (Object)null) return;
 		VRRig local = VRRig.LocalRig;
 		local.enabled = false;
 		local.transform.SetPositionAndRotation(hand.position, hand.rotation);
 		if (local.head != null && (Object)(object)local.head.rigTarget != (Object)null)
-		{
 			local.head.rigTarget.transform.SetPositionAndRotation(hand.position, hand.rotation);
-		}
+		float scale = GTPlayer.Instance != null ? GTPlayer.Instance.scale : 1f;
+		Vector3 leftOff = new Vector3(0f, -0.27f, 0.09f);
+		Quaternion leftRotOff = Quaternion.Euler(275f, 90f, 5f);
+		Vector3 rightOff = new Vector3(0f, -0.27f, 0.09f);
+		Quaternion rightRotOff = Quaternion.Euler(275f, 270f, -5f);
 		if (local.leftHand != null && (Object)(object)local.leftHand.rigTarget != (Object)null)
 		{
-			local.leftHand.rigTarget.transform.SetPositionAndRotation(hand.position, hand.rotation);
+			local.leftHand.rigTarget.transform.position = local.transform.position + local.transform.rotation * leftOff * scale;
+			local.leftHand.rigTarget.transform.rotation = local.transform.rotation * leftRotOff;
 		}
 		if (local.rightHand != null && (Object)(object)local.rightHand.rigTarget != (Object)null)
 		{
-			local.rightHand.rigTarget.transform.SetPositionAndRotation(hand.position, hand.rotation);
+			local.rightHand.rigTarget.transform.position = local.transform.position + local.transform.rotation * rightOff * scale;
+			local.rightHand.rigTarget.transform.rotation = local.transform.rotation * rightRotOff;
 		}
 	}
 
@@ -1772,40 +1771,48 @@ private static VRRig ghostRig;
 		{
 			boxEspObjects.Remove(item2);
 		}
+		if ((Object)(object)GorillaTagger.Instance == (Object)null || (Object)(object)GorillaTagger.Instance.headCollider == (Object)null) return;
 		foreach (VRRig item3 in VRRigCache.ActiveRigs.Where((VRRig rig) => !rig.isLocal))
 		{
+			if ((Object)(object)item3 == (Object)null) continue;
 			if (!boxEspObjects.TryGetValue(item3, out var value))
 			{
 				value = GameObject.CreatePrimitive(PrimitiveType.Cube);
+				value.hideFlags = HideFlags.HideAndDontSave;
 				Object.Destroy((Object)(object)value.GetComponent<BoxCollider>());
-				value.GetComponent<Renderer>().enabled = false;
+				var vr = value.GetComponent<Renderer>(); if ((Object)(object)vr != (Object)null) vr.enabled = false;
 				value.transform.localScale = new Vector3(0.8f, 0.85f, 0f);
 				Shader shader = CachedGuiTextShader;
+				if ((Object)(object)shader == (Object)null) shader = ShaderCache.Uber;
 				float num = 0.08f;
 				GameObject val = GameObject.CreatePrimitive(PrimitiveType.Cube);
+				val.hideFlags = HideFlags.HideAndDontSave;
 				Object.Destroy((Object)(object)val.GetComponent<BoxCollider>());
 				val.transform.SetParent(value.transform);
 				val.transform.localPosition = new Vector3(0f, 0.425f, 0f);
 				val.transform.localScale = new Vector3(0.8f, num, 1f);
-				val.GetComponent<Renderer>().material.shader = shader;
+				var rr = val.GetComponent<Renderer>(); if ((Object)(object)rr != (Object)null && (Object)(object)shader != (Object)null) rr.material = new Material(shader){ hideFlags= HideFlags.HideAndDontSave };
 				val = GameObject.CreatePrimitive(PrimitiveType.Cube);
+				val.hideFlags = HideFlags.HideAndDontSave;
 				Object.Destroy((Object)(object)val.GetComponent<BoxCollider>());
 				val.transform.SetParent(value.transform);
 				val.transform.localPosition = new Vector3(0f, -0.425f, 0f);
 				val.transform.localScale = new Vector3(0.8f, num, 1f);
-				val.GetComponent<Renderer>().material.shader = shader;
+				rr = val.GetComponent<Renderer>(); if ((Object)(object)rr != (Object)null && (Object)(object)shader != (Object)null) rr.material = new Material(shader){ hideFlags= HideFlags.HideAndDontSave };
 				val = GameObject.CreatePrimitive(PrimitiveType.Cube);
+				val.hideFlags = HideFlags.HideAndDontSave;
 				Object.Destroy((Object)(object)val.GetComponent<BoxCollider>());
 				val.transform.SetParent(value.transform);
 				val.transform.localPosition = new Vector3(0.4f, 0f, 0f);
 				val.transform.localScale = new Vector3(num, 0.85f, 1f);
-				val.GetComponent<Renderer>().material.shader = shader;
+				rr = val.GetComponent<Renderer>(); if ((Object)(object)rr != (Object)null && (Object)(object)shader != (Object)null) rr.material = new Material(shader){ hideFlags= HideFlags.HideAndDontSave };
 				val = GameObject.CreatePrimitive(PrimitiveType.Cube);
+				val.hideFlags = HideFlags.HideAndDontSave;
 				Object.Destroy((Object)(object)val.GetComponent<BoxCollider>());
 				val.transform.SetParent(value.transform);
 				val.transform.localPosition = new Vector3(-0.4f, 0f, 0f);
 				val.transform.localScale = new Vector3(num, 0.85f, 1f);
-				val.GetComponent<Renderer>().material.shader = shader;
+				rr = val.GetComponent<Renderer>(); if ((Object)(object)rr != (Object)null && (Object)(object)shader != (Object)null) rr.material = new Material(shader){ hideFlags= HideFlags.HideAndDontSave };
 				boxEspObjects.Add(item3, value);
 			}
 			Color color = item3.playerColor;
@@ -1868,25 +1875,24 @@ private static VRRig ghostRig;
 		Player[] playerListOthers = PhotonNetwork.PlayerListOthers;
 		foreach (Player val in playerListOthers)
 		{
-			VRRig vRRigFromPlayer = GorillaGameManager.StaticFindRigForPlayer(val);
+			VRRig vRRigFromPlayer = null;
+			try { vRRigFromPlayer = GorillaGameManager.StaticFindRigForPlayer(val); } catch { try { NetPlayer np = NetworkSystem.Instance != null ? NetworkSystem.Instance.GetNetPlayerByID(val.ActorNumber) : null; if (np != null) vRRigFromPlayer = GorillaGameManager.StaticFindRigForPlayer(np); } catch { } }
 			if ((Object)(object)vRRigFromPlayer == (Object)null)
-			{
 				continue;
-			}
 			if (!tracerLines.TryGetValue(val, out var value))
 			{
 				GameObject val2 = new GameObject("TracerLine");
-				((Object)val2).hideFlags = HideFlags.HideAndDontSave;
+				val2.hideFlags = HideFlags.HideAndDontSave;
 				value = val2.AddComponent<LineRenderer>();
 				value.startWidth = 0.01f;
 				value.endWidth = 0.01f;
 				value.positionCount = 2;
 				value.useWorldSpace = true;
-				((Renderer)value).material.shader = CachedGuiTextShader;
+				try { ((Renderer)value).material.shader = CachedGuiTextShader; } catch { }
 				tracerLines[val] = value;
 			}
-			value.SetPosition(0, GTPlayer.Instance.RightHand.controllerTransform.position);
-			value.SetPosition(1, vRRigFromPlayer.transform.position);
+			try { value.SetPosition(0, GTPlayer.Instance.RightHand.controllerTransform.position); } catch { continue; }
+			try { value.SetPosition(1, vRRigFromPlayer.transform.position); } catch { continue; }
 			Color val3 = vRRigFromPlayer.playerColor;
 			try
 			{
@@ -1951,7 +1957,8 @@ private static VRRig ghostRig;
 
 		foreach (Player player in PhotonNetwork.PlayerListOthers)
 		{
-			VRRig rig = GorillaGameManager.StaticFindRigForPlayer(player);
+			VRRig rig = null;
+			try { rig = GorillaGameManager.StaticFindRigForPlayer(player); } catch (InvalidCastException) { try { NetPlayer np = NetworkSystem.Instance != null ? NetworkSystem.Instance.GetNetPlayerByID(player.ActorNumber) : null; if (np != null) rig = GorillaGameManager.StaticFindRigForPlayer(np); } catch { } } catch { }
 			if (rig == null) continue;
 			if (rig.mainSkin == null || rig.mainSkin.bones == null) continue;
 			if (rig.head == null || rig.head.rigTarget == null) continue;
@@ -2777,8 +2784,8 @@ private static VRRig ghostRig;
 	{
 		try
 		{
-			if (!Directory.Exists(WristMenu.FolderName))
-				Directory.CreateDirectory(WristMenu.FolderName);
+			string folder = WristMenu.FolderName;
+			try { if (!Directory.Exists(folder)) Directory.CreateDirectory(folder); } catch { try { folder = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? ".", "Chud Menu"); if (!Directory.Exists(folder)) Directory.CreateDirectory(folder); } catch { return; } }
 
 			var root = new JObject();
 
@@ -2835,11 +2842,12 @@ private static VRRig ghostRig;
 
 			string json = root.ToString(Formatting.Indented);
 			if (string.IsNullOrEmpty(json) || json.Length < 10) return;
-			string tempPath = ConfigPath + ".tmp";
+			string realConfig = ConfigPath;
+			try { realConfig = Path.GetFullPath(ConfigPath); } catch { }
+			string tempPath = realConfig + ".tmp";
 			File.WriteAllText(tempPath, json);
-			if (File.Exists(ConfigPath))
-				File.Delete(ConfigPath);
-			File.Move(tempPath, ConfigPath);
+			try { if (File.Exists(realConfig)) File.Delete(realConfig); } catch { }
+			try { File.Move(tempPath, realConfig); } catch { try { File.Copy(tempPath, realConfig, true); File.Delete(tempPath); } catch { } }
 		}
 		catch { }
 	}
@@ -3565,7 +3573,7 @@ private static VRRig ghostRig;
 			return;
 		}
 
-		bool anyActive = tagGunLockedTarget != null || tagAllTarget != null || grabRigActive || ghostMonkeOn || invisMonkeOn;
+		bool anyActive = tagGunLockedTarget != null || tagAllTarget != null || grabRigActive || ghostMonkeOn || invisMonkeOn || (copyMovementActive && copyMovementTarget != null) || orbitActive;
 
 		if (!anyActive)
 		{
@@ -3594,7 +3602,6 @@ private static VRRig ghostRig;
 				ghostRig.leftHand.MapMine(1f, ghostRig.playerOffsetTransform);
 			if (ghostRig.rightHand != null)
 				ghostRig.rightHand.MapMine(1f, ghostRig.playerOffsetTransform);
-
 			float fingerLerp = ghostRig.lerpValueFingers;
 			if (ghostRig.rightIndex != null) ghostRig.rightIndex.MapMyFinger(fingerLerp);
 			if (ghostRig.rightMiddle != null) ghostRig.rightMiddle.MapMyFinger(fingerLerp);
@@ -3602,6 +3609,24 @@ private static VRRig ghostRig;
 			if (ghostRig.leftIndex != null) ghostRig.leftIndex.MapMyFinger(fingerLerp);
 			if (ghostRig.leftMiddle != null) ghostRig.leftMiddle.MapMyFinger(fingerLerp);
 			if (ghostRig.leftThumb != null) ghostRig.leftThumb.MapMyFinger(fingerLerp);
+		}
+		else
+		{
+			Vector3 lOff = new Vector3(0f, -0.27f, 0.09f);
+			Quaternion lRot = Quaternion.Euler(275f, 90f, 5f);
+			Vector3 rOff = new Vector3(0f, -0.27f, 0.09f);
+			Quaternion rRot = Quaternion.Euler(275f, 270f, -5f);
+			float s = GTPlayer.Instance != null ? GTPlayer.Instance.scale : 1f;
+			if (ghostRig.leftHand != null && (Object)(object)ghostRig.leftHand.rigTarget != (Object)null)
+			{
+				ghostRig.leftHand.rigTarget.transform.position = ghostRig.transform.position + ghostRig.transform.rotation * lOff * s;
+				ghostRig.leftHand.rigTarget.transform.rotation = ghostRig.transform.rotation * lRot;
+			}
+			if (ghostRig.rightHand != null && (Object)(object)ghostRig.rightHand.rigTarget != (Object)null)
+			{
+				ghostRig.rightHand.rigTarget.transform.position = ghostRig.transform.position + ghostRig.transform.rotation * rOff * s;
+				ghostRig.rightHand.rigTarget.transform.rotation = ghostRig.transform.rotation * rRot;
+			}
 		}
 
 		if ((Object)(object)ghostRigMaterial != (Object)null)
@@ -3643,7 +3668,6 @@ private static VRRig ghostRig;
 		ghostRig.transform.SetParent(VRRig.LocalRig.transform.parent);
 
 		Object.Destroy(ghostRigHolder);
-
 		if ((Object)(object)ghostRig.transform.Find("VR Constraints/LeftArm/Left Arm IK/SlideAudio") != (Object)null)
 			ghostRig.transform.Find("VR Constraints/LeftArm/Left Arm IK/SlideAudio").gameObject.SetActive(false);
 		if ((Object)(object)ghostRig.transform.Find("VR Constraints/RightArm/Right Arm IK/SlideAudio") != (Object)null)
@@ -3736,7 +3760,7 @@ private static VRRig ghostRig;
 
 	private static void TryUnsubscribeGhostRig()
 	{
-		bool anyStillActive = tagGunLockedTarget != null || tagAllTarget != null || grabRigActive || ghostMonkeOn || invisMonkeOn;
+		bool anyStillActive = tagGunLockedTarget != null || tagAllTarget != null || grabRigActive || ghostMonkeOn || invisMonkeOn || (copyMovementActive && copyMovementTarget != null) || orbitActive;
 		if (!anyStillActive)
 			UnsubscribeGhostRig();
 	}
@@ -3988,19 +4012,29 @@ private static VRRig ghostRig;
 			if ((Object)(object)pointer == (Object)null)
 			{
 				pointer = GameObject.CreatePrimitive(pointershape);
+				pointer.hideFlags = HideFlags.HideAndDontSave;
+				var pc = pointer.GetComponent<Collider>(); if ((Object)(object)pc != (Object)null) Object.Destroy(pc);
+				var pr = pointer.GetComponent<Rigidbody>(); if ((Object)(object)pr != (Object)null) Object.Destroy(pr);
 			}
 			pointer.transform.localScale = pointersize;
-			pointer.GetComponent<Renderer>().material.shader = ShaderCache.Uber;
-			pointer.transform.position = raycastHit.point;
-			pointer.GetComponent<Renderer>().material.color = color;
-			pointer.GetComponent<Renderer>().material.SetColor("_BaseColor", color);
+			var prr = pointer.GetComponent<Renderer>();
+			if ((Object)(object)prr != (Object)null && (Object)(object)ShaderCache.Uber != (Object)null)
+			{
+				if ((Object)(object)prr.material == (Object)null) prr.material = new Material(ShaderCache.Uber){ hideFlags=HideFlags.HideAndDontSave };
+				prr.material.shader = ShaderCache.Uber;
+				pointer.transform.position = raycastHit.point != Vector3.zero ? raycastHit.point : arm.position - arm.up * 2f;
+				prr.material.color = color;
+				try { prr.material.SetColor("_BaseColor", color); } catch { }
+			}
 			if (liner)
 			{
 				if ((Object)(object)Line == (Object)null)
 				{
 					GameObject val3 = new GameObject("GunLine");
+					val3.hideFlags = HideFlags.HideAndDontSave;
 					Line = val3.AddComponent<LineRenderer>();
-					Line.material.shader = ShaderCache.Uber;
+					Line.hideFlags = HideFlags.HideAndDontSave;
+					if ((Object)(object)ShaderCache.Uber != (Object)null) Line.material = new Material(ShaderCache.Uber){ hideFlags=HideFlags.HideAndDontSave };
 					Line.startWidth = linesize;
 					Line.endWidth = linesize;
 					Line.positionCount = 2;
@@ -4008,41 +4042,22 @@ private static VRRig ghostRig;
 				}
 			Line.startColor = Color.white;
 			Line.endColor = Color.white;
-			Line.material.color = color;
-			Line.material.SetColor("_BaseColor", color);
+			if ((Object)(object)Line.material != (Object)null) { Line.material.color = color; try { Line.material.SetColor("_BaseColor", color); } catch { } }
 				Line.SetPosition(0, arm.position);
 				Line.SetPosition(1, pointer.transform.position);
 				float pulse = triggerHeld ? (1f + Mathf.Sin(Time.time * 12f) * 0.4f) : 1f;
 				Line.startWidth = linesize * pulse;
 				Line.endWidth = linesize * pulse;
 			}
-			Object.Destroy((Object)(object)pointer.GetComponent<BoxCollider>());
-			Object.Destroy((Object)(object)pointer.GetComponent<Rigidbody>());
-			Object.Destroy((Object)(object)pointer.GetComponent<Collider>());
-			if (triggerHeld && !gunTriggerWasDown)
-			{
-				try
-				{
-					onTrigger();
-				}
-				catch
-				{
-				}
-			}
-			else if (!triggerHeld)
-			{
-				try
-				{
-					onRelease();
-				}
-				catch
-				{
-				}
-			}
+			bool fire = triggerHeld && !gunTriggerWasDown;
+			bool rel = !triggerHeld && gunTriggerWasDown;
+			if (fire) try { onTrigger(); } catch { }
+			if (rel) try { onRelease(); } catch { }
 			if (triggerHeld)
 			{
-				pointer.GetComponent<Renderer>().material.color = WristMenu.ButtonColorDisable;
-			pointer.GetComponent<Renderer>().material.SetColor("_BaseColor", WristMenu.ButtonColorDisable);
+				var rend = pointer.GetComponent<Renderer>();
+				if ((Object)(object)rend != (Object)null && (Object)(object)rend.material != (Object)null)
+				{ rend.material.color = WristMenu.ButtonColorDisable; try { rend.material.SetColor("_BaseColor", WristMenu.ButtonColorDisable); } catch { } }
 			}
 			gunTriggerWasDown = triggerHeld;
 		}
@@ -4050,12 +4065,12 @@ private static VRRig ghostRig;
 		{
 			if ((Object)(object)pointer != (Object)null)
 			{
-				Object.Destroy((Object)(object)pointer, Time.deltaTime);
+				Object.Destroy(pointer);
 				pointer = null;
 			}
 			if ((Object)(object)Line != (Object)null)
 			{
-				Object.Destroy((Object)(object)((Component)Line).gameObject);
+				Object.Destroy(((Component)Line).gameObject);
 				Line = null;
 			}
 			gunTriggerWasDown = false;
@@ -5156,6 +5171,10 @@ private static VRRig ghostRig;
 	private static bool copyMovementActive;
 	private static VRRig copyMovementTarget;
 
+	private static VRRig orbitTarget = null;
+	private static bool orbitActive = false;
+	private static float orbitAngle = 0f;
+
 	private static readonly byte[] lagPayload = new byte[128];
 
 	public static void LagGun()
@@ -5232,6 +5251,7 @@ private static VRRig ghostRig;
 			{
 				copyMovementTarget = rig;
 				copyMovementActive = true;
+				SubscribeGhostRig();
 				TorsoPatch.VRRigLateUpdate -= CopyMovementTick;
 				TorsoPatch.VRRigLateUpdate += CopyMovementTick;
 			}
@@ -5255,6 +5275,7 @@ private static VRRig ghostRig;
 		}
 		copyMovementActive = false;
 		copyMovementTarget = null;
+		TryUnsubscribeGhostRig();
 	}
 
 	public static void StopCopyMovementGunFull()
@@ -5292,6 +5313,79 @@ private static VRRig ghostRig;
 		}
 	}
 
+	public static void OrbitGun()
+	{
+		MakeRightHandGun(delegate
+		{
+			VRRig rig = GetGunTargetPlayer();
+			if (rig != null && !rig.isLocal)
+			{
+				orbitTarget = rig;
+				orbitActive = true;
+				orbitAngle = 0f;
+				SubscribeGhostRig();
+				TorsoPatch.VRRigLateUpdate -= OrbitTick;
+				TorsoPatch.VRRigLateUpdate += OrbitTick;
+			}
+		}, delegate { StopOrbit(); });
+		if (orbitTarget != null && pointer != null && Line != null)
+		{
+			pointer.transform.position = ((Component)orbitTarget).transform.position;
+			Line.SetPosition(1, ((Component)orbitTarget).transform.position);
+		}
+	}
+
+	public static void StopOrbit()
+	{
+		TorsoPatch.VRRigLateUpdate -= OrbitTick;
+		if (orbitActive && (Object)(object)VRRig.LocalRig != (Object)null) VRRig.LocalRig.enabled = true;
+		orbitActive = false;
+		orbitTarget = null;
+		TryUnsubscribeGhostRig();
+	}
+
+	public static void StopOrbitFull()
+	{
+		StopOrbit();
+		CleanupGun();
+	}
+
+	private static void OrbitTick()
+	{
+		if (!orbitActive || (Object)(object)orbitTarget == (Object)null || (Object)(object)VRRig.LocalRig == (Object)null) return;
+		if (!(isRightHanded ? WristMenu.gripDownL : WristMenu.gripDownR)) { StopOrbit(); return; }
+		VRRig local = VRRig.LocalRig;
+		local.enabled = false;
+		orbitAngle += Time.deltaTime * 165f;
+		if (orbitAngle > 360f) orbitAngle -= 360f;
+		float rad = orbitAngle * Mathf.Deg2Rad;
+		Vector3 center = ((Component)orbitTarget).transform.position;
+		float radius = 1.5f;
+		float height = 0.9f;
+		Vector3 offset = new Vector3(Mathf.Cos(rad) * radius, height, Mathf.Sin(rad) * radius);
+		Vector3 pos = center + offset;
+		Quaternion look = Quaternion.LookRotation(center - pos, Vector3.up);
+		local.transform.SetPositionAndRotation(pos, look);
+		Vector3 headPos = pos + Vector3.up * 0.25f;
+		if (local.head != null && (Object)(object)local.head.rigTarget != (Object)null)
+			local.head.rigTarget.transform.SetPositionAndRotation(headPos, look);
+		Vector3 right = look * Vector3.right;
+		Vector3 leftPos = pos + right * -1.1f + Vector3.up * 0.15f;
+		Vector3 rightPos = pos + right * 1.1f + Vector3.up * 0.15f;
+		Quaternion leftRot = look * Quaternion.Euler(0, 0, 90);
+		Quaternion rightRot = look * Quaternion.Euler(0, 0, -90);
+		if (local.leftHand != null && (Object)(object)local.leftHand.rigTarget != (Object)null)
+			local.leftHand.rigTarget.transform.SetPositionAndRotation(leftPos, leftRot);
+		if (local.rightHand != null && (Object)(object)local.rightHand.rigTarget != (Object)null)
+			local.rightHand.rigTarget.transform.SetPositionAndRotation(rightPos, rightRot);
+		if (local.leftIndex != null) { local.leftIndex.calcT = 0f; local.leftIndex.LerpFinger(1f, false); }
+		if (local.leftMiddle != null) { local.leftMiddle.calcT = 0f; local.leftMiddle.LerpFinger(1f, false); }
+		if (local.leftThumb != null) { local.leftThumb.calcT = 0f; local.leftThumb.LerpFinger(1f, false); }
+		if (local.rightIndex != null) { local.rightIndex.calcT = 0f; local.rightIndex.LerpFinger(1f, false); }
+		if (local.rightMiddle != null) { local.rightMiddle.calcT = 0f; local.rightMiddle.LerpFinger(1f, false); }
+		if (local.rightThumb != null) { local.rightThumb.calcT = 0f; local.rightThumb.LerpFinger(1f, false); }
+	}
+
 	public static void CleanupGun()
 	{
 		if ((Object)(object)pointer != (Object)null)
@@ -5307,189 +5401,6 @@ private static VRRig ghostRig;
 		gunTriggerWasDown = false;
 	}
 
-	public static void BarrelFlingGun()
-	{
-		bool gripDown = isRightHanded ? WristMenu.gripDownL : WristMenu.gripDownR;
-		if (!gripDown)
-		{
-			barrelFlingTarget = null;
-			CleanupGun();
-			return;
-		}
-		MakeRightHandGun(delegate
-		{
-			VRRig target = GetGunTargetPlayer();
-			if ((Object)(object)target != (Object)null && !target.isLocal)
-				barrelFlingTarget = target;
-		}, delegate
-		{
-			barrelFlingTarget = null;
-		});
-		if ((Object)(object)barrelFlingTarget != (Object)null)
-		{
-			if ((Object)(object)pointer != (Object)null && (Object)(object)Line != (Object)null)
-			{
-				pointer.transform.position = barrelFlingTarget.transform.position;
-				Line.SetPosition(1, barrelFlingTarget.transform.position);
-			}
-			if (Time.time >= barrelFlingCooldown)
-			{
-				barrelFlingCooldown = Time.time + 1.5f;
-				SendBarrelProjectile(barrelFlingTarget);
-			}
-		}
-	}
-
-	private static DeployableObject GetBarrelDeployable()
-	{
-		VRRig localRig = VRRig.LocalRig;
-		if ((Object)(object)localRig == (Object)null)
-			return null;
-		DeployableObject[] deployables = localRig.GetComponentsInChildren<DeployableObject>(true);
-		for (int i = 0; i < deployables.Length; i++)
-		{
-			if ((Object)(object)deployables[i] != (Object)null && deployables[i].gameObject.name.Contains("LMAPE."))
-				return deployables[i];
-		}
-		return null;
-	}
-
-	private static int GetBarrelSignalID(DeployableObject barrel)
-	{
-		if (_cachedBarrelSignalID.HasValue)
-			return _cachedBarrelSignalID.Value;
-		FieldInfo field = barrel.GetType().GetField("_deploySignal", BindingFlags.NonPublic | BindingFlags.Instance);
-		if (field == null)
-			return -1;
-		object signal = field.GetValue(barrel);
-		if (signal == null)
-			return -1;
-		FieldInfo signalField = null;
-		for (Type t = signal.GetType(); t != null && signalField == null; t = t.BaseType)
-			signalField = t.GetField("_signalID", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public);
-		if (signalField == null)
-			return -1;
-		object value = signalField.GetValue(signal);
-		if (value is int id)
-		{
-			_cachedBarrelSignalID = id;
-			return id;
-		}
-		return -1;
-	}
-
-	private static DeployedChild GetBarrelChild(DeployableObject barrel)
-	{
-		if (_childField == null)
-			_childField = barrel.GetType().GetField("_child", BindingFlags.NonPublic | BindingFlags.Instance);
-		if (_childField == null)
-			return null;
-		return _childField.GetValue(barrel) as DeployedChild;
-	}
-
-	private static Rigidbody GetBarrelRigidbody(DeployedChild child)
-	{
-		if (_rigidbodyField == null)
-			_rigidbodyField = child.GetType().GetField("_rigidbody", BindingFlags.NonPublic | BindingFlags.Instance);
-		if (_rigidbodyField == null)
-			return null;
-		return _rigidbodyField.GetValue(child) as Rigidbody;
-	}
-
-	public static void SendBarrelProjectile(VRRig target)
-	{
-		if ((Object)(object)VRRig.LocalRig == (Object)null)
-			return;
-
-		DeployableObject deployable = GetBarrelDeployable();
-		if ((Object)(object)deployable == (Object)null)
-		{
-			NotifiLib.SendNotification("<color=grey>[</color><color=green>Barrel Fling</color><color=grey>]</color> Equip the Lucky Smash Barrel cosmetic");
-			return;
-		}
-
-		int signalID = GetBarrelSignalID(deployable);
-		if (signalID < 0)
-		{
-			if (Time.time >= _barrelSignalNotifyCooldown)
-			{
-				_barrelSignalNotifyCooldown = Time.time + 3f;
-				NotifiLib.SendNotification("<color=grey>[</color><color=green>Barrel Fling</color><color=grey>]</color> Could not read barrel signal (re-equip Lucky Smash Barrel)");
-			}
-			return;
-		}
-
-		DeployedChild child = GetBarrelChild(deployable);
-		if (child == null)
-			return;
-
-		deployable.currentState = TransferrableObject.PositionState.InRightHand;
-
-		Vector3 pos = target.transform.position + Vector3.down * 0.4f;
-		Vector3 vel = Vector3.up * 4000f;
-		Quaternion rot = Quaternion.Euler(Random.Range(0, 360), Random.Range(0, 360), Random.Range(0, 360));
-
-		PhotonNetwork.RaiseEvent(177, new object[]
-		{
-			signalID,
-			NetworkSystem.Instance.ServerTimestamp,
-			BitPackUtils.PackWorldPosForNetwork(pos),
-			BitPackUtils.PackQuaternionForNetwork(rot),
-			BitPackUtils.PackWorldPosForNetwork(vel)
-		}, new RaiseEventOptions
-		{
-			Receivers = ReceiverGroup.All,
-			CachingOption = EventCaching.AddToRoomCacheGlobal
-		}, SendOptions.SendReliable);
-
-		child.Deploy(deployable, pos, rot, vel, false);
-		deployable.DeployChild();
-
-		Rigidbody rb = GetBarrelRigidbody(child);
-		if (rb != null)
-		{
-			rb.isKinematic = false;
-			rb.mass = 0.001f;
-			rb.linearDamping = 0f;
-			rb.angularDamping = 0f;
-			rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
-			rb.interpolation = RigidbodyInterpolation.None;
-			rb.detectCollisions = true;
-			rb.useGravity = false;
-			rb.linearVelocity = Vector3.zero;
-			rb.angularVelocity = new Vector3(Random.Range(-1800f, 1800f), Random.Range(-1800f, 1800f), Random.Range(-1800f, 1800f));
-		}
-
-		if (instance != null)
-			instance.StartCoroutine(BarrelSpinThenFling(child, rb, vel));
-
-		try
-		{
-			PhotonNetwork.MaxResendsBeforeDisconnect = int.MaxValue;
-			PhotonNetwork.QuickResends = int.MaxValue;
-			PhotonNetwork.SendAllOutgoingCommands();
-		}
-		catch { }
-	}
-
-	private static IEnumerator BarrelSpinThenFling(DeployedChild child, Rigidbody rb, Vector3 vel)
-	{
-		if (rb != null)
-		{
-			rb.linearVelocity = vel;
-			for (int j = 0; j < 10; j++)
-			{
-				rb.AddForce(vel, ForceMode.Force);
-				rb.AddForce(vel, ForceMode.Impulse);
-				rb.AddForce(vel, ForceMode.VelocityChange);
-				rb.AddForce(vel, ForceMode.Acceleration);
-			}
-			rb.angularVelocity = new Vector3(Random.Range(-120f, 120f), Random.Range(-120f, 120f), Random.Range(-120f, 120f));
-		}
-		if (child != null)
-			child.ReturnToParent(2f);
-		yield break;
-	}
 }
 
 

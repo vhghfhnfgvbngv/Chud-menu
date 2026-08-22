@@ -221,12 +221,13 @@ public class NotifiLib : MonoBehaviour
 		{
 			return;
 		}
-		int num = text.IndexOf("] ");
-		if (num >= 0)
+		if (text.StartsWith("<color=") || text.StartsWith("["))
 		{
-			text = text.Substring(num + 2);
+			int num = text.IndexOf("] ");
+			if (num >= 0 && num < 20) text = text.Substring(num + 2);
 		}
 		string plainText = Regex.Replace(text, "<[^>]*>", "").Trim();
+		if (plainText.Length > 120) plainText = plainText.Substring(0, 120);
 		string richText = "<color=green>[Noti]</color> - " + plainText;
 
 		if (IsDesktopMode())

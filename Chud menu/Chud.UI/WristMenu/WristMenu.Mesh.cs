@@ -60,9 +60,13 @@ internal partial class WristMenu
 		}
 	}
 
+	private static readonly Dictionary<string, Mesh> _roundedMeshCache = new Dictionary<string, Mesh>();
 	internal static Mesh GenerateRoundedRectMesh(float width, float height, float radius, int cornerSegments, float depth)
 	{
+		string key = width + ":" + height + ":" + radius + ":" + cornerSegments + ":" + depth;
+		if (_roundedMeshCache.TryGetValue(key, out var cached) && (Object)(object)cached != (Object)null) return cached;
 		Mesh mesh = new Mesh();
+		mesh.hideFlags = HideFlags.HideAndDontSave;
 		float hw = width * 0.5f;
 		float hh = height * 0.5f;
 		float hd = depth * 0.5f;
@@ -142,6 +146,7 @@ internal partial class WristMenu
 		mesh.SetTriangles(tris, 0);
 		mesh.RecalculateNormals();
 		mesh.RecalculateBounds();
+		_roundedMeshCache[key] = mesh;
 		return mesh;
 	}
 }
